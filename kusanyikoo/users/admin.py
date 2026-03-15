@@ -18,6 +18,12 @@ class UserAdmin(DjangoUserAdmin):
 	)
 	list_filter = ('role', 'status', 'is_staff', 'is_superuser', 'is_active')
 	search_fields = ('username', 'email', 'first_name', 'last_name')
+	fieldsets = DjangoUserAdmin.fieldsets + (
+		('Kusanyiko Profile', {'fields': ('role', 'status', 'country', 'region')}),
+	)
+	add_fieldsets = DjangoUserAdmin.add_fieldsets + (
+		('Kusanyiko Profile', {'fields': ('role', 'status', 'country', 'region')}),
+	)
 
 
 @admin.register(AuditLog)
