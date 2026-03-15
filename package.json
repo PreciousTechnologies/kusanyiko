@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build"
+  },
   "devDependencies": {
     "cross-env": "^10.0.0"
   }
