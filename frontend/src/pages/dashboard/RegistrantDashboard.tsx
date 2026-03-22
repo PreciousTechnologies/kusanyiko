@@ -269,21 +269,21 @@ const RegistrantDashboard: React.FC = () => {
               Welcome, {user?.first_name || user?.username}!
             </h1>
             <p className="text-gray-600 text-lg">
-              EFATHA Registration Campaign • Your registration dashboard
+              EFATHA Leaders' Camp • Your registration dashboard
             </p>
           </div>
           <div className="flex items-center space-x-3 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-3 rounded-xl border border-green-200">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
-            <span className="text-green-700 font-semibold text-sm">Campaign Active</span>
+            <span className="text-green-700 font-semibold text-sm">Camp Registration Active</span>
           </div>
         </div>
       </div>
 
-      {/* Campaign Information with Green Accent */}
+      {/* Leaders' Camp Information with Green Accent */}
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl shadow-lg border border-green-100 p-6 hover:shadow-xl transition-all duration-300">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-green-800 mb-2">Campaign Information</h2>
+            <h2 className="text-xl font-bold text-green-800 mb-2">Leaders' Camp Information</h2>
             <p className="text-green-700 font-medium">{campaignInfo.startDate} - {campaignInfo.endDate}</p>
             <p className="text-green-600 text-sm mt-1 flex items-center">
               <span className="text-lg mr-1">📍</span> {campaignInfo.location}

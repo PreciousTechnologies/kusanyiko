@@ -65,7 +65,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isSidebarOpen }) => {
           <div className="flex items-center space-x-3">
             <div className="flex flex-col">
               <h1 className="text-lg font-bold text-green-700">We Bring The 🌍To Jesus</h1>
-              <p className="text-xs text-gray-600 font-medium">EFATHA Member Registration</p>
+              <p className="text-xs text-gray-600 font-medium">EFATHA Leaders' Camp Registration • Kibaha</p>
             </div>
           </div>
 

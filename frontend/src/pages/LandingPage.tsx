@@ -17,8 +17,8 @@ const LandingPage = () => {
               <img src={`${process.env.PUBLIC_URL}/image.png`} alt="Efatha Members logo" className="landing-logo-image" />
             </div>
             <div className="landing-logo-text">
-              <h1>Kusanyiko</h1>
-              <p>Efatha Church Leaders' Camp</p>
+              <h1>Efatha Leaders' Camp</h1>
+              <p>Kibaha Leadership Registration Portal</p>
             </div>
           </div>
           <nav className="landing-nav">
@@ -32,15 +32,15 @@ const LandingPage = () => {
       <section className="landing-hero">
         <div className="landing-hero-content">
           <h1 className="hero-title">
-            Join the Annual{' '}
+            Welcome to{' '}
             <span className="hero-title-gradient">
-              Kusanyiko
+              Efatha Leaders' Camp
             </span>{' '}
-            Gathering
+            Registration
           </h1>
           <p className="hero-description">
-            Experience spiritual renewal and transformation at Efatha Church's Annual Gathering. 
-            Join believers from across regions for worship, teaching, and ministry at Precious Centre, Kibaha.
+            Register church leaders for the Kibaha camp where spiritual services are ministered
+            by Apostle and Prophet Josephat Elias Mwingira at Precious Centre, Kibaha.
           </p>
 
           {/* Gathering Info Cards */}
@@ -52,7 +52,7 @@ const LandingPage = () => {
                 </svg>
               </div>
               <div className="stat-number">5 Days</div>
-              <div className="stat-label">Annual Event</div>
+              <div className="stat-label">Leaders' Camp</div>
             </div>
             <div className="stat-card">
               <div className="stat-icon">
@@ -70,7 +70,7 @@ const LandingPage = () => {
                 </svg>
               </div>
               <div className="stat-number">All</div>
-              <div className="stat-label">Believers Welcome</div>
+              <div className="stat-label">Church Leaders</div>
             </div>
           </div>
         </div>
@@ -95,9 +95,9 @@ const LandingPage = () => {
                 Registration Info
               </h3>
               <p style={{ color: '#d1d5db', lineHeight: '1.6', margin: '0' }}>
-                Join believers from different regions and branches. Registration is required 
-                for the full gathering experience. Come expectant for God's transformative word 
-                and fresh vision for your spiritual journey.
+                Register church leaders from different regions and branches for this special
+                Kibaha camp. Ensure each leader's details are complete to support smooth
+                coordination, ministry planning, and event participation.
               </p>
             </div>
           </div>

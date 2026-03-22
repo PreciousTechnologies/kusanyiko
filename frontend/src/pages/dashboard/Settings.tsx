@@ -55,8 +55,8 @@ const Settings: React.FC = () => {
   const [showPasswords, setShowPasswords] = useState(false);
 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
-    siteName: 'Kusanyiko Church Management',
-    siteDescription: 'Comprehensive church member management system',
+    siteName: 'Efatha Leaders\' Camp Registration',
+    siteDescription: 'Church leaders\' camp registration and coordination system for Kibaha',
     adminEmail: 'admin@church.com',
     allowRegistration: true,
     requireEmailVerification: false,

@@ -434,12 +434,12 @@ const AdminDashboard: React.FC = () => {
               Welcome back, {user?.first_name || user?.username}!
             </h1>
             <p className="text-gray-600 text-lg">
-              EFATHA Registration Campaign Dashboard • October 6-12, 2025
+              EFATHA Leaders' Camp Dashboard • October 6-12, 2025
             </p>
           </div>
           <div className="flex items-center space-x-3 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-3 rounded-xl border border-green-200">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
-            <span className="text-green-700 font-semibold text-sm">Campaign Active</span>
+            <span className="text-green-700 font-semibold text-sm">Camp Registration Active</span>
           </div>
         </div>
       </div>
