@@ -10,6 +10,7 @@ import {
   ChartPieIcon,
   CloudArrowDownIcon,
   ShieldCheckIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
 import { useAppSelector } from '../../hooks/redux';
 import { useBranding } from '../../context/BrandingContext';
@@ -45,6 +46,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       section: 'ADMINISTRATION',
       items: [
         { name: 'User Management', href: '/admin/users', icon: ShieldCheckIcon, description: 'Manage registrants & permissions' },
+      ],
+    },
+    {
+      section: 'CUSTOMIZATION',
+      items: [
+        { name: 'Branding & Theme', href: '/admin/settings', icon: Cog6ToothIcon, description: 'Edit camp branding and landing content' },
       ],
     },
   ];
