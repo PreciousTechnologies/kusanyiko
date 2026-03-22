@@ -3381,3 +3381,126 @@
     background-clip: text;
   }
 }
+
+/* Unified desktop-style member layouts across all screen sizes */
+.members-list-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (max-width: 1023px) {
+  .members-grid-desktop {
+    padding: 0;
+    gap: 0.875rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+
+  .member-card-desktop-compact {
+    min-height: auto;
+    border-radius: 14px;
+    padding: 0.875rem;
+  }
+
+  .member-name-compact {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
+  }
+
+  .member-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .member-list-item-desktop {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    transform: none;
+  }
+
+  .member-list-item-desktop:hover {
+    transform: translateY(-1px);
+  }
+
+  .member-list-profile-desktop {
+    margin-right: 0;
+  }
+
+  .member-list-info-desktop {
+    grid-template-columns: 1fr;
+    gap: 0.375rem;
+  }
+
+  .member-list-name-desktop {
+    font-size: 0.95rem;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  .member-list-detail-desktop {
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .member-list-actions-desktop {
+    margin-left: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .member-status-desktop {
+    width: fit-content;
+  }
+
+  .view-mode-toggle-desktop {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .view-mode-btn-desktop {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .members-grid-desktop {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .member-card-header-compact {
+    align-items: center;
+  }
+
+  .member-profile-section {
+    gap: 0.625rem;
+  }
+
+  .member-basic-info {
+    flex-wrap: wrap;
+  }
+
+  .church-location {
+    flex-wrap: wrap;
+  }
+
+  .member-card-footer-compact {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .member-actions-compact {
+    margin-left: auto;
+  }
+
+  .action-btn,
+  .member-action-btn-desktop {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}

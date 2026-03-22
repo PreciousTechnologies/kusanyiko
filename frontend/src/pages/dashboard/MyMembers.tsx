@@ -737,52 +737,26 @@ const MyMembers: React.FC = () => {
                 <ChevronDownIcon className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ml-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
               </button>
 
-              {!isMobile && (
-                <div className="view-mode-toggle-desktop enhanced">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`view-mode-btn-desktop enhanced ${
-                      viewMode === 'grid' ? 'active' : ''
-                    }`}
-                  >
-                    <Squares2X2Icon className="h-4 w-4" />
-                    Grid
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`view-mode-btn-desktop enhanced ${
-                      viewMode === 'list' ? 'active' : ''
-                    }`}
-                  >
-                    <ListBulletIcon className="h-4 w-4" />
-                    List
-                  </button>
-                </div>
-              )}
-
-              {/* Enhanced Mobile View Mode Toggle */}
-              {isMobile && (
-                <div className="view-mode-toggle-mobile enhanced">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`view-mode-btn-mobile enhanced ${
-                      viewMode === 'grid' ? 'active' : ''
-                    }`}
-                  >
-                    <Squares2X2Icon className="h-4 w-4" />
-                    Cards
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`view-mode-btn-mobile enhanced ${
-                      viewMode === 'list' ? 'active' : ''
-                    }`}
-                  >
-                    <ListBulletIcon className="h-4 w-4" />
-                    List
-                  </button>
-                </div>
-              )}
+              <div className="view-mode-toggle-desktop enhanced w-full sm:w-auto">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`view-mode-btn-desktop enhanced ${
+                    viewMode === 'grid' ? 'active' : ''
+                  }`}
+                >
+                  <Squares2X2Icon className="h-4 w-4" />
+                  Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`view-mode-btn-desktop enhanced ${
+                    viewMode === 'list' ? 'active' : ''
+                  }`}
+                >
+                  <ListBulletIcon className="h-4 w-4" />
+                  List
+                </button>
+              </div>
             </div>
           </div>
 
@@ -940,37 +914,13 @@ const MyMembers: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className={
-            viewMode === 'grid'
-              ? (isMobile ? 'px-4 space-y-6' : 'members-grid-desktop')
-              : (isMobile ? 'px-4 space-y-4' : 'space-y-2')
-          }>
+          <div className={viewMode === 'grid' ? 'members-grid-desktop' : 'members-list-responsive'}>
             {displayedMembers.map((member) => 
-              viewMode === 'grid' 
-                ? (isMobile 
-                    ? <MemberCardMobile key={member.id} member={member} />
-                    : <MemberCard key={member.id} member={member} />
-                  )
-                : (isMobile 
-                    ? <MemberListItemMobile key={member.id} member={member} />
-                    : <MemberListItem key={member.id} member={member} />
-                  )
+              viewMode === 'grid'
+                ? <MemberCard key={member.id} member={member} />
+                : <MemberListItem key={member.id} member={member} />
             )}
           </div>
-        )}
-
-        {/* Mobile Floating Action Button */}
-        {isMobile && (
-          <button
-            onClick={() => {
-              const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-              navigate(`${basePath}/members/add`);
-            }}
-            className="mobile-fab animate-bounce"
-            aria-label="Add new member"
-          >
-            <PlusIcon className="h-6 w-6" />
-          </button>
         )}
       </div>
     </div>
