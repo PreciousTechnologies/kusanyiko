@@ -299,55 +299,56 @@ const RegistrantDashboard: React.FC = () => {
       </div>
 
       {/* Statistics Cards with Enhanced Green Theme */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {statCards.map((stat, index) => (
-          <div key={stat.title} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 group relative">
+          <div key={stat.title} className="bg-white rounded-lg sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-lg sm:hover:shadow-xl transition-all duration-300 group relative">
             {/* Live indicator */}
-            <div className="absolute top-3 right-3">
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
+              <div className="flex items-center gap-0.5 sm:gap-1">
+                <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-xs text-green-600 font-medium">LIVE</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                <p className="text-xs text-gray-500 mt-1">{stat.change}</p>
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1 truncate">{stat.title}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{stat.value}</p>
+                <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">{stat.change}</p>
               </div>
-              <div className="p-4 rounded-xl bg-white border-2 border-green-200 shadow-lg group-hover:scale-110 transition-transform duration-200 ring-4 ring-green-100">
-                <stat.icon className="h-8 w-8 text-green-600 drop-shadow-sm" strokeWidth={2} />
+              <div className="p-2 sm:p-4 rounded-lg sm:rounded-xl bg-white border-2 border-green-200 shadow-lg group-hover:scale-105 sm:group-hover:scale-110 transition-transform duration-200 ring-2 sm:ring-4 ring-green-100 flex-shrink-0">
+                <stat.icon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600 drop-shadow-sm" strokeWidth={2} />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         {/* Quick Actions with Enhanced Green Theme */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-8 rounded-full mr-3"></span>
+          <div className="bg-white rounded-lg sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-lg sm:hover:shadow-xl transition-all duration-300">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-6 sm:h-8 rounded-full"></span>
               Quick Actions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {quickActions.map((action) => (
                 <Link
                   key={action.title}
                   to={action.href}
-                  className="group p-5 border-2 border-gray-100 rounded-xl hover:border-green-200 hover:bg-green-50/50 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                  className="group p-3 sm:p-5 border-2 border-gray-100 rounded-lg sm:rounded-xl hover:border-green-200 hover:bg-green-50/50 transition-all duration-300 hover:shadow-lg"
+                  title={action.title}
                 >
-                  <div className="flex items-start space-x-4">
-                    <div className="p-3 rounded-xl bg-white border-2 border-green-200 group-hover:scale-110 transition-transform duration-200 shadow-lg ring-4 ring-green-100">
-                      <action.icon className="h-8 w-8 text-green-600 drop-shadow-sm" strokeWidth={2} />
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-white border-2 border-green-200 group-hover:scale-105 sm:group-hover:scale-110 transition-transform duration-200 shadow-lg ring-2 sm:ring-4 ring-green-100 flex-shrink-0">
+                      <action.icon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600 drop-shadow-sm" strokeWidth={2} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors duration-200 text-lg">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors duration-200 text-base sm:text-lg">
                         {action.title}
                       </h3>
-                      <p className="text-gray-600 mt-1">{action.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 line-clamp-2">{action.description}</p>
                     </div>
                   </div>
                 </Link>
@@ -355,27 +356,27 @@ const RegistrantDashboard: React.FC = () => {
             </div>
 
             {/* Registration Goal Progress with Green Theme */}
-            <div className="mt-8 p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-lg font-bold text-green-800">Daily Registration Goal</span>
-                <span className="text-lg font-semibold text-green-700 bg-white px-3 py-1 rounded-full">12 / 25</span>
+            <div className="mt-6 sm:mt-8 p-4 sm:p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg sm:rounded-xl border border-green-200">
+              <div className="flex justify-between items-center mb-2 sm:mb-3 gap-2">
+                <span className="text-base sm:text-lg font-bold text-green-800 truncate">Daily Registration Goal</span>
+                <span className="text-base sm:text-lg font-semibold text-green-700 bg-white px-2 sm:px-3 py-1 rounded-full text-sm sm:text-base flex-shrink-0">12 / 25</span>
               </div>
-              <div className="w-full bg-green-100 rounded-full h-3 shadow-inner">
-                <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full shadow-lg" style={{width: '48%'}}></div>
+              <div className="w-full bg-green-100 rounded-full h-2 sm:h-3 shadow-inner">
+                <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 sm:h-3 rounded-full shadow-lg" style={{width: '48%'}}></div>
               </div>
-              <p className="text-sm text-green-700 mt-2 font-medium">13 more registrations to reach daily goal 🎯</p>
+              <p className="text-xs sm:text-sm text-green-700 mt-1 sm:mt-2 font-medium">13 more registrations to reach daily goal 🎯</p>
             </div>
           </div>
         </div>
 
         {/* Recent Activity with Enhanced Green Theme */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-8 rounded-full mr-3"></span>
+          <div className="bg-white rounded-lg sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-lg sm:hover:shadow-xl transition-all duration-300">
+            <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-6 sm:h-8 rounded-full"></span>
               Recent Registrations
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {recentRegistrations.map((registration, index) => (
                 <div key={index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-green-50 hover:border-green-200 transition-all duration-200">
                   <div className="relative w-12 h-12 rounded-full overflow-hidden shadow-lg hover:ring-2 hover:ring-green-300 transition-all duration-200 hover:scale-105">

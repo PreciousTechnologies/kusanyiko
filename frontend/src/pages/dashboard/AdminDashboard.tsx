@@ -485,61 +485,62 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {statCards.map((stat, index) => (
-          <div key={stat.title} className={`bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 group ${stat.bgColor}/5 hover:${stat.bgColor}/10`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-sm font-semibold uppercase tracking-wide mb-1 ${stat.textColor}`}>{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 mt-1 flex items-center">
-                  {stat.title === 'New Today' && <ClockIcon className="w-3 h-3 mr-1 text-green-600" />}
-                  {stat.title === 'Total Members' && <TrophyIcon className="w-3 h-3 mr-1 text-green-600" />}
-                  {stat.title === 'Countries' && <SparklesIcon className="w-3 h-3 mr-1 text-green-600" />}
-                  {stat.title === 'Regions' && <BuildingOfficeIcon className="w-3 h-3 mr-1 text-green-600" />}
-                  {stat.change}
+          <div key={stat.title} className={`bg-white rounded-lg sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-lg sm:hover:shadow-xl transition-all duration-300 group ${stat.bgColor}/5 hover:${stat.bgColor}/10`}>
+            <div className="flex items-center justify-between gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <p className={`text-xs sm:text-sm font-semibold uppercase tracking-wide mb-1 ${stat.textColor} truncate`}>{stat.title}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{stat.value.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 flex items-center gap-1 truncate">
+                  {stat.title === 'New Today' && <ClockIcon className="w-3 h-3 text-green-600 flex-shrink-0" />}
+                  {stat.title === 'Total Members' && <TrophyIcon className="w-3 h-3 text-green-600 flex-shrink-0" />}
+                  {stat.title === 'Countries' && <SparklesIcon className="w-3 h-3 text-green-600 flex-shrink-0" />}
+                  {stat.title === 'Regions' && <BuildingOfficeIcon className="w-3 h-3 text-green-600 flex-shrink-0" />}
+                  <span className="truncate">{stat.change}</span>
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-white border-2 border-green-200 shadow-lg group-hover:scale-110 transition-transform duration-200 ring-4 ring-green-100">
-                {stat.title === 'Total Members' && <UsersIcon className="h-6 w-6 text-green-600" />}
-                {stat.title === 'New Today' && <UserPlusIcon className="h-6 w-6 text-green-600" />}
-                {stat.title === 'Countries' && <GlobeAltIcon className="h-6 w-6 text-green-600" />}
-                {stat.title === 'Regions' && <MapPinIcon className="h-6 w-6 text-green-600" />}
+              <div className="p-2 sm:p-4 rounded-lg sm:rounded-xl bg-white border-2 border-green-200 shadow-lg group-hover:scale-105 sm:group-hover:scale-110 transition-transform duration-200 ring-2 sm:ring-4 ring-green-100 flex-shrink-0">
+                {stat.title === 'Total Members' && <UsersIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
+                {stat.title === 'New Today' && <UserPlusIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
+                {stat.title === 'Countries' && <GlobeAltIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
+                {stat.title === 'Regions' && <MapPinIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         {/* Quick Actions with Enhanced Green Theme */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-8 rounded-full mr-3"></span>
+          <div className="bg-white rounded-lg sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-lg sm:hover:shadow-xl transition-all duration-300">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-6 sm:h-8 rounded-full"></span>
               Quick Actions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {quickActions.map((action) => (
                 <Link
                   key={action.title}
                   to={action.href}
-                  className="group p-5 border-2 border-gray-100 rounded-xl hover:border-gray-200 hover:bg-gray-50/50 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                  className="group p-3 sm:p-5 border-2 border-gray-100 rounded-lg sm:rounded-xl hover:border-gray-200 hover:bg-gray-50/50 transition-all duration-300 hover:shadow-lg"
+                  title={action.title}
                 >
-                  <div className="flex items-start space-x-4">
-                    <div className="p-3 rounded-xl bg-white border-2 border-green-200 group-hover:scale-110 transition-all duration-200 shadow-lg ring-4 ring-green-100">
-                      {action.title === 'Add New Member' && <UserPlusIcon className="h-6 w-6 text-green-600" />}
-                      {action.title === 'My Members' && <UsersIcon className="h-6 w-6 text-green-600" />}
-                      {action.title === 'Export Data' && <CloudArrowDownIcon className="h-6 w-6 text-green-600" />}
-                      {action.title === 'View Analytics' && <ChartBarIcon className="h-6 w-6 text-green-600" />}
-                      {action.title === 'User Management' && <UserGroupIcon className="h-6 w-6 text-green-600" />}
-                      {action.title === 'All Members' && <DocumentTextIcon className="h-6 w-6 text-green-600" />}
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-white border-2 border-green-200 group-hover:scale-105 sm:group-hover:scale-110 transition-all duration-200 shadow-lg ring-2 sm:ring-4 ring-green-100 flex-shrink-0">
+                      {action.title === 'Add New Member' && <UserPlusIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
+                      {action.title === 'My Members' && <UsersIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
+                      {action.title === 'Export Data' && <CloudArrowDownIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
+                      {action.title === 'View Analytics' && <ChartBarIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
+                      {action.title === 'User Management' && <UserGroupIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
+                      {action.title === 'All Members' && <DocumentTextIcon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600" />}
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-gray-700 transition-colors duration-200 text-lg">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 group-hover:text-gray-700 transition-colors duration-200 text-base sm:text-lg">
                         {action.title}
                       </h3>
-                      <p className="text-gray-600 mt-1 text-sm">{action.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 line-clamp-2">{action.description}</p>
                     </div>
                   </div>
                 </Link>

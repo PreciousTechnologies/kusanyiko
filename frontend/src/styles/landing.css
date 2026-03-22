@@ -1,4 +1,5 @@
 /* Landing Page Enhanced Styles - Fully Responsive */
+/* Mobile-First Approach */
 
 /* Stagger Animation Classes */
 .stagger-1 { animation-delay: 0.1s; }
@@ -14,6 +15,8 @@
   position: relative;
   overflow-x: hidden;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .landing-header {
@@ -27,43 +30,47 @@
 }
 
 .landing-header-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 16px 20px;
+  padding: clamp(12px, 3vw, 24px) clamp(12px, 3vw, 32px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: clamp(12px, 2vw, 24px);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .landing-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: clamp(8px, 2vw, 12px);
   transition: all 1s ease;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .landing-logo-icon {
-  width: 40px;
-  height: 40px;
+  width: clamp(32px, 6vw, 40px);
+  height: clamp(32px, 6vw, 40px);
   background: linear-gradient(135deg, #10b981, #06b6d4);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .landing-logo-image {
-  width: 26px;
-  height: 26px;
+  width: clamp(20px, 4vw, 26px);
+  height: clamp(20px, 4vw, 26px);
   object-fit: contain;
 }
 
 .landing-logo-text h1 {
-  font-size: 18px;
+  font-size: clamp(14px, 4vw, 18px);
   font-weight: bold;
   color: white;
   margin: 0;
@@ -71,7 +78,7 @@
 }
 
 .landing-logo-text p {
-  font-size: 12px;
+  font-size: clamp(10px, 2.5vw, 12px);
   color: #a7f3d0;
   margin: 0;
   line-height: 1.3;
@@ -79,13 +86,13 @@
 
 .landing-nav {
   display: flex;
-  gap: 12px;
+  gap: clamp(8px, 2vw, 12px);
   transition: all 1s ease;
   flex-wrap: wrap;
 }
 
 .nav-btn {
-  padding: 10px 20px;
+  padding: clamp(8px, 1.5vw, 10px) clamp(14px, 2.5vw, 20px);
   border: none;
   border-radius: 12px;
   font-weight: 500;
@@ -94,8 +101,9 @@
   cursor: pointer;
   display: inline-block;
   text-align: center;
-  font-size: 14px;
-  min-width: 100px;
+  font-size: clamp(12px, 2.5vw, 14px);
+  min-width: 80px;
+  white-space: nowrap;
 }
 
 .nav-btn-ghost {
@@ -123,37 +131,45 @@
 .landing-hero {
   position: relative;
   z-index: 10;
-  padding: 60px 20px;
+  padding: clamp(40px, 8vw, 96px) clamp(12px, 3vw, 32px);
   text-align: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .landing-hero-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
+  text-align: center;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(6px, 1.5vw, 8px);
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2));
   backdrop-filter: blur(12px);
   color: #a7f3d0;
-  padding: 8px 16px;
+  padding: clamp(6px, 1.5vw, 8px) clamp(12px, 2vw, 16px);
   border-radius: 50px;
-  font-size: 12px;
+  font-size: clamp(10px, 2vw, 12px);
   font-weight: 500;
-  margin-bottom: 24px;
+  margin-bottom: clamp(12px, 2.5vw, 24px);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .hero-title {
-  font-size: 2.5rem;
+  font-size: clamp(28px, 6vw, 60px);
   font-weight: bold;
   color: white;
-  margin-bottom: 24px;
+  margin-bottom: clamp(16px, 2.5vw, 24px);
   line-height: 1.2;
   word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .hero-title-gradient {
@@ -166,10 +182,10 @@
 }
 
 .hero-description {
-  font-size: 16px;
+  font-size: clamp(14px, 3vw, 20px);
   color: #d1d5db;
-  margin-bottom: 32px;
-  max-width: 600px;
+  margin-bottom: clamp(20px, 4vw, 32px);
+  max-width: 700px;
   margin-left: auto;
   margin-right: auto;
   line-height: 1.6;
@@ -188,78 +204,74 @@
 .hero-buttons {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: clamp(12px, 2vw, 16px);
   justify-content: center;
-  margin-bottom: 48px;
+  margin-bottom: clamp(32px, 6vw, 48px);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 /* Additional responsive styles for hero section */
 @media (min-width: 640px) {
   .hero-buttons {
     flex-direction: row;
-    gap: 20px;
+    gap: clamp(14px, 2.5vw, 20px);
   }
   
   .hero-title {
-    font-size: 3.5rem;
+    font-size: clamp(36px, 6vw, 56px);
   }
   
   .hero-description {
-    font-size: 18px;
+    font-size: clamp(16px, 3.5vw, 18px);
   }
   
   .landing-hero {
-    padding: 80px 20px;
+    padding: clamp(60px, 8vw, 80px) clamp(16px, 4vw, 24px);
   }
 }
 
 @media (min-width: 768px) {
   .hero-title {
-    font-size: 4.5rem;
+    font-size: clamp(42px, 7vw, 72px);
   }
   
   .hero-description {
-    font-size: 20px;
+    font-size: clamp(18px, 4vw, 20px);
     max-width: 800px;
   }
   
   .landing-hero {
-    padding: 96px 24px;
+    padding: clamp(80px, 10vw, 96px) clamp(20px, 5vw, 32px);
   }
   
   .hero-badge {
-    padding: 12px 24px;
-    font-size: 14px;
-    gap: 12px;
-    margin-bottom: 32px;
+    padding: clamp(10px, 2vw, 12px) clamp(16px, 2.5vw, 24px);
+    font-size: clamp(12px, 2.5vw, 14px);
+    gap: clamp(10px, 2vw, 12px);
+    margin-bottom: clamp(20px, 3vw, 32px);
   }
   
   .hero-buttons {
-    margin-bottom: 64px;
-    gap: 24px;
-  }
-  
-  .hero-btn {
-    min-width: 240px;
-    padding: 16px 32px;
+    margin-bottom: clamp(32px, 5vw, 64px);
+    gap: clamp(16px, 3vw, 24px);
   }
 }
 
 @media (min-width: 1024px) {
   .hero-title {
-    font-size: 5rem;
+    font-size: clamp(48px, 8vw, 80px);
   }
 }
 
 @media (min-width: 1280px) {
   .hero-title {
-    font-size: 6rem;
+    font-size: clamp(56px, 9vw, 96px);
   }
 }
 
 .hero-btn {
-  padding: 16px 32px;
+  padding: clamp(12px, 2vw, 16px) clamp(20px, 3vw, 32px);
   border: none;
   border-radius: 16px;
   font-weight: 600;
@@ -269,8 +281,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  min-width: 240px;
+  gap: clamp(8px, 1.5vw, 12px);
+  min-width: clamp(140px, 30vw, 240px);
+  font-size: clamp(14px, 2.5vw, 16px);
+  text-align: center;
+  white-space: nowrap;
 }
 
 .hero-btn-primary {
@@ -300,94 +315,32 @@
 .hero-stats {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
-  max-width: 800px;
+  gap: clamp(12px, 2.5vw, 24px);
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0;
+  width: 100%;
 }
 
 .stat-card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: clamp(12px, 2vw, 16px);
+  padding: clamp(16px, 3vw, 32px);
   text-align: center;
   transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
   border-color: rgba(16, 185, 129, 0.4);
-}
-
-.stat-number {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 8px;
-  display: block;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #d1d5db;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 500;
-}
-
-/* Responsive breakpoints for stats */
-@media (min-width: 640px) {
-  .hero-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .stat-number {
-    font-size: 2rem;
-  }
-  
-  .stat-label {
-    font-size: 13px;
-  }
-}
-
-@media (min-width: 768px) {
-  .hero-stats {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-  }
-  
-  .stat-card {
-    padding: 32px 24px;
-  }
-  
-  .stat-number {
-    font-size: 2.5rem;
-    margin-bottom: 12px;
-  }
-  
-  .stat-label {
-    font-size: 14px;
-  }
-}
-
-.stat-card {
-  position: relative;
-  padding: 32px;
-  backdrop-filter: blur(16px);
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.5s ease;
-  transform: translateY(0);
-  height: 100%;
-}
-
-.stat-card:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-4px);
 }
 
 .stat-card.active {

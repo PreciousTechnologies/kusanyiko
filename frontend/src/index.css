@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import responsive design system */
+@import './styles/responsive.css';
+@import './styles/forms.css';
+@import './styles/dashboard-layout.css';
+
 /* Reset and base styles */
 * {
   margin: 0;
