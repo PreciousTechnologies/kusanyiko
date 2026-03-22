@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -11,7 +11,30 @@ import io
 import json
 from members.models import Member
 from users.models import User, AuditLog
-from .models import ExportHistory
+from .models import ExportHistory, BrandingSettings
+from .serializers import BrandingSettingsSerializer
+
+
+class BrandingSettingsView(APIView):
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get(self, request):
+        # Singleton record with pk=1 keeps deployment and querying simple.
+        branding, _ = BrandingSettings.objects.get_or_create(pk=1)
+        return Response(BrandingSettingsSerializer(branding).data)
+
+    def patch(self, request):
+        if not request.user.is_authenticated or getattr(request.user, 'role', '') != 'admin':
+            return Response({'error': 'Unauthorized'}, status=403)
+
+        branding, _ = BrandingSettings.objects.get_or_create(pk=1)
+        serializer = BrandingSettingsSerializer(branding, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class AdminStatsView(APIView):

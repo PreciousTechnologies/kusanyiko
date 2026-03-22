@@ -12,6 +12,7 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { useAppSelector } from '../../hooks/redux';
+import { useBranding } from '../../context/BrandingContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
+  const { branding } = useBranding();
 
   const adminNavItems = [
     {
@@ -179,11 +181,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full animate-pulse shadow-lg"></div>
                 <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-75"></div>
               </div>
-              <span className="text-sm font-semibold text-green-700">Camp Registration Active</span>
+              <span className="text-sm font-semibold text-green-700">{branding.registration_status_label}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="text-xs text-green-600 font-medium">
-                Oct 6-12, 2025 • Kibaha
+                {branding.camp_start_date} - {branding.camp_end_date} • {branding.camp_location}
               </div>
               <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-sm">
                 LIVE

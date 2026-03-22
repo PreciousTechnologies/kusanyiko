@@ -1,8 +1,11 @@
 ﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/landing.css';
+import { useBranding } from '../context/BrandingContext';
 
 const LandingPage = () => {
+  const { branding } = useBranding();
+
   return (
     <div className="landing-container">
       {/* Background Elements */}
@@ -17,8 +20,8 @@ const LandingPage = () => {
               <img src={`${process.env.PUBLIC_URL}/image.png`} alt="Efatha Members logo" className="landing-logo-image" />
             </div>
             <div className="landing-logo-text">
-              <h1>Efatha Leaders' Camp</h1>
-              <p>Kibaha Leadership Registration Portal</p>
+              <h1>{branding.landing_header_title}</h1>
+              <p>{branding.landing_header_subtitle}</p>
             </div>
           </div>
           <nav className="landing-nav">
@@ -32,15 +35,14 @@ const LandingPage = () => {
       <section className="landing-hero">
         <div className="landing-hero-content">
           <h1 className="hero-title">
-            Welcome to{' '}
+            {branding.landing_hero_prefix}{' '}
             <span className="hero-title-gradient">
-              Efatha Leaders' Camp
+              {branding.landing_hero_highlight}
             </span>{' '}
-            Registration
+            {branding.landing_hero_suffix}
           </h1>
           <p className="hero-description">
-            Register church leaders for the Kibaha camp where spiritual services are ministered
-            by Apostle and Prophet Josephat Elias Mwingira at Precious Centre, Kibaha.
+            {branding.landing_description}
           </p>
 
           {/* Gathering Info Cards */}
@@ -61,7 +63,7 @@ const LandingPage = () => {
                 </svg>
               </div>
               <div className="stat-number">Kibaha</div>
-              <div className="stat-label">Precious Centre</div>
+              <div className="stat-label">{branding.camp_location}</div>
             </div>
             <div className="stat-card">
               <div className="stat-icon">
@@ -87,7 +89,7 @@ const LandingPage = () => {
               <p style={{ color: '#d1d5db', lineHeight: '1.6', margin: '0' }}>
                 Multiple days of worship, prayer, teaching and ministry sessions. 
                 Experience spiritual renewal, healing, and prophetic ministry under 
-                the leadership of Apostle and Prophet Josephat Elias Mwingira.
+                the leadership of {branding.ministry_lead}.
               </p>
             </div>
             <div className="stat-card" style={{ textAlign: 'left', padding: '24px' }}>

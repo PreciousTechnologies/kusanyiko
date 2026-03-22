@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { useBranding } from '../../context/BrandingContext';
 import {
   CogIcon,
   ShieldCheckIcon,
@@ -45,14 +46,66 @@ interface NotificationSettings {
   backupAlerts: boolean;
 }
 
+interface BrandingFormState {
+  app_name: string;
+  app_subtitle: string;
+  landing_header_title: string;
+  landing_header_subtitle: string;
+  landing_hero_highlight: string;
+  landing_description: string;
+  ministry_lead: string;
+  camp_location: string;
+  camp_start_date: string;
+  camp_end_date: string;
+  registration_status_label: string;
+  admin_dashboard_subtitle: string;
+  registrant_dashboard_subtitle: string;
+}
+
 const Settings: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const { branding, updateBranding } = useBranding();
   
-  const [activeTab, setActiveTab] = useState<'system' | 'security' | 'notifications' | 'database'>('system');
+  const [activeTab, setActiveTab] = useState<'branding' | 'system' | 'security' | 'notifications' | 'database'>('branding');
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [brandingSaveStatus, setBrandingSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [showPasswords, setShowPasswords] = useState(false);
+
+  const [brandingForm, setBrandingForm] = useState<BrandingFormState>({
+    app_name: branding.app_name,
+    app_subtitle: branding.app_subtitle,
+    landing_header_title: branding.landing_header_title,
+    landing_header_subtitle: branding.landing_header_subtitle,
+    landing_hero_highlight: branding.landing_hero_highlight,
+    landing_description: branding.landing_description,
+    ministry_lead: branding.ministry_lead,
+    camp_location: branding.camp_location,
+    camp_start_date: branding.camp_start_date,
+    camp_end_date: branding.camp_end_date,
+    registration_status_label: branding.registration_status_label,
+    admin_dashboard_subtitle: branding.admin_dashboard_subtitle,
+    registrant_dashboard_subtitle: branding.registrant_dashboard_subtitle,
+  });
+
+  useEffect(() => {
+    setBrandingForm({
+      app_name: branding.app_name,
+      app_subtitle: branding.app_subtitle,
+      landing_header_title: branding.landing_header_title,
+      landing_header_subtitle: branding.landing_header_subtitle,
+      landing_hero_highlight: branding.landing_hero_highlight,
+      landing_description: branding.landing_description,
+      ministry_lead: branding.ministry_lead,
+      camp_location: branding.camp_location,
+      camp_start_date: branding.camp_start_date,
+      camp_end_date: branding.camp_end_date,
+      registration_status_label: branding.registration_status_label,
+      admin_dashboard_subtitle: branding.admin_dashboard_subtitle,
+      registrant_dashboard_subtitle: branding.registrant_dashboard_subtitle,
+    });
+  }, [branding]);
 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
     siteName: 'Efatha Leaders\' Camp Registration',
@@ -86,11 +139,24 @@ const Settings: React.FC = () => {
   const [newIpAddress, setNewIpAddress] = useState('');
 
   const tabs = [
+    { id: 'branding', name: 'Branding', icon: GlobeAltIcon },
     { id: 'system', name: 'System', icon: CogIcon },
     { id: 'security', name: 'Security', icon: ShieldCheckIcon },
     { id: 'notifications', name: 'Notifications', icon: BellIcon },
     { id: 'database', name: 'Database', icon: CircleStackIcon },
   ];
+
+  const handleSaveBranding = async () => {
+    setBrandingSaveStatus('saving');
+    try {
+      await updateBranding(brandingForm);
+      setBrandingSaveStatus('saved');
+      setTimeout(() => setBrandingSaveStatus('idle'), 3000);
+    } catch (error) {
+      setBrandingSaveStatus('error');
+      setTimeout(() => setBrandingSaveStatus('idle'), 3000);
+    }
+  };
 
   const handleSaveSettings = async () => {
     setLoading(true);
@@ -240,6 +306,141 @@ const Settings: React.FC = () => {
           {/* Main Content */}
           <div className="flex-1">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100">
+              {/* Branding Settings */}
+              {activeTab === 'branding' && (
+                <div className="p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-gray-900">Branding & Camp Theme</h2>
+                    <button
+                      onClick={handleSaveBranding}
+                      className="bg-gradient-to-r from-green-500 to-green-600 text-white px-5 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200"
+                    >
+                      {brandingSaveStatus === 'saving' ? 'Saving...' : brandingSaveStatus === 'saved' ? 'Saved!' : brandingSaveStatus === 'error' ? 'Error!' : 'Save Branding'}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">App Name (Browser Title)</label>
+                      <input
+                        type="text"
+                        value={brandingForm.app_name}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, app_name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Header Subtitle</label>
+                      <input
+                        type="text"
+                        value={brandingForm.app_subtitle}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, app_subtitle: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Landing Header Title</label>
+                      <input
+                        type="text"
+                        value={brandingForm.landing_header_title}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, landing_header_title: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Landing Header Subtitle</label>
+                      <input
+                        type="text"
+                        value={brandingForm.landing_header_subtitle}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, landing_header_subtitle: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Hero Highlight Text</label>
+                      <input
+                        type="text"
+                        value={brandingForm.landing_hero_highlight}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, landing_hero_highlight: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Ministry Lead</label>
+                      <input
+                        type="text"
+                        value={brandingForm.ministry_lead}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, ministry_lead: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Camp Location</label>
+                      <input
+                        type="text"
+                        value={brandingForm.camp_location}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, camp_location: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Registration Status Label</label>
+                      <input
+                        type="text"
+                        value={brandingForm.registration_status_label}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, registration_status_label: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Camp Start Date</label>
+                      <input
+                        type="text"
+                        value={brandingForm.camp_start_date}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, camp_start_date: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Camp End Date</label>
+                      <input
+                        type="text"
+                        value={brandingForm.camp_end_date}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, camp_end_date: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Admin Dashboard Subtitle</label>
+                      <input
+                        type="text"
+                        value={brandingForm.admin_dashboard_subtitle}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, admin_dashboard_subtitle: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Registrant Dashboard Subtitle</label>
+                      <input
+                        type="text"
+                        value={brandingForm.registrant_dashboard_subtitle}
+                        onChange={(e) => setBrandingForm(prev => ({ ...prev, registrant_dashboard_subtitle: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Landing Description</label>
+                    <textarea
+                      value={brandingForm.landing_description}
+                      onChange={(e) => setBrandingForm(prev => ({ ...prev, landing_description: e.target.value }))}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+                </div>
+              )}
               
               {/* System Settings */}
               {activeTab === 'system' && (

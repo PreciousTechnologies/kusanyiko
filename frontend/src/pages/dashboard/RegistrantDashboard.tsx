@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchRegistrantStats } from '../../store/slices/statsSlice';
 import { fetchMembers } from '../../store/slices/membersSlice';
+import { useBranding } from '../../context/BrandingContext';
 import {
   UsersIcon,
   UserPlusIcon,
@@ -32,6 +33,7 @@ const RegistrantDashboard: React.FC = () => {
   const { registrantStats, loading } = useAppSelector((state) => state.stats);
   const { members } = useAppSelector((state) => state.members);
   const { user } = useAppSelector((state) => state.auth);
+  const { branding } = useBranding();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -245,9 +247,9 @@ const RegistrantDashboard: React.FC = () => {
   };
 
   const campaignInfo = {
-    startDate: 'October 6, 2025',
-    endDate: 'October 12, 2025',
-    location: 'Precious Centre, Kibaha',
+    startDate: branding.camp_start_date,
+    endDate: branding.camp_end_date,
+    location: branding.camp_location,
     daysRemaining: 7,
   };
 
@@ -269,12 +271,12 @@ const RegistrantDashboard: React.FC = () => {
               Welcome, {user?.first_name || user?.username}!
             </h1>
             <p className="text-gray-600 text-lg">
-              EFATHA Leaders' Camp • Your registration dashboard
+              {branding.registrant_dashboard_subtitle}
             </p>
           </div>
           <div className="flex items-center space-x-3 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-3 rounded-xl border border-green-200">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
-            <span className="text-green-700 font-semibold text-sm">Camp Registration Active</span>
+            <span className="text-green-700 font-semibold text-sm">{branding.registration_status_label}</span>
           </div>
         </div>
       </div>

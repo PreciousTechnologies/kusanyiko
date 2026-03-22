@@ -7,6 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../../hooks/redux';
 import { logout } from '../../store/slices/authSlice';
+import { useBranding } from '../../context/BrandingContext';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -17,6 +18,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isSidebarOpen }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const { branding } = useBranding();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const handleLogout = () => {
@@ -65,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isSidebarOpen }) => {
           <div className="flex items-center space-x-3">
             <div className="flex flex-col">
               <h1 className="text-lg font-bold text-green-700">We Bring The 🌍To Jesus</h1>
-              <p className="text-xs text-gray-600 font-medium">EFATHA Leaders' Camp Registration • Kibaha</p>
+              <p className="text-xs text-gray-600 font-medium">{branding.app_subtitle}</p>
             </div>
           </div>
 

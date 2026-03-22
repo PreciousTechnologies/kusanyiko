@@ -229,6 +229,12 @@ export const statsAPI = {
   getRegistrantStats: () => api.get('/api/stats/registrant/'),
 };
 
+// Branding API
+export const brandingAPI = {
+  getBranding: () => api.get('/api/stats/branding/'),
+  updateBranding: (brandingData: any) => api.patch('/api/stats/branding/', brandingData),
+};
+
 // Function to test connection to an endpoint
 export async function testConnection(endpoint: string): Promise<boolean> {
   // Skip connection test in development mode to avoid 400 errors
