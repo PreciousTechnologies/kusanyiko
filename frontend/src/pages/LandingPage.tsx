@@ -14,9 +14,7 @@ const LandingPage = () => {
         <div className="landing-header-content">
           <div className="landing-logo">
             <div className="landing-logo-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-              </svg>
+              <img src={`${process.env.PUBLIC_URL}/image.png`} alt="Efatha Members logo" className="landing-logo-image" />
             </div>
             <div className="landing-logo-text">
               <h1>Kusanyiko</h1>
