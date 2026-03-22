@@ -382,11 +382,12 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.5s ease;
   transform: translateY(0);
+  height: 100%;
 }
 
 .stat-card:hover {
   background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.05);
+  transform: translateY(-4px);
 }
 
 .stat-card.active {
@@ -403,11 +404,12 @@
 }
 
 .stat-number {
-  font-size: 36px;
+  font-size: clamp(28px, 4vw, 36px);
   font-weight: bold;
   color: white;
   margin-bottom: 8px;
   transition: color 0.3s ease;
+  line-height: 1.15;
 }
 
 .stat-card:hover .stat-number {
@@ -417,6 +419,11 @@
 .stat-label {
   color: #d1d5db;
   font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-transform: none;
+  letter-spacing: 0.2px;
 }
 
 /* Background Animations */
