@@ -20,7 +20,7 @@ const LandingPage = () => {
             </div>
             <div className="landing-logo-text">
               <h1>Kusanyiko</h1>
-              <p>Efatha Church Annual Gathering</p>
+              <p>Efatha Church Leaders' Camp</p>
             </div>
           </div>
           <nav className="landing-nav">
