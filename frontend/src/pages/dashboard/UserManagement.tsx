@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { userManagementAPI } from '../../services/api';
+import '../../styles/user-management.css';
 import {
   UsersIcon,
   PlusIcon,
@@ -499,133 +500,121 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <div className="user-management-container min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 flex items-center">
-                <UsersIcon className="h-10 w-10 text-green-500 mr-4" />
-                User Management
-              </h1>
-              <p className="text-gray-600 mt-2 text-lg">
-                Manage system users, roles, and permissions
-                {loading && (
-                  <span className="inline-flex items-center ml-4">
-                    <span className="h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin mr-2 inline-block" />
-                    Loading...
-                  </span>
-                )}
-              </p>
-            </div>
-            <button
-              onClick={handleCreateUser}
-              className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center"
-            >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Add User
-            </button>
+        <div className="user-management-header mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 flex items-center">
+              <UsersIcon className="h-10 w-10 text-green-500 mr-4" />
+              User Management
+            </h1>
+            <p className="text-gray-600 mt-2 text-lg">
+              Manage system users, roles, and permissions
+              {loading && (
+                <span className="inline-flex items-center ml-4">
+                  <span className="h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin mr-2 inline-block" />
+                  Loading...
+                </span>
+              )}
+            </p>
           </div>
+          <button
+            onClick={handleCreateUser}
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Add User
+          </button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
-                <UsersIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-              </div>
+        <div className="user-stats-grid grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="stat-icon h-12 w-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
+              <UsersIcon className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="stat-content ml-4">
+              <p className="stat-label text-sm font-medium text-gray-600">Total Users</p>
+              <p className="stat-value text-2xl font-bold text-gray-900">{users.length}</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center">
-                <CheckCircleIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {users.filter(u => u.status === 'active').length}
-                </p>
-              </div>
+          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="stat-icon h-12 w-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center">
+              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="stat-content ml-4">
+              <p className="stat-label text-sm font-medium text-gray-600">Active Users</p>
+              <p className="stat-value text-2xl font-bold text-gray-900">
+                {users.filter(u => u.status === 'active').length}
+              </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center">
-                <ShieldCheckIcon className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Administrators</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {users.filter(u => u.role === 'admin').length}
-                </p>
-              </div>
+          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="stat-icon h-12 w-12 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center">
+              <ShieldCheckIcon className="h-6 w-6 text-red-600" />
+            </div>
+            <div className="stat-content ml-4">
+              <p className="stat-label text-sm font-medium text-gray-600">Administrators</p>
+              <p className="stat-value text-2xl font-bold text-gray-900">
+                {users.filter(u => u.role === 'admin').length}
+              </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center">
-              <div className="h-12 w-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center">
-                <UserCircleIcon className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Registrants</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {users.filter(u => u.role === 'registrant').length}
-                </p>
-              </div>
+          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="stat-icon h-12 w-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center">
+              <UserCircleIcon className="h-6 w-6 text-purple-600" />
+            </div>
+            <div className="stat-content ml-4">
+              <p className="stat-label text-sm font-medium text-gray-600">Registrants</p>
+              <p className="stat-value text-2xl font-bold text-gray-900">
+                {users.filter(u => u.role === 'registrant').length}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-              />
-            </div>
+        <div className="user-filters-section bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative">
+            <MagnifyingGlassIcon className="user-filter-icon h-5 w-5 absolute left-3 top-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="user-filter-input w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
 
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-            >
-              <option value="all">All Roles</option>
-              <option value="admin">Administrator</option>
-              <option value="registrant">Registrant</option>
-              <option value="member">Member</option>
-            </select>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="user-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+          >
+            <option value="all">All Roles</option>
+            <option value="admin">Administrator</option>
+            <option value="registrant">Registrant</option>
+            <option value="member">Member</option>
+          </select>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
-            </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="user-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="suspended">Suspended</option>
+          </select>
 
-            <div className="flex items-center text-sm text-gray-600">
-              <FunnelIcon className="h-4 w-4 mr-2" />
-              {filteredUsers.length} of {users.length} users
-            </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <FunnelIcon className="h-4 w-4 mr-2" />
+            {filteredUsers.length} of {users.length} users
           </div>
         </div>
 
@@ -691,138 +680,149 @@ const UserManagement: React.FC = () => {
         {/* Users Table - Enhanced Mobile Responsive */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           {/* Mobile Card View */}
-          <div className="hidden">
+          <div className="mobile-card-view lg:hidden">
             <div className="space-y-4 p-4">
-              {filteredUsers.map((user) => (
-                <div key={user.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.includes(user.id)}
-                        onChange={() => handleSelectUser(user.id)}
-                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                      />
-                      <div className="h-10 w-10 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center">
-                        <span className="text-green-600 font-medium text-sm">
+              {filteredUsers.length === 0 && !loading ? (
+                <div className="empty-state">
+                  <UsersIcon className="empty-state-icon" />
+                  <h3 className="empty-state-title">No users found</h3>
+                  <p className="empty-state-text">Try adjusting your search or filter criteria.</p>
+                </div>
+              ) : (
+                filteredUsers.map((user) => (
+                  <div key={user.id} className="user-card">
+                    <div className="user-card-header">
+                      <div className="user-card-header-left">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.includes(user.id)}
+                          onChange={() => handleSelectUser(user.id)}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        />
+                        <div className="user-avatar">
                           {user.first_name[0]}{user.last_name[0]}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.first_name} {user.last_name}
                         </div>
-                        <div className="text-xs text-gray-500">@{user.username}</div>
+                        <div className="user-header-info">
+                          <div className="user-name">
+                            {user.first_name} {user.last_name}
+                          </div>
+                          <div className="user-username">@{user.username}</div>
+                        </div>
+                      </div>
+                      <div className="user-status-badge">
+                        {user.status === 'active' && <div className="status-badge-active"><CheckCircleIcon className="h-3 w-3" />Active</div>}
+                        {user.status === 'inactive' && <div className="status-badge-inactive"><XCircleIcon className="h-3 w-3" />Inactive</div>}
+                        {user.status === 'suspended' && <div className="status-badge-suspended"><ExclamationTriangleIcon className="h-3 w-3" />Suspended</div>}
                       </div>
                     </div>
-                    {getStatusBadge(user.status)}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="text-xs text-gray-600">{user.email}</div>
                     
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-1">
-                        {getRoleIcon(user.role)}
+                    <div className="user-card-body">
+                      <div className="user-email">{user.email}</div>
+                      
+                      <div className="user-role-section">
+                        <div className="user-role-icon">
+                          {getRoleIcon(user.role)}
+                        </div>
                         <select
                           value={user.role}
                           onChange={(e) => handleRoleChange(user, e.target.value as any)}
                           disabled={user.id === currentUser?.id || loading}
-                          className="text-xs font-medium text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-green-500"
+                          className="user-role-select"
                         >
                           <option value="admin">Administrator</option>
                           <option value="registrant">Registrant</option>
                           <option value="member">Member</option>
                         </select>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {user.members_registered} members
+                      
+                      <div className="user-info-item">
+                        <ClockIcon className="h-3 w-3" />
+                        <span>Joined: {formatDate(user.date_joined).split(',')[0]}</span>
                       </div>
+                      
+                      <div className="user-info-item">
+                        <span className="user-members-count">{user.members_registered} members</span>
+                      </div>
+                      
+                      {user.is_superuser && (
+                        <div className="user-badge-superuser">
+                          ⭐ Superuser
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="text-xs text-gray-500">
-                      <div>Joined: {formatDate(user.date_joined)}</div>
-                      <div>Last login: {formatDate(user.last_login)}</div>
+                    <div className="user-card-actions">
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="action-icon-btn action-edit"
+                        title="Edit User"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      
+                      <button
+                        onClick={() => handleViewActivity(user)}
+                        className="action-icon-btn action-view"
+                        title="View Activity"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handleResetPassword(user)}
+                        className="action-icon-btn action-password"
+                        title="Reset Password"
+                        disabled={loading}
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2h-6m6 0v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6a2 2 0 012-2m0 0V7a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                      </button>
+                      
+                      {user.status !== 'active' ? (
+                        <button
+                          onClick={() => handleStatusChange(user, 'active')}
+                          className="action-icon-btn action-activate"
+                          title="Activate"
+                        >
+                          <CheckCircleIcon className="h-4 w-4" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleStatusChange(user, 'inactive')}
+                          className="action-icon-btn action-deactivate"
+                          title="Deactivate"
+                        >
+                          <XCircleIcon className="h-4 w-4" />
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleStatusChange(user, 'suspended')}
+                        className="action-icon-btn action-suspend"
+                        title="Suspend"
+                      >
+                        <ExclamationTriangleIcon className="h-4 w-4" />
+                      </button>
+
+                      {user.id !== currentUser?.id && (
+                        <button
+                          onClick={() => setShowDeleteModal(user)}
+                          className="action-icon-btn action-delete"
+                          title="Delete User"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
-                    
-                    {user.is_superuser && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                        Superuser
-                      </span>
-                    )}
                   </div>
-                  
-                  <div className="flex items-center justify-center space-x-2 mt-3 pt-3 border-t border-gray-200">
-                    <button
-                      onClick={() => handleEditUser(user)}
-                      className="text-green-600 hover:text-green-900 p-2 rounded-full hover:bg-green-100"
-                      title="Edit User"
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                    </button>
-                    
-                    <button
-                      onClick={() => handleViewActivity(user)}
-                      className="text-blue-600 hover:text-blue-900 p-2 rounded-full hover:bg-blue-100"
-                      title="View Activity"
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </button>
-
-                    <button
-                      onClick={() => handleResetPassword(user)}
-                      className="text-purple-600 hover:text-purple-900 p-2 rounded-full hover:bg-purple-100"
-                      title="Reset Password"
-                      disabled={loading}
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2h-6m6 0v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6a2 2 0 012-2m0 0V7a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </button>
-                    
-                    {user.status !== 'active' ? (
-                      <button
-                        onClick={() => handleStatusChange(user, 'active')}
-                        className="text-green-600 hover:text-green-900 p-2 rounded-full hover:bg-green-100"
-                        title="Activate"
-                      >
-                        <CheckCircleIcon className="h-4 w-4" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleStatusChange(user, 'inactive')}
-                        className="text-yellow-600 hover:text-yellow-900 p-2 rounded-full hover:bg-yellow-100"
-                        title="Deactivate"
-                      >
-                        <XCircleIcon className="h-4 w-4" />
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => handleStatusChange(user, 'suspended')}
-                      className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-100"
-                      title="Suspend"
-                    >
-                      <ExclamationTriangleIcon className="h-4 w-4" />
-                    </button>
-
-                    {user.id !== currentUser?.id && (
-                      <button
-                        onClick={() => setShowDeleteModal(user)}
-                        className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-100"
-                        title="Delete User"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
           {/* Desktop Table View */}
-          <div className="block overflow-x-auto">
+          <div className="desktop-table-view hidden xl:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
