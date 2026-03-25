@@ -3470,6 +3470,15 @@
   .members-grid-desktop {
     grid-template-columns: 1fr;
     gap: 0.75rem;
+    padding: 0.5rem;
+    margin: 0;
+  }
+
+  .member-card-desktop-compact {
+    min-height: auto;
+    padding: 0.75rem;
+    overflow: hidden;
+    max-width: 100%;
   }
 
   .member-card-header-compact {
@@ -3478,29 +3487,149 @@
 
   .member-profile-section {
     gap: 0.625rem;
+    min-width: 0;
+  }
+
+  .member-profile-picture-compact {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .member-name-compact {
+    font-size: 0.95rem;
+    white-space: normal;
+    word-break: break-word;
   }
 
   .member-basic-info {
     flex-wrap: wrap;
+    font-size: 0.7rem;
+  }
+
+  .member-details-grid {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .detail-item {
+    padding: 0.3rem 0.4rem;
+    gap: 0.3rem;
+  }
+
+  .detail-icon {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    flex-shrink: 0;
+  }
+
+  .detail-text {
+    font-size: 0.7rem;
+    word-break: break-word;
+  }
+
+  .church-info-compact {
+    padding: 0.4rem 0.5rem;
+    margin-bottom: 0.5rem;
   }
 
   .church-location {
     flex-wrap: wrap;
+    font-size: 0.65rem;
+  }
+
+  .church-cell {
+    word-break: break-word;
   }
 
   .member-card-footer-compact {
     gap: 0.5rem;
     flex-wrap: wrap;
     align-items: flex-start;
+    padding-top: 0.4rem;
+  }
+
+  .member-since {
+    font-size: 0.6rem;
+    flex: 1;
   }
 
   .member-actions-compact {
-    margin-left: auto;
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .action-btn {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0.4rem;
   }
 
   .action-btn,
   .member-action-btn-desktop {
     min-width: 32px;
     min-height: 32px;
+  }
+}
+
+/* Extra small devices (< 376px) */
+@media (max-width: 375px) {
+  .my-members-page {
+    padding: 0.75rem;
+  }
+
+  .members-grid-desktop {
+    gap: 0.5rem;
+    padding: 0;
+  }
+
+  .member-card-desktop-compact {
+    padding: 0.6rem;
+    border-radius: 10px;
+  }
+
+  .member-profile-picture-compact {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .member-name-compact {
+    font-size: 0.9rem;
+  }
+
+  .member-basic-info {
+    font-size: 0.65rem;
+  }
+
+  .detail-item {
+    padding: 0.25rem 0.3rem;
+  }
+
+  .detail-text {
+    font-size: 0.65rem;
+  }
+
+  .church-info-compact {
+    padding: 0.3rem 0.4rem;
+  }
+
+  .church-location {
+    font-size: 0.6rem;
+  }
+
+  .member-since {
+    font-size: 0.55rem;
+  }
+
+  .action-btn {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0.3rem;
+  }
+
+  .member-status-compact {
+    width: 20px;
+    height: 20px;
   }
 }
