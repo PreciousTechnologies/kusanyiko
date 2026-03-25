@@ -218,22 +218,22 @@ const MyMembers: React.FC = () => {
       {/* Compact Details Grid */}
       <div className="member-details-grid">
         <div className="detail-item">
-          <PhoneIcon className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+          <PhoneIcon className="h-3.5 w-3.5 text-green-600 flex-shrink-0 inline-block" style={{ minWidth: '14px', minHeight: '14px' }} />
           <span className="detail-text">{member.mobile_no}</span>
         </div>
         
         <div className="detail-item">
-          <MapPinIcon className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+          <MapPinIcon className="h-3.5 w-3.5 text-green-600 flex-shrink-0 inline-block" style={{ minWidth: '14px', minHeight: '14px' }} />
           <span className="detail-text">{member.region || member.country || 'Not specified'}</span>
         </div>
         
         <div className="detail-item">
-          <CalendarIcon className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+          <CalendarIcon className="h-3.5 w-3.5 text-green-600 flex-shrink-0 inline-block" style={{ minWidth: '14px', minHeight: '14px' }} />
           <span className="detail-text">{new Date(member.attending_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
         </div>
 
         <div className="detail-item">
-          <UserIcon className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+          <UserIcon className="h-3.5 w-3.5 text-green-600 flex-shrink-0 inline-block" style={{ minWidth: '14px', minHeight: '14px' }} />
           <span className="detail-text">{member.church_position || 'Member'}</span>
         </div>
       </div>
