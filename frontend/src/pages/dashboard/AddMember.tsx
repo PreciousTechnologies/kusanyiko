@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -59,17 +59,112 @@ const ALL_TANZANIA_REGIONS = [
   'Kusini Pemba'
 ];
 
-// Dar es Salaam areas/centers
-const DAR_ES_SALAAM_CENTERS = [
-  'Mwenge',
-  'Ushindi', 
-  'Temeke',
-  'Kinondoni',
-  'Imara',
-  'Yombo',
-  'Kisukuru',
-  'Zanzibar'
-];
+// Tanzania centers grouped by region for dynamic Center/Area dropdown
+const TANZANIA_REGION_CENTERS: Record<string, string[]> = {
+  Arusha: [
+    'Ngaramtoni', 'Leguruki', 'Longido', 'Endabash', 'Buger', 'Manyara Kibaoni',
+    'Mkonoo', 'Endamarariek', 'Tengeru', 'Kilala', 'Mbulumbulu', 'Kikatiti',
+    "King'ori", 'Monduli', "Mang'ola", 'Engosheraton (Muriet)', 'Nkoansiyo',
+    'Kiserian', 'USA River', 'Rhotia', 'Mto Yordan', 'Karatu', 'Namanga',
+    'Yerusalemu', 'Sharon Zizi la Kondoo'
+  ],
+  'Dar es Salaam': [
+    'Yombo', 'Nazareth', 'Mbweni', 'Salasala', 'Boko', 'Bubujiko', 'Mbagala',
+    'Kigamboni', 'Mwenge', 'Pugu', 'Kivule Ebeneza', 'Msongola', 'Kisarawe',
+    'Mongolandege', 'Magole Amani', 'Bangulo', 'Chanika Ukombozi', 'Mvuti',
+    'Kivule Shalom', 'Ulongoni', 'Magole B', 'Kifuru', 'Kiyombo', 'Mbondole',
+    'Mbombambili', 'Viwege', 'Chanika Buyuni', 'Majohe', 'Mazizini', 'Kinyerezi',
+    'Matunda', 'Kilakala', 'Tuangoma', 'Gezaulole', 'Kisarawe II', 'Kimbilio',
+    'Kijichi', 'Vikunai', 'Mbutu'
+  ],
+  Dodoma: [
+    'Kibaigwa', 'Kinusi', 'Hogoro', 'Veyula', 'Mbande', 'Ihumwa',
+    'Chamwino Ikulu', 'Sayuni (Dodoma Mjini)', 'Wota', 'Mvumi Makulu',
+    'Mvumi Mission', 'Kondoa', 'Komboa', 'Winza', 'Mpwapwa', 'Kibakwe',
+    'Bahi', 'Edeni', 'Kisasa'
+  ],
+  Geita: ['Katoro', 'Masumbwe', 'Chato', 'Runzewe', 'Ushirombo', 'Geita Mjini'],
+  Iringa: [
+    'Mtambula', 'Nyololo', 'Ipalamwa', 'Tungamalenga', 'Nyamihuu', 'Lulanzi',
+    'Mwambao', 'Faraja Mufindi', 'Mlowa', 'N/Mgowelo', 'Uhambingeto', 'Ilula',
+    'Kilolo', 'Pomerini', 'Ilamba', 'Kidabaga', 'Muwimbi', 'Lugoda', 'Igowole',
+    'Sao Hill', 'Rungemba', 'Mafinga', 'Ihemi', 'Makete', 'Wenda', 'Ugwachanya',
+    'Magubike', 'Nazareti', 'Iringa'
+  ],
+  Kagera: [
+    'Kyerwa', 'Ruzenze', 'Rushe', 'Ilembo', 'Chivu', 'Benako', 'Nshamba',
+    'Kishogo', 'Muleba', 'Ngara', 'Bukoba'
+  ],
+  Katavi: [
+    'Mapili', 'Sibeswa', 'Kasekese', 'Majalila', 'Usenya', 'Sibwasa', 'Kakese',
+    'Karema', 'Inyonga', 'Mpanda'
+  ],
+  Kigoma: ['Buhigwe', 'Uvinza', 'Kibondo', 'Kasulu', 'Kigoma Mjini'],
+  Kilimanjaro: [
+    'Rundugai', 'Kirima', 'Rombo Mkuu', 'Samanga', 'Machame', 'Maili Sita',
+    'KCMC', 'Mwika', 'Boma Hai', 'Wandry', 'Himo', 'Chekereni', 'Mwanga',
+    'Kivulini', 'Same', 'Galilaya', 'Ngare Nairobi', 'S/ Juu', 'Narum', 'Mbahe',
+    'M/ Mwema', 'Ngare West', 'Tarakea', 'Sayuni'
+  ],
+  Lindi: ['Liwale', 'Nyangao', 'Namungo', 'Ruangwa', 'Nachingwea', 'Gilgali'],
+  Manyara: ['Giting', 'Kiteto', 'Kainam', 'Mbulu', 'Magugu', 'Titiwi', 'Endasaki', 'Babati'],
+  Mara: ['Kiabakari', 'Tarime', 'Etaro', 'Sirari', 'Bunda', 'Serengeti', 'Kamgendi', 'Musoma'],
+  Mbeya: [
+    'Mlowo', 'Nyalwela', 'Igoma', 'Kiwira', 'Tukuyu', 'Mpemba', 'Mkwajuni',
+    'Ileje', 'Mswiswi', 'Sangambi', 'Chunya', 'Chitete', 'Rujewa', 'Ihanda',
+    'Tunduma', 'Mbalizi', 'Chimala', 'Uyole', 'Kyela', 'Vwawa', 'Mbeya Mjini'
+  ],
+  Morogoro: [
+    'Parakuyo', 'Kihonda', 'Msolwa', 'Minepa', 'Mlimba', 'Mangula', 'Mlali',
+    'Gairo', 'Mikumi', 'Kilosa', 'Dumila', 'Mikese', 'Mbingu', 'Turiani',
+    'Ifakara', 'Kilombero', 'Morogoro Mjini'
+  ],
+  Mtwara: [
+    'Msijute', 'Mangaka', 'Masasi', 'Ndanda', 'Mchoti', 'Galilaya', 'Newala',
+    'Chivilikiti', 'Tandahimba', 'Tangazo', 'Mtwara Mjini'
+  ],
+  Mwanza: [
+    'Nyamikoma', 'Misungwi', 'Fumagile', 'Kishiri', 'Kwimba', 'Ukerewe',
+    'Sengerema', 'Buswelu', 'Kisesa', 'Magu', 'Lamadi', 'Nundu'
+  ],
+  Njombe: [
+    'Utelewe', "Wang'ing'ombe", 'Udonja', 'Tandala', 'Kidegembye', 'Mtambula',
+    'Kifanya', 'Ludewa', 'Ilembula', 'Lupembe'
+  ],
+  Pwani: [
+    'Precious Centre Kibaha', 'Gilgali', 'Sweet Corner', 'Mwanabwito',
+    'Boko Mnemela', 'Mwendakasi', 'Maili Moja', 'Msangani', 'Kongowe', 'Soga',
+    'Mamlaka Pangani', 'Msata', 'Makurunge/ Madesa/ Zinga', 'Kiwangwa',
+    'Fukayosi', 'Ubena', 'Utulivu', 'Kiembeni', 'Miale ya Moto', 'Lugoba',
+    'Chalinze', 'Bagamoyo', 'Kimanzichana', 'Bungu', 'Kibiti', 'Changamkeni',
+    'Mbande', 'Ikwiriri', 'Mkuranga'
+  ],
+  Rukwa: ['Kabwe', 'Ulinji', 'Palamawe', 'Matai', 'Kirando', 'Laela', 'Sumbawanga'],
+  Ruvuma: [
+    'Luhagara', 'Lilondo', 'Tunduru', 'Namtumbo', 'Hanga', 'Madaba', 'Namswea',
+    'Liuli', 'Kilosa', 'Mbinga', 'Songea'
+  ],
+  Shinyanga: [
+    'Kishapu', 'Ukenyenge', 'Ishororo', 'Old Shy', 'Ndembezi', 'Bubiki',
+    'Chapulwa', 'Tinde', 'Isaka', 'Kagongwa', 'Kahama', 'Mwasele'
+  ],
+  Simiyu: ['Meatu', 'Mwandoya', 'Maswa', 'Simiyu', 'Nyamikoma', 'Lamadi'],
+  Singida: [
+    'chemichemi', 'Ikungi', 'Issuna', 'Mitundu', 'Amani', 'Yeriko', 'Itigi',
+    'Mtinko', 'Puma', 'Ndago', 'Mbelekasi', 'Shelui', 'Kinampanda', 'Nkungi',
+    'Kiomboi', 'Londoni', 'Majiri', 'Solya', 'Manyoni', 'Singida'
+  ],
+  Songwe: ['Mlowo', 'Mpemba', 'Mkwajuni', 'Ileje', 'Chitete', 'Ihanda', 'Tunduma', 'Vwawa'],
+  Tabora: [
+    'Mabunduru', 'Ulyankulu', 'Loya', 'Kaliua', 'Urambo', 'Sikonge', 'Sayuni',
+    'Nkinga', 'Nata', 'Igunga', 'Nzega', 'Tabora Mjini'
+  ],
+  Tanga: [
+    'Muheza', 'Pangani', 'Lushoto', 'Handeni', 'Madumu Korogwe', 'Songa Mbele',
+    'Mkata', 'Bumburi', 'Maramba', 'Gilgali', 'Mashewa', 'Kabuku', 'Michungwani',
+    'Amani', 'Tanga Mjini'
+  ]
+};
 
 // Church position options
 const CHURCH_POSITION_OPTIONS = [
@@ -158,6 +253,7 @@ const AddMember: React.FC = () => {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isValid },
     trigger,
     getValues,
@@ -172,7 +268,31 @@ const AddMember: React.FC = () => {
 
   const watchedRegion = watch('region');
   const watchedCountry = watch('country');
+  const watchedCenterArea = watch('center_area');
   const totalSteps = 4;
+
+  const regionCenters = useMemo(() => {
+    if (watchedCountry !== 'Tanzania' || !watchedRegion) {
+      return [];
+    }
+
+    return TANZANIA_REGION_CENTERS[watchedRegion] ?? [];
+  }, [watchedCountry, watchedRegion]);
+
+  useEffect(() => {
+    // Keep center/area selection valid when country/region changes.
+    if (!watchedCenterArea) {
+      return;
+    }
+
+    if (watchedCountry !== 'Tanzania') {
+      return;
+    }
+
+    if (!watchedRegion || !regionCenters.includes(watchedCenterArea)) {
+      setValue('center_area', '');
+    }
+  }, [watchedCountry, watchedRegion, watchedCenterArea, regionCenters, setValue]);
 
   const stepTitles = [
     'Personal Information',
@@ -186,13 +306,7 @@ const AddMember: React.FC = () => {
       // Process region based on country and center_area selection
       let processedData = { ...data };
 
-      if (data.country === 'Tanzania') {
-        // For Tanzania, if center_area is selected, use it as region
-        if (data.center_area && data.center_area.trim() !== '') {
-          processedData.region = data.center_area;
-        }
-        // Otherwise keep the selected region
-      } else {
+      if (data.country !== 'Tanzania') {
         // For non-Tanzania countries, use the country name as region
         processedData.region = data.country;
       }
@@ -761,23 +875,33 @@ const AddMember: React.FC = () => {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Center/Area
                     </label>
-                    <select
-                      {...register('center_area')}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
-                      disabled={watchedRegion !== 'Dar es Salaam'}
-                    >
-                      <option value="">Select center/area</option>
-                      {watchedRegion === 'Dar es Salaam' && 
-                        DAR_ES_SALAAM_CENTERS.map((area) => (
+                    {watchedCountry === 'Tanzania' ? (
+                      <select
+                        {...register('center_area')}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+                        disabled={!watchedRegion || regionCenters.length === 0}
+                      >
+                        <option value="">
+                          {!watchedRegion
+                            ? 'Select region first'
+                            : regionCenters.length === 0
+                            ? 'No centers available for selected region'
+                            : 'Select center/area'}
+                        </option>
+                        {regionCenters.map((area) => (
                           <option key={area} value={area}>
                             {area}
                           </option>
-                        ))
-                      }
-                      {watchedRegion && watchedRegion !== 'Dar es Salaam' && (
-                        <option value={watchedRegion}>{watchedRegion}</option>
-                      )}
-                    </select>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        {...register('center_area')}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
+                        placeholder="Enter center/area"
+                      />
+                    )}
                     {errors.center_area && (
                       <p className="text-red-500 text-sm mt-1">{errors.center_area.message}</p>
                     )}
