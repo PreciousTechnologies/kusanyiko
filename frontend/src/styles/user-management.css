@@ -6,15 +6,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Large screens (>= 1024px): enforce desktop table visibility */
-@media (min-width: 1024px) {
-  .desktop-table-view {
-    display: block !important;
-  }
+/* Default desktop visibility */
+.desktop-table-view {
+  display: block;
+}
 
-  .mobile-card-view {
-    display: none !important;
-  }
+.mobile-card-view {
+  display: none;
 }
 
 /* Mobile and Tablet Responsive - Under 1024px */

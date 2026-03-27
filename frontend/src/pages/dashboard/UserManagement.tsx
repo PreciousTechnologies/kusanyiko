@@ -670,7 +670,7 @@ const UserManagement: React.FC = () => {
         {/* Users Table - Enhanced Mobile Responsive */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           {/* Mobile Card View */}
-          <div className="mobile-card-view lg:hidden">
+          <div className="mobile-card-view">
             <div className="space-y-4 p-4">
               {filteredUsers.length === 0 && !loading ? (
                 <div className="empty-state">
@@ -812,7 +812,7 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* Desktop Table View */}
-          <div className="desktop-table-view hidden lg:block overflow-x-auto">
+          <div className="desktop-table-view overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
