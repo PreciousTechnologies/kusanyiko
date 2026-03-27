@@ -6,6 +6,17 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Large screens (>= 1024px): enforce desktop table visibility */
+@media (min-width: 1024px) {
+  .desktop-table-view {
+    display: block !important;
+  }
+
+  .mobile-card-view {
+    display: none !important;
+  }
+}
+
 /* Mobile and Tablet Responsive - Under 1024px */
 @media (max-width: 1023px) {
   /* Header responsive */

@@ -667,16 +667,6 @@ const UserManagement: React.FC = () => {
           </div>
         )}
 
-        {/* Debug Info - Remove this after fixing */}
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-700">
-            Debug: Users loaded: {users.length}, Filtered: {filteredUsers.length}, Loading: {loading.toString()}
-          </p>
-          <p className="text-sm text-blue-700">
-            Screen size check - FORCED DESKTOP VIEW (temporarily)
-          </p>
-        </div>
-
         {/* Users Table - Enhanced Mobile Responsive */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           {/* Mobile Card View */}
@@ -822,7 +812,7 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* Desktop Table View */}
-          <div className="desktop-table-view hidden xl:block overflow-x-auto">
+          <div className="desktop-table-view hidden lg:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
