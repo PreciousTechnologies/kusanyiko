@@ -271,6 +271,12 @@ const AddMember: React.FC = () => {
   const watchedCenterArea = watch('center_area');
   const totalSteps = 4;
 
+  const getBasePath = () => {
+    if (user?.role === 'admin') return '/admin';
+    if (user?.role === 'apostle') return '/apostle';
+    return '/registrant';
+  };
+
   const regionCenters = useMemo(() => {
     if (watchedCountry !== 'Tanzania' || !watchedRegion) {
       return [];
@@ -355,8 +361,7 @@ const AddMember: React.FC = () => {
       setIsSubmitted(true);
       // Navigate back after 3 seconds
       setTimeout(() => {
-        const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-        navigate(`${basePath}/dashboard`);
+        navigate(`${getBasePath()}/dashboard`);
       }, 3000);
     } catch (error: any) {
       console.error('Error creating member:', error);
@@ -462,8 +467,7 @@ const AddMember: React.FC = () => {
             </div>
             <button
               onClick={() => {
-                const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-                navigate(`${basePath}/dashboard`);
+                navigate(`${getBasePath()}/dashboard`);
               }}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
             >
@@ -482,8 +486,7 @@ const AddMember: React.FC = () => {
         <div className="add-member-header mb-8">
           <button
             onClick={() => {
-              const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-              navigate(`${basePath}/dashboard`);
+              navigate(`${getBasePath()}/dashboard`);
             }}
             className="flex items-center text-gray-600 hover:text-green-600 transition-colors duration-200 mb-4"
           >

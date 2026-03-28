@@ -10,6 +10,31 @@ from .models import Member
 from .serializers import MemberSerializer
 
 
+KANDA_AREAS = {
+    'dar_es_salaam_na_pwani': [
+        'Dar es Salaam', 'Pwani', 'Mwenge', 'Temeke', 'Ushindi', 'Imara',
+        'Kinondoni', 'Zanzibar', 'Yombo', 'Kisukuru'
+    ],
+    'nyanda_za_juu_kusini': ['Mbeya', 'Rukwa', 'Katavi', 'Iringa'],
+    'kusini': ['Mtwara', 'Lindi', 'Ruvuma', 'Njombe'],
+    'kaskazini': ['Kilimanjaro', 'Arusha', 'Manyara', 'Tanga'],
+    'magharibi_na_ziwa': ['Kigoma', 'Shinyanga', 'Simiyu', 'Mwanza', 'Geita', 'Mara', 'Kagera', 'Tabora'],
+    'kati': ['Dodoma', 'Singida'],
+}
+
+
+def build_kanda_scope_query(kanda_key):
+    areas = KANDA_AREAS.get(kanda_key, [])
+    scope_q = Q()
+
+    for area in areas:
+        scope_q |= Q(region__iexact=area)
+        scope_q |= Q(center_area__iexact=area)
+        scope_q |= Q(zone__iexact=area)
+
+    return scope_q
+
+
 class MemberListCreateView(generics.ListCreateAPIView):
     serializer_class = MemberSerializer
     permission_classes = [IsAuthenticated]
@@ -23,6 +48,12 @@ class MemberListCreateView(generics.ListCreateAPIView):
         if user.role == 'registrant':
             # Registrants can only see their own members
             queryset = queryset.filter(created_by=user)
+        elif user.role == 'apostle':
+            if not user.kanda:
+                return queryset.none()
+
+            scope_q = build_kanda_scope_query(user.kanda)
+            queryset = queryset.filter(scope_q)
         elif created_by_param:
             # Admins can filter by specific user if requested
             try:
@@ -49,6 +80,10 @@ class MemberListCreateView(generics.ListCreateAPIView):
         region = self.request.query_params.get('region')
         if region:
             queryset = queryset.filter(region__icontains=region)
+
+        center_area = self.request.query_params.get('center_area')
+        if center_area:
+            queryset = queryset.filter(center_area__icontains=center_area)
         
         country = self.request.query_params.get('country')
         if country:
@@ -111,6 +146,12 @@ class MemberDetailView(generics.RetrieveUpdateDestroyAPIView):
         if user.role == 'registrant':
             # Registrants can only access their own members
             queryset = queryset.filter(created_by=user)
+        elif user.role == 'apostle':
+            if not user.kanda:
+                return queryset.none()
+
+            scope_q = build_kanda_scope_query(user.kanda)
+            queryset = queryset.filter(scope_q)
         # Admins can access all members
         
         return queryset
@@ -130,6 +171,12 @@ def export_members(request):
     # Get queryset based on user role
     if user.role == 'admin':
         queryset = Member.objects.filter(is_deleted=False)
+    elif user.role == 'apostle':
+        if not user.kanda:
+            queryset = Member.objects.none()
+        else:
+            scope_q = build_kanda_scope_query(user.kanda)
+            queryset = Member.objects.filter(scope_q, is_deleted=False)
     else:
         queryset = Member.objects.filter(created_by=user, is_deleted=False)
     

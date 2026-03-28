@@ -34,6 +34,12 @@ const MyMembers: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { members, loading, totalCount, filters } = useAppSelector((state) => state.members);
 
+  const getBasePath = () => {
+    if (user?.role === 'admin') return '/admin';
+    if (user?.role === 'apostle') return '/apostle';
+    return '/registrant';
+  };
+
   // Check if we should filter to only show admin's created members
   const showOnlyMyMembers = 
     location.pathname.includes('/my-members') || 
@@ -43,6 +49,7 @@ const MyMembers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState(filters.search);
   const [selectedGender, setSelectedGender] = useState(filters.gender);
   const [selectedRegion, setSelectedRegion] = useState(filters.region);
+  const [selectedCenterArea, setSelectedCenterArea] = useState(filters.center_area || '');
   const [selectedSaved, setSelectedSaved] = useState<boolean | null>(filters.saved);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -64,9 +71,10 @@ const MyMembers: React.FC = () => {
       search: searchTerm,
       gender: selectedGender,
       region: selectedRegion,
+      center_area: selectedCenterArea,
       saved: selectedSaved,
     }));
-  }, [dispatch, searchTerm, selectedGender, selectedRegion, selectedSaved]);
+  }, [dispatch, searchTerm, selectedGender, selectedRegion, selectedCenterArea, selectedSaved]);
 
   // Filter members created by current admin (only when needed)
   const getMyMembers = (): Member[] => {
@@ -127,25 +135,33 @@ const MyMembers: React.FC = () => {
     setSearchTerm('');
     setSelectedGender('');
     setSelectedRegion('');
+    setSelectedCenterArea('');
     setSelectedSaved(null);
     dispatch(setFilters({
       search: '',
       gender: '',
       region: '',
+      center_area: '',
       saved: null,
     }));
   };
 
+  const centerAreaOptions = Array.from(
+    new Set(
+      displayedMembers
+        .map((member) => member.center_area)
+        .filter((value): value is string => Boolean(value && value.trim()))
+    )
+  ).sort();
+
   const handleViewMember = (memberId: number) => {
     // Navigate to member details page
-    const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-    navigate(`${basePath}/members/${memberId}`);
+    navigate(`${getBasePath()}/members/${memberId}`);
   };
 
   const handleEditMember = (memberId: number) => {
     // Navigate to edit member page
-    const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-    navigate(`${basePath}/members/${memberId}/edit`);
+    navigate(`${getBasePath()}/members/${memberId}/edit`);
   };
 
   const handleDeleteMember = async (memberId: number) => {
@@ -640,8 +656,7 @@ const MyMembers: React.FC = () => {
         <div className={`mb-8 ${isMobile ? 'mb-4' : ''}`}>
           <button
             onClick={() => {
-              const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-              navigate(`${basePath}/dashboard`);
+              navigate(`${getBasePath()}/dashboard`);
             }}
             className={`flex items-center text-gray-600 hover:text-green-600 transition-all duration-300 hover:scale-105 ${
               isMobile ? 'mb-3' : 'mb-4'
@@ -670,6 +685,8 @@ const MyMembers: React.FC = () => {
               }`}>
                 {user?.role === 'admin' 
                   ? 'Manage all registered church members' 
+                  : user?.role === 'apostle'
+                  ? 'View and manage members in your assigned kanda centers'
                   : 'View and manage members you have registered'
                 }
               </p>
@@ -677,8 +694,7 @@ const MyMembers: React.FC = () => {
             
             <button
               onClick={() => {
-                const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-                navigate(`${basePath}/members/add`);
+                navigate(`${getBasePath()}/members/add`);
               }}
               className={`add-member-btn enhanced ${
                 isMobile 
@@ -717,6 +733,55 @@ const MyMembers: React.FC = () => {
                 />
               </div>
             </div>
+
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => handleFilterChange('region', e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">All Regions</option>
+                  {Array.from(new Set(displayedMembers.map((member) => member.region).filter(Boolean))).map((region) => (
+                    <option key={region} value={region}>{region}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedCenterArea}
+                  onChange={(e) => {
+                    setSelectedCenterArea(e.target.value);
+                    dispatch(setFilters({ center_area: e.target.value }));
+                  }}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">All Centers/Areas</option>
+                  {centerAreaOptions.map((center) => (
+                    <option key={center} value={center}>{center}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedGender}
+                  onChange={(e) => handleFilterChange('gender', e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">All Genders</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+
+                <select
+                  value={selectedSaved === null ? '' : selectedSaved ? 'true' : 'false'}
+                  onChange={(e) => handleFilterChange('saved', e.target.value === '' ? null : e.target.value === 'true')}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">Saved + Not Saved</option>
+                  <option value="true">Saved</option>
+                  <option value="false">Not Saved</option>
+                </select>
+              </div>
+            )}
 
             {/* Enhanced Filter Toggle and View Mode */}
             <div className={`flex ${isMobile ? 'flex-col gap-3' : 'flex-col sm:flex-row gap-2'}`}>
@@ -898,8 +963,7 @@ const MyMembers: React.FC = () => {
             </p>
             <button
               onClick={() => {
-                const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-                navigate(`${basePath}/members/add`);
+                  navigate(`${getBasePath()}/members/add`);
               }}
               className={`${
                 isMobile 

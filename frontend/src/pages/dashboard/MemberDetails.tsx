@@ -32,6 +32,12 @@ const MemberDetails: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+
+  const getBasePath = () => {
+    if (user?.role === 'admin') return '/admin';
+    if (user?.role === 'apostle') return '/apostle';
+    return '/registrant';
+  };
   const { members } = useAppSelector((state) => state.members);
   
   const [member, setMember] = useState<Member | null>(null);
@@ -64,13 +70,11 @@ const MemberDetails: React.FC = () => {
   }, [id, members]);
 
   const handleBack = () => {
-    const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-    navigate(`${basePath}/members`);
+    navigate(`${getBasePath()}/members`);
   };
 
   const handleEdit = () => {
-    const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-    navigate(`${basePath}/members/${id}/edit`);
+    navigate(`${getBasePath()}/members/${id}/edit`);
   };
 
   const handleDelete = async () => {
@@ -101,7 +105,7 @@ const MemberDetails: React.FC = () => {
   };
 
   const handleShare = async () => {
-    if (navigator.share && member) {
+    if (member && navigator.share && typeof navigator.share === 'function') {
       try {
         await navigator.share({
           title: `${member.first_name} ${member.last_name}`,

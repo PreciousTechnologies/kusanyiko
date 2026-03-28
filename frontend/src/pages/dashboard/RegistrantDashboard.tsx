@@ -35,6 +35,14 @@ const RegistrantDashboard: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { branding } = useBranding();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const basePath = user?.role === 'apostle' ? '/apostle' : '/registrant';
+  const formatKanda = (kanda?: string) => {
+    if (!kanda) return '';
+    return kanda
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  };
 
   useEffect(() => {
     dispatch(fetchRegistrantStats());
@@ -145,21 +153,21 @@ const RegistrantDashboard: React.FC = () => {
     {
       title: 'Register New Member',
       description: 'Add a new church member to the database',
-      href: '/registrant/members/add',
+      href: `${basePath}/members/add`,
       icon: UserPlusIcon,
       color: 'primary',
     },
     {
-      title: 'View My Members',
-      description: 'See all members you have registered',
-      href: '/registrant/members',
+      title: user?.role === 'apostle' ? 'View Kanda Members' : 'View My Members',
+      description: user?.role === 'apostle' ? 'See all members in your kanda' : 'See all members you have registered',
+      href: `${basePath}/members`,
       icon: UsersIcon,
       color: 'secondary',
     },
     {
-      title: 'My Statistics',
-      description: 'View detailed registration statistics',
-      href: '/registrant/stats',
+      title: user?.role === 'apostle' ? 'Kanda Statistics' : 'My Statistics',
+      description: user?.role === 'apostle' ? 'View kanda analytics and trends' : 'View detailed registration statistics',
+      href: `${basePath}/stats`,
       icon: ChartBarIcon,
       color: 'success',
     },
@@ -268,10 +276,14 @@ const RegistrantDashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-              Welcome, {user?.first_name || user?.username}!
+              {user?.role === 'apostle'
+                ? `Welcome Apostle ${user?.first_name || user?.username}${user?.kanda ? `, ${formatKanda(user.kanda)}` : ''}!`
+                : `Welcome, ${user?.first_name || user?.username}!`}
             </h1>
             <p className="text-gray-600 text-lg">
-              {branding.registrant_dashboard_subtitle}
+              {user?.role === 'apostle'
+                ? 'EFATHA Leaders\' Camp • Kanda oversight dashboard'
+                : branding.registrant_dashboard_subtitle}
             </p>
           </div>
           <div className="flex items-center space-x-3 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-3 rounded-xl border border-green-200">

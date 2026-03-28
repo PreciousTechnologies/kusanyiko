@@ -12,6 +12,7 @@ interface MembersState {
     search: string;
     country: string;
     region: string;
+    center_area: string;
     gender: string;
     saved: boolean | null;
   };
@@ -27,6 +28,7 @@ const initialState: MembersState = {
     search: '',
     country: '',
     region: '',
+    center_area: '',
     gender: '',
     saved: null,
   },

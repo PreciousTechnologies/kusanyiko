@@ -24,7 +24,8 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'admin' | 'registrant' | 'member';
+  role: 'admin' | 'registrant' | 'apostle' | 'member';
+  kanda?: string;
   status: 'active' | 'inactive' | 'suspended';
   date_joined: string;
   last_login: string | null;
@@ -38,11 +39,21 @@ interface UserFormData {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'admin' | 'registrant' | 'member';
+  role: 'admin' | 'registrant' | 'apostle' | 'member';
+  kanda?: string;
   password?: string;
   is_staff: boolean;
   is_superuser: boolean;
 }
+
+const KANDA_OPTIONS = [
+  { value: 'dar_es_salaam_na_pwani', label: 'Dar es Salaam na Pwani' },
+  { value: 'nyanda_za_juu_kusini', label: 'Nyanda za Juu Kusini' },
+  { value: 'kusini', label: 'Kusini' },
+  { value: 'kaskazini', label: 'Kaskazini' },
+  { value: 'magharibi_na_ziwa', label: 'Magharibi na Ziwa' },
+  { value: 'kati', label: 'Kati' },
+];
 
 const UserManagement: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -69,6 +80,7 @@ const UserManagement: React.FC = () => {
     first_name: '',
     last_name: '',
     role: 'registrant',
+    kanda: '',
     password: '',
     is_staff: false,
     is_superuser: false,
@@ -145,6 +157,7 @@ const UserManagement: React.FC = () => {
       first_name: '',
       last_name: '',
       role: 'registrant',
+      kanda: '',
       password: '',
       is_staff: false,
       is_superuser: false,
@@ -160,6 +173,7 @@ const UserManagement: React.FC = () => {
       first_name: user.first_name,
       last_name: user.last_name,
       role: user.role,
+      kanda: user.kanda || '',
       is_staff: user.is_staff,
       is_superuser: user.is_superuser,
     });
@@ -190,6 +204,11 @@ const UserManagement: React.FC = () => {
     
     if (!editingUser && (!userForm.password || userForm.password.length < 6)) {
       alert('Password is required and must be at least 6 characters long');
+      return;
+    }
+
+    if (userForm.role === 'apostle' && !userForm.kanda) {
+      alert('Please select a kanda for apostle users');
       return;
     }
     
@@ -305,14 +324,15 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleRoleChange = async (user: User, newRole: 'admin' | 'registrant' | 'member') => {
+  const handleRoleChange = async (user: User, newRole: 'admin' | 'registrant' | 'apostle' | 'member') => {
     setLoading(true);
     
     try {
       const updateData = { 
         role: newRole,
         is_staff: newRole === 'admin',
-        is_superuser: newRole === 'admin' && user.is_superuser // Only keep superuser if they already have it
+        is_superuser: newRole === 'admin' && user.is_superuser, // Only keep superuser if they already have it
+        kanda: newRole === 'apostle' ? (user.kanda || '') : ''
       };
       
       const response = await userManagementAPI.updateUser(user.id, updateData);
@@ -459,6 +479,8 @@ const UserManagement: React.FC = () => {
     switch (role) {
       case 'admin':
         return <ShieldCheckIcon className="h-5 w-5 text-red-500" />;
+      case 'apostle':
+        return <ShieldCheckIcon className="h-5 w-5 text-orange-500" />;
       case 'registrant':
         return <UserCircleIcon className="h-5 w-5 text-blue-500" />;
       default:
@@ -571,7 +593,7 @@ const UserManagement: React.FC = () => {
             <div className="stat-content ml-4">
               <p className="stat-label text-sm font-medium text-gray-600">Registrants</p>
               <p className="stat-value text-2xl font-bold text-gray-900">
-                {users.filter(u => u.role === 'registrant').length}
+                {users.filter(u => u.role === 'registrant' || u.role === 'apostle').length}
               </p>
             </div>
           </div>
@@ -597,9 +619,11 @@ const UserManagement: React.FC = () => {
           >
             <option value="all">All Roles</option>
             <option value="admin">Administrator</option>
+            <option value="apostle">Apostle</option>
             <option value="registrant">Registrant</option>
             <option value="member">Member</option>
           </select>
+  const handleRoleChange = async (user: User, newRole: 'admin' | 'registrant' | 'apostle' | 'member') => {
 
           <select
             value={statusFilter}
@@ -720,6 +744,7 @@ const UserManagement: React.FC = () => {
                           className="user-role-select"
                         >
                           <option value="admin">Administrator</option>
+                          <option value="apostle">Apostle</option>
                           <option value="registrant">Registrant</option>
                           <option value="member">Member</option>
                         </select>
@@ -878,6 +903,7 @@ const UserManagement: React.FC = () => {
                           className="text-sm font-medium text-gray-900 bg-transparent border-none focus:ring-2 focus:ring-green-500 rounded px-1"
                         >
                           <option value="admin">Administrator</option>
+                          <option value="apostle">Apostle</option>
                           <option value="registrant">Registrant</option>
                           <option value="member">Member</option>
                         </select>
@@ -1082,26 +1108,45 @@ const UserManagement: React.FC = () => {
                   <select
                     value={userForm.role}
                     onChange={(e) => {
-                      const newRole = e.target.value as 'admin' | 'registrant' | 'member';
+                      const newRole = e.target.value as 'admin' | 'registrant' | 'apostle' | 'member';
                       setUserForm(prev => ({ 
                         ...prev, 
                         role: newRole,
+                        kanda: newRole === 'apostle' ? prev.kanda || '' : '',
                         is_staff: newRole === 'admin' || prev.is_staff, // Automatically set staff for admin
                         is_superuser: newRole === 'admin' ? prev.is_superuser : false // Only allow superuser for admin
                       }));
                     }}
                     className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
                   >
-                    <option value="registrant">Registrant</option>
                     <option value="admin">Administrator</option>
+                    <option value="apostle">Apostle</option>
+                    <option value="registrant">Registrant</option>
                     <option value="member">Member</option>
                   </select>
                   <p className="mt-1 text-xs text-gray-500">
                     {userForm.role === 'admin' && 'Admin users automatically get staff status'}
+                    {userForm.role === 'apostle' && 'Can monitor members in assigned kanda'}
                     {userForm.role === 'registrant' && 'Can register new members'}
                     {userForm.role === 'member' && 'Basic user permissions'}
                   </p>
                 </div>
+
+                {userForm.role === 'apostle' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Kanda</label>
+                    <select
+                      value={userForm.kanda || ''}
+                      onChange={(e) => setUserForm(prev => ({ ...prev, kanda: e.target.value }))}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="">Select kanda</option>
+                      {KANDA_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="flex items-center">

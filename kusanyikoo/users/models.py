@@ -8,7 +8,17 @@ class User(AbstractUser):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
         ('registrant', 'Registrant'),
+        ('apostle', 'Apostle'),
         ('member', 'Member'),
+    ]
+
+    KANDA_CHOICES = [
+        ('dar_es_salaam_na_pwani', 'Dar es Salaam na Pwani'),
+        ('nyanda_za_juu_kusini', 'Nyanda za Juu Kusini'),
+        ('kusini', 'Kusini'),
+        ('kaskazini', 'Kaskazini'),
+        ('magharibi_na_ziwa', 'Magharibi na Ziwa'),
+        ('kati', 'Kati'),
     ]
     
     STATUS_CHOICES = [
@@ -60,6 +70,7 @@ class User(AbstractUser):
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='admin')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    kanda = models.CharField(max_length=50, choices=KANDA_CHOICES, blank=True)
     country = models.CharField(max_length=100, blank=True)
     region = models.CharField(max_length=100, blank=True)  # For Tanzania regions or Dar es Salaam areas
     is_active = models.BooleanField(default=True)

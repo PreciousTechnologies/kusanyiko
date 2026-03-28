@@ -36,6 +36,12 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
+  const getDashboardPath = (role: string) => {
+    if (role === 'admin') return '/admin/dashboard';
+    if (role === 'apostle') return '/apostle/dashboard';
+    return '/registrant/dashboard';
+  };
+
   // Check if user is authenticated
   if (!isAuthenticated) {
     // Clear any stale data
@@ -59,7 +65,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   // Check role-based access
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role
-    const redirectPath = user.role === 'admin' ? '/admin/dashboard' : '/registrant/dashboard';
+    const redirectPath = getDashboardPath(user.role);
     return <Navigate to={redirectPath} replace />;
   }
 
@@ -74,8 +80,14 @@ interface PublicRouteProps {
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
+  const getDashboardPath = (role: string) => {
+    if (role === 'admin') return '/admin/dashboard';
+    if (role === 'apostle') return '/apostle/dashboard';
+    return '/registrant/dashboard';
+  };
+
   if (isAuthenticated && user) {
-    const redirectPath = user.role === 'admin' ? '/admin/dashboard' : '/registrant/dashboard';
+    const redirectPath = getDashboardPath(user.role);
     return <Navigate to={redirectPath} replace />;
   }
 
@@ -140,6 +152,24 @@ const AppRouter: React.FC = () => {
         {/* Protected Registrant Routes */}
         <Route path="/registrant/*" element={
           <ProtectedRoute allowedRoles={['registrant']}>
+            <DashboardLayout>
+              <Routes>
+                <Route path="dashboard" element={<RegistrantDashboard />} />
+                <Route path="stats" element={<MyStatistics />} />
+                <Route path="members" element={<MyMembers />} />
+                <Route path="members/add" element={<AddMember />} />
+                <Route path="members/:id" element={<MemberDetails />} />
+                <Route path="members/:id/edit" element={<EditMember />} />
+                <Route path="profile-settings" element={<ProfileSettings />} />
+                <Route path="" element={<Navigate to="dashboard" replace />} />
+              </Routes>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Protected Apostle Routes */}
+        <Route path="/apostle/*" element={
+          <ProtectedRoute allowedRoles={['apostle']}>
             <DashboardLayout>
               <Routes>
                 <Route path="dashboard" element={<RegistrantDashboard />} />

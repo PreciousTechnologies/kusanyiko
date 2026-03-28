@@ -154,6 +154,12 @@ const EditMember: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+
+  const getBasePath = () => {
+    if (user?.role === 'admin') return '/admin';
+    if (user?.role === 'apostle') return '/apostle';
+    return '/registrant';
+  };
   const { members, loading } = useAppSelector((state) => state.members);
   
   const [member, setMember] = useState<Member | null>(null);
@@ -241,8 +247,7 @@ const EditMember: React.FC = () => {
   }, [id, members, reset]);
 
   const handleBack = () => {
-    const basePath = user?.role === 'admin' ? '/admin' : '/registrant';
-    navigate(`${basePath}/members`);
+    navigate(`${getBasePath()}/members`);
   };
 
   const handleCameraCapture = (imageFile: File) => {

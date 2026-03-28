@@ -15,6 +15,41 @@ from .models import ExportHistory, BrandingSettings
 from .serializers import BrandingSettingsSerializer
 
 
+KANDA_AREAS = {
+    'dar_es_salaam_na_pwani': [
+        'Dar es Salaam', 'Pwani', 'Mwenge', 'Temeke', 'Ushindi', 'Imara',
+        'Kinondoni', 'Zanzibar', 'Yombo', 'Kisukuru'
+    ],
+    'nyanda_za_juu_kusini': ['Mbeya', 'Rukwa', 'Katavi', 'Iringa'],
+    'kusini': ['Mtwara', 'Lindi', 'Ruvuma', 'Njombe'],
+    'kaskazini': ['Kilimanjaro', 'Arusha', 'Manyara', 'Tanga'],
+    'magharibi_na_ziwa': ['Kigoma', 'Shinyanga', 'Simiyu', 'Mwanza', 'Geita', 'Mara', 'Kagera', 'Tabora'],
+    'kati': ['Dodoma', 'Singida'],
+}
+
+
+def get_member_scope_queryset(user):
+    queryset = Member.objects.filter(is_deleted=False)
+
+    if user.role == 'admin':
+        return queryset
+
+    if user.role == 'apostle':
+        if not user.kanda:
+            return queryset.none()
+
+        areas = KANDA_AREAS.get(user.kanda, [])
+        scope_q = Q()
+        for area in areas:
+            scope_q |= Q(region__iexact=area)
+            scope_q |= Q(center_area__iexact=area)
+            scope_q |= Q(zone__iexact=area)
+
+        return queryset.filter(scope_q)
+
+    return queryset.filter(created_by=user)
+
+
 class BrandingSettingsView(APIView):
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -112,59 +147,37 @@ class RegistrantStatsView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
+        scoped_members = get_member_scope_queryset(request.user)
+
         # Get basic stats for current user
-        total_registered = Member.objects.filter(
-            created_by=request.user,
-            is_deleted=False
-        ).count()
+        total_registered = scoped_members.count()
         
         # Get breakdown by gender
-        gender_stats = Member.objects.filter(
-            created_by=request.user,
-            is_deleted=False
-        ).values('gender').annotate(count=Count('id'))
+        gender_stats = scoped_members.values('gender').annotate(count=Count('id'))
         
         # Get breakdown by region
-        region_stats = Member.objects.filter(
-            created_by=request.user,
-            is_deleted=False
-        ).values('region').annotate(count=Count('id'))
+        region_stats = scoped_members.values('region').annotate(count=Count('id'))
         
         # Get saved vs unsaved
-        saved_stats = Member.objects.filter(
-            created_by=request.user,
-            is_deleted=False
-        ).values('saved').annotate(count=Count('id'))
+        saved_stats = scoped_members.values('saved').annotate(count=Count('id'))
         
         # Get recent registrations (last 30 days)
         thirty_days_ago = timezone.now() - timedelta(days=30)
-        recent_registrations = Member.objects.filter(
-            created_by=request.user,
-            is_deleted=False,
-            created_at__gte=thirty_days_ago
-        ).count()
+        recent_registrations = scoped_members.filter(created_at__gte=thirty_days_ago).count()
         
         # Get weekly performance (last 4 weeks)
         weekly_data = []
         for i in range(4):
             week_start = timezone.now() - timedelta(weeks=i+1)
             week_end = timezone.now() - timedelta(weeks=i)
-            week_count = Member.objects.filter(
-                created_by=request.user,
-                is_deleted=False,
-                created_at__gte=week_start,
-                created_at__lt=week_end
-            ).count()
+            week_count = scoped_members.filter(created_at__gte=week_start, created_at__lt=week_end).count()
             weekly_data.insert(0, {
                 'week': f'Week {4-i}',
                 'count': week_count
             })
         
         # Get recent activity (last 5 members)
-        recent_members = Member.objects.filter(
-            created_by=request.user,
-            is_deleted=False
-        ).order_by('-created_at')[:5].values(
+        recent_members = scoped_members.order_by('-created_at')[:5].values(
             'first_name', 'last_name', 'created_at'
         )
         
@@ -189,9 +202,9 @@ def export_members(request):
     filters = request.data.get('filters', {})
     
     # Build queryset with filters
-    queryset = Member.objects.filter(is_deleted=False)
+    queryset = get_member_scope_queryset(request.user)
     
-    if filters.get('created_by'):
+    if filters.get('created_by') and request.user.role == 'admin':
         queryset = queryset.filter(created_by=filters['created_by'])
     
     if filters.get('region'):

@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'role', 'status',
-            'country', 'region', 'is_staff', 'is_superuser', 'date_joined', 
+            'kanda', 'country', 'region', 'is_staff', 'is_superuser', 'date_joined', 
             'last_login', 'members_registered'
         ]
         read_only_fields = ['date_joined', 'last_login', 'members_registered']
@@ -27,7 +27,7 @@ class SignupSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'confirm_password', 'country', 'region', 'first_name', 'last_name', 'role']
+        fields = ['username', 'email', 'password', 'confirm_password', 'kanda', 'country', 'region', 'first_name', 'last_name', 'role']
     
     def validate(self, attrs):
         if attrs['password'] != attrs['confirm_password']:
@@ -98,7 +98,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'password', 'first_name', 'last_name', 'role', 'status',
-            'country', 'region', 'is_staff', 'is_superuser'
+            'kanda', 'country', 'region', 'is_staff', 'is_superuser'
         ]
         read_only_fields = ['id']
     

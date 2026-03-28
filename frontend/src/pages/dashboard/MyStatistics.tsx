@@ -38,6 +38,7 @@ const MyStatistics: React.FC = () => {
   const [timeFilter, setTimeFilter] = useState('all');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const scopeLabel = user?.role === 'apostle' ? 'Kanda' : 'My';
 
   useEffect(() => {
     dispatch(fetchRegistrantStats());
@@ -243,13 +244,13 @@ const MyStatistics: React.FC = () => {
   // Real-time statistics data
   const statisticsData = [
     {
-      title: 'Total Registrations',
+      title: `${scopeLabel} Registrations`,
       value: registrantStats?.total_registered || 0,
       change: '+12%',
       trend: 'up',
       icon: UsersIcon,
       color: 'green',
-      description: 'Members you have registered',
+      description: user?.role === 'apostle' ? 'Members in your kanda' : 'Members you have registered',
     },
     {
       title: 'This Week',

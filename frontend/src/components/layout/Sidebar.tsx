@@ -73,7 +73,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     },
   ];
 
-  const navItems = user?.role === 'admin' ? adminNavItems : registrantNavItems;
+  const apostleNavItems = [
+    {
+      section: 'OVERVIEW',
+      items: [
+        { name: 'Dashboard', href: '/apostle/dashboard', icon: HomeIcon, description: 'Kanda overview & progress' },
+        { name: 'Statistics', href: '/apostle/stats', icon: ChartPieIcon, description: 'Kanda analytics & charts' },
+      ],
+    },
+    {
+      section: 'KANDA MEMBERS',
+      items: [
+        { name: 'Members', href: '/apostle/members', icon: UserGroupIcon, description: 'Members in your kanda' },
+        { name: 'Add Member', href: '/apostle/members/add', icon: UserPlusIcon, description: 'Register new member in kanda' },
+      ],
+    },
+  ];
+
+  const navItems = user?.role === 'admin'
+    ? adminNavItems
+    : user?.role === 'apostle'
+    ? apostleNavItems
+    : registrantNavItems;
 
   const isActiveLink = (href: string) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');
