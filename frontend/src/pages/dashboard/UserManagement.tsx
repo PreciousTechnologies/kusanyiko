@@ -623,7 +623,6 @@ const UserManagement: React.FC = () => {
             <option value="registrant">Registrant</option>
             <option value="member">Member</option>
           </select>
-  const handleRoleChange = async (user: User, newRole: 'admin' | 'registrant' | 'apostle' | 'member') => {
 
           <select
             value={statusFilter}
