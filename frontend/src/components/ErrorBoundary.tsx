@@ -9,6 +9,16 @@ interface State {
   error: Error | null;
 }
 
+const quietRedirectToLogin = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user');
+
+  if (window.location.hash !== '#/login') {
+    window.location.replace('#/login');
+  }
+};
+
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -35,13 +45,7 @@ class ErrorBoundary extends Component<Props, State> {
                         error.message?.includes('Session expired');
     
     if (isAuthError) {
-      // Clear authentication data
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-      
-      // Redirect to login
-      window.location.href = '#/login';
+      quietRedirectToLogin();
     }
   }
 
@@ -55,16 +59,17 @@ class ErrorBoundary extends Component<Props, State> {
                          errorMessage.includes('Unauthorized');
       
       if (isNotFound || isAuthError) {
-        // Redirect to login page for these errors
-        setTimeout(() => {
-          window.location.href = '#/login';
-        }, 100);
-        
         return (
           <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50">
             <div className="text-center">
               <div className="h-12 w-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Redirecting to login...</p>
+              <p className="text-gray-600 mb-4">Your session ended. Please sign in again.</p>
+              <button
+                onClick={quietRedirectToLogin}
+                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200"
+              >
+                Go to Login
+              </button>
             </div>
           </div>
         );
@@ -82,13 +87,13 @@ class ErrorBoundary extends Component<Props, State> {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Oops! Something went wrong</h2>
               <p className="text-gray-600 mb-6">
-                We encountered an unexpected error. Please try refreshing the page.
+                We encountered an unexpected error. You can try again without reloading.
               </p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => this.setState({ hasError: false, error: null })}
                 className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200"
               >
-                Refresh Page
+                Try Again
               </button>
             </div>
           </div>

@@ -63,6 +63,43 @@ const api = axios.create({
   },
 });
 
+let isRefreshingToken = false;
+let pendingRequests: Array<(token: string | null) => void> = [];
+let isRedirectingToLogin = false;
+
+const notifyPendingRequests = (token: string | null) => {
+  pendingRequests.forEach((callback) => callback(token));
+  pendingRequests = [];
+};
+
+const queuePendingRequest = (callback: (token: string | null) => void) => {
+  pendingRequests.push(callback);
+};
+
+const clearAuthStorage = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user');
+};
+
+const quietRedirectToLogin = () => {
+  if (isRedirectingToLogin) {
+    return;
+  }
+
+  isRedirectingToLogin = true;
+  clearAuthStorage();
+
+  if (window.location.hash !== '#/login') {
+    // Soft hash navigation avoids hard page reload behavior.
+    window.location.replace('#/login');
+  }
+
+  setTimeout(() => {
+    isRedirectingToLogin = false;
+  }, 500);
+};
+
 // Function to update API base URL
 export function updateApiBaseURL(newBaseURL: string): void {
   api.defaults.baseURL = newBaseURL;
@@ -85,27 +122,83 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config as any;
+
+    const isAuthRefreshRequest = originalRequest?.url?.includes('/api/auth/token/refresh/');
+    const isLoginRequest = originalRequest?.url?.includes('/api/auth/login/');
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest?._retry &&
+      !isAuthRefreshRequest &&
+      !isLoginRequest
+    ) {
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (!refreshToken) {
+        quietRedirectToLogin();
+        return Promise.reject(error);
+      }
+
+      if (isRefreshingToken) {
+        return new Promise((resolve, reject) => {
+          queuePendingRequest((newToken) => {
+            if (!newToken) {
+              reject(error);
+              return;
+            }
+
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshingToken = true;
+
+      try {
+        const refreshResponse = await axios.post(
+          `${api.defaults.baseURL || ''}/api/auth/token/refresh/`,
+          { refresh: refreshToken },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 10000,
+          }
+        );
+
+        const newAccessToken = refreshResponse.data?.access;
+        if (!newAccessToken) {
+          throw new Error('No access token returned from refresh endpoint');
+        }
+
+        localStorage.setItem('access_token', newAccessToken);
+        notifyPendingRequests(newAccessToken);
+
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+        return api(originalRequest);
+      } catch (refreshError) {
+        notifyPendingRequests(null);
+        quietRedirectToLogin();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshingToken = false;
+      }
+    }
+
     // Handle authentication errors (401 Unauthorized)
     if (error.response?.status === 401) {
-      // Clear all authentication data
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-      
-      // Redirect to login page
-      window.location.href = '#/login';
+      quietRedirectToLogin();
       return Promise.reject(error);
     }
     
     // Handle forbidden access (403 Forbidden)
     if (error.response?.status === 403) {
-      // Clear authentication data and redirect to login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-      
-      window.location.href = '#/login';
+      quietRedirectToLogin();
       return Promise.reject(error);
     }
     
@@ -115,12 +208,7 @@ api.interceptors.response.use(
                              error.config?.url?.includes('/profile/');
       
       if (isAuthEndpoint) {
-        // Session might be invalid, clear and redirect
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        
-        window.location.href = '#/login';
+        quietRedirectToLogin();
         return Promise.reject(error);
       }
     }
