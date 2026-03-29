@@ -35,11 +35,13 @@ const ProfilePicture: React.FC<ProfilePictureProps> = ({
     : '';
   const baseClasses = `relative bg-white border-2 border-green-200 rounded-full flex items-center justify-center text-green-600 font-bold shadow-lg ring-4 ring-green-100 overflow-hidden ${sizeClasses[size]} ${className} ${clickableClasses}`;
 
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (clickable) {
+      event.preventDefault();
+      event.stopPropagation();
       setIsClicked(true);
       setTimeout(() => setIsClicked(false), 200);
-      setTimeout(() => setIsModalOpen(true), 100);
+      setIsModalOpen(true);
     }
   };
 

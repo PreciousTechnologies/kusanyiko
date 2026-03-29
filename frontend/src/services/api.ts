@@ -164,7 +164,16 @@ export const membersAPI = {
     }
     return api.post('/api/members/', memberData);
   },
-  updateMember: (id: number, memberData: any) => api.put(`/api/members/${id}/`, memberData),
+  updateMember: (id: number, memberData: any) => {
+    if (memberData instanceof FormData) {
+      return api.put(`/api/members/${id}/`, memberData, {
+        headers: {
+          'Content-Type': undefined,
+        },
+      });
+    }
+    return api.put(`/api/members/${id}/`, memberData);
+  },
   deleteMember: (id: number) => api.delete(`/api/members/${id}/`),
   // Public search endpoint (no authentication required)
   searchMembers: (searchTerm: string) => {

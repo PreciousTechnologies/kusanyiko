@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { XMarkIcon, MagnifyingGlassMinusIcon, MagnifyingGlassPlusIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline';
+import React, { useEffect, useRef, useState } from 'react';
+import { XMarkIcon, MagnifyingGlassMinusIcon, MagnifyingGlassPlusIcon } from '@heroicons/react/24/outline';
 
 interface ProfilePictureModalProps {
   isOpen: boolean;
@@ -22,6 +22,20 @@ const ProfilePictureModal: React.FC<ProfilePictureModalProps> = ({
   const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const scrollYRef = useRef(0);
+  const [fileImageUrl, setFileImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (src instanceof File) {
+      const objectUrl = URL.createObjectURL(src);
+      setFileImageUrl(objectUrl);
+      return () => {
+        URL.revokeObjectURL(objectUrl);
+        setFileImageUrl(null);
+      };
+    }
+    setFileImageUrl(null);
+  }, [src]);
 
   // Convert File to URL if needed
   let imageUrl: string | null = null;
@@ -35,7 +49,7 @@ const ProfilePictureModal: React.FC<ProfilePictureModalProps> = ({
         imageUrl = src;
       }
     } else if (src instanceof File) {
-      imageUrl = URL.createObjectURL(src);
+      imageUrl = fileImageUrl;
     }
   }
 
@@ -77,15 +91,31 @@ const ProfilePictureModal: React.FC<ProfilePictureModalProps> = ({
       }
     };
 
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalTop = document.body.style.top;
+    const originalWidth = document.body.style.width;
+
     if (isOpen) {
       document.addEventListener('keydown', handleKeyPress);
-      // Prevent body scroll when modal is open
+      // Lock body scroll without losing the current scroll position.
+      scrollYRef.current = window.scrollY;
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollYRef.current}px`;
+      document.body.style.width = '100%';
     }
 
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.top = originalTop;
+      document.body.style.width = originalWidth;
+
+      if (isOpen) {
+        window.scrollTo(0, scrollYRef.current);
+      }
     };
   }, [isOpen, onClose]);
 
