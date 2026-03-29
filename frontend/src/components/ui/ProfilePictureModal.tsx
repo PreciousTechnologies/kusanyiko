@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { XMarkIcon, MagnifyingGlassMinusIcon, MagnifyingGlassPlusIcon } from '@heroicons/react/24/outline';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 interface ProfilePictureModalProps {
   isOpen: boolean;
@@ -41,13 +42,7 @@ const ProfilePictureModal: React.FC<ProfilePictureModalProps> = ({
   let imageUrl: string | null = null;
   if (src) {
     if (typeof src === 'string') {
-      // If it's a relative URL, construct the full URL
-      if (src.startsWith('/')) {
-        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-        imageUrl = `${baseURL}${src}`;
-      } else {
-        imageUrl = src;
-      }
+      imageUrl = resolveMediaUrl(src);
     } else if (src instanceof File) {
       imageUrl = fileImageUrl;
     }

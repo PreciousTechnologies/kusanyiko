@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ProfilePictureModal from './ProfilePictureModal';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 interface ProfilePictureProps {
   src?: File | string | null;
@@ -65,35 +66,9 @@ const ProfilePicture: React.FC<ProfilePictureProps> = ({
     }
 
     if (typeof src === 'string') {
-      // Check if it's a backend media URL that should go through proxy
-      if (src.includes('/media/') && (src.startsWith('http://') || src.startsWith('https://'))) {
-        // Extract just the path part to use the proxy
-        try {
-          const url = new URL(src);
-          const relativePath = url.pathname; // e.g., '/media/member_pictures/image.jpg'
-          setImageUrl(relativePath);
-        } catch (error) {
-          console.warn(`ProfilePicture: Invalid URL format: ${src}`);
-          setImageUrl(null);
-        }
-      } else if (src.startsWith('/')) {
-        // Already a relative URL - use as-is (will go through proxy)
-        setImageUrl(src);
-      } else if (src.startsWith('blob:') || src.startsWith('data:')) {
-        // Blob or data URL - use as-is
-        setImageUrl(src);
-      } else {
-        // Other format - could be just a filename or unexpected format
-        if (src && !src.includes('/') && (src.includes('.jpg') || src.includes('.jpeg') || src.includes('.png') || src.includes('.gif'))) {
-          // If it looks like just a filename, try to construct the full path
-          const mediaPath = `/media/member_pictures/${src}`;
-          setImageUrl(mediaPath);
-        } else {
-          setImageUrl(null);
-        }
-      }
+      setImageUrl(resolveMediaUrl(src));
     }
-  }, [src, firstName, lastName]);
+  }, [src]);
 
   // If there's a picture, display it
   if (imageUrl && imageUrl.trim() !== '') {
