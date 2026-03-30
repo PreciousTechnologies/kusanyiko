@@ -234,6 +234,7 @@ export const DAR_ES_SALAAM_AREAS = [
   { value: 'ilala', label: 'Ilala' },
   { value: 'kinondoni', label: 'Kinondoni' },
   { value: 'temeke', label: 'Temeke' },
+  { value: 'kisukulu', label: 'Kisukulu' },
 ];
 
 // Members API
