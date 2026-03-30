@@ -13,7 +13,7 @@ from .serializers import MemberSerializer
 KANDA_AREAS = {
     'dar_es_salaam_na_pwani': [
         'Dar es Salaam', 'Pwani', 'Mwenge', 'Temeke', 'Ushindi', 'Imara',
-        'Kinondoni', 'Zanzibar', 'Yombo', 'Kisukuru'
+        'Kinondoni', 'Zanzibar', 'Yombo', 'Kisukulu', 'Kisukuru'
     ],
     'nyanda_za_juu_kusini': ['Mbeya', 'Rukwa', 'Katavi', 'Iringa'],
     'kusini': ['Mtwara', 'Lindi', 'Ruvuma', 'Njombe'],

@@ -70,6 +70,7 @@ const DAR_ES_SALAAM_CENTERS = [
   'Kinondoni',
   'Imara',
   'Yombo',
+  'Kisukulu',
   'Kisukuru',
   'Zanzibar'
 ];

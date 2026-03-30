@@ -75,7 +75,7 @@ const TANZANIA_REGION_CENTERS: Record<string, string[]> = {
     'Kivule Shalom', 'Ulongoni', 'Magole B', 'Kifuru', 'Kiyombo', 'Mbondole',
     'Mbombambili', 'Viwege', 'Chanika Buyuni', 'Majohe', 'Mazizini', 'Kinyerezi',
     'Matunda', 'Kilakala', 'Tuangoma', 'Gezaulole', 'Kisarawe II', 'Kimbilio',
-    'Kijichi', 'Vikunai', 'Mbutu'
+    'Kijichi', 'Vikunai', 'Mbutu', 'Kisukulu'
   ],
   Dodoma: [
     'Kibaigwa', 'Kinusi', 'Hogoro', 'Veyula', 'Mbande', 'Ihumwa',
