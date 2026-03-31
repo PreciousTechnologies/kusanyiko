@@ -1,5 +1,12 @@
 import axios from "axios";
 
+const PRIMARY_BACKEND_URL = 'https://kusanyiko-backend-g3je.onrender.com';
+const PRODUCTION_FRONTEND_HOSTS = new Set([
+  'kusanyiko-frontend.onrender.com',
+  'kusanyiko.efathamedia.com',
+  'www.kusanyiko.efathamedia.com',
+]);
+
 // Function to get the current frontend host IP
 function getCurrentHostIP(): string {
   return window.location.hostname;
@@ -23,9 +30,9 @@ function getApiBaseURL(): string {
     return savedURL;
   }
 
-  // Explicit check for Render production deployment
-  if (hostname === 'kusanyiko-frontend.onrender.com') {
-    return 'https://kusanyiko-backend-g3je.onrender.com';
+  // Explicit production host mapping
+  if (PRODUCTION_FRONTEND_HOSTS.has(hostname)) {
+    return PRIMARY_BACKEND_URL;
   }
 
   const isHttps = window.location.protocol === 'https:';
@@ -59,8 +66,8 @@ function getApiBaseURL(): string {
 function getHostDerivedApiBaseURL(): string {
   const hostname = getCurrentHostIP();
 
-  if (hostname === 'kusanyiko-frontend.onrender.com') {
-    return 'https://kusanyiko-backend-g3je.onrender.com';
+  if (PRODUCTION_FRONTEND_HOSTS.has(hostname)) {
+    return PRIMARY_BACKEND_URL;
   }
 
   const port = window.location.port;

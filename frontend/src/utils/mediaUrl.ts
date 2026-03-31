@@ -1,3 +1,10 @@
+const PRIMARY_BACKEND_URL = 'https://kusanyiko-backend-g3je.onrender.com';
+const PRODUCTION_FRONTEND_HOSTS = new Set([
+  'kusanyiko-frontend.onrender.com',
+  'kusanyiko.efathamedia.com',
+  'www.kusanyiko.efathamedia.com',
+]);
+
 const getBackendBaseUrl = (): string => {
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL.replace(/\/$/, '');
@@ -12,8 +19,8 @@ const getBackendBaseUrl = (): string => {
   const port = window.location.port;
   const isDevServer = port === '3000' || port === '5173';
 
-  if (hostname === 'kusanyiko-frontend.onrender.com') {
-    return 'https://kusanyiko-backend-g3je.onrender.com';
+  if (PRODUCTION_FRONTEND_HOSTS.has(hostname)) {
+    return PRIMARY_BACKEND_URL;
   }
 
   if (!isDevServer && (hostname.includes('netlify.app') || hostname.includes('vercel.app'))) {
