@@ -13,11 +13,15 @@ function getApiBaseURL(): string {
   }
 
   const savedURL = localStorage.getItem("REACT_APP_API_URL");
-  if (savedURL) {
+  const hostname = getCurrentHostIP();
+
+  // Ignore obviously stale local URLs when app is accessed remotely.
+  const savedIsLocalhost = savedURL?.includes('localhost') || savedURL?.includes('127.0.0.1');
+  const hostIsRemote = hostname !== 'localhost' && hostname !== '127.0.0.1';
+
+  if (savedURL && !(savedIsLocalhost && hostIsRemote)) {
     return savedURL;
   }
-
-  const hostname = getCurrentHostIP();
 
   // Explicit check for Render production deployment
   if (hostname === 'kusanyiko-frontend.onrender.com') {
@@ -127,6 +131,33 @@ const quietRedirectToLogin = () => {
   }, 500);
 };
 
+const isLikelyHtmlPayload = (response: any): boolean => {
+  const contentType = String(response?.headers?.['content-type'] || '').toLowerCase();
+  if (contentType.includes('text/html')) {
+    return true;
+  }
+
+  if (typeof response?.data === 'string') {
+    const body = response.data.trim().toLowerCase();
+    return body.startsWith('<!doctype html') || body.startsWith('<html');
+  }
+
+  return false;
+};
+
+const shouldRetryWithFallbackBaseURL = (response: any): boolean => {
+  const requestUrl = String(response?.config?.url || '');
+  if (!requestUrl.includes('/api/')) {
+    return false;
+  }
+
+  if (response?.config?._baseURLRetried) {
+    return false;
+  }
+
+  return isLikelyHtmlPayload(response);
+};
+
 // Function to update API base URL
 export function updateApiBaseURL(newBaseURL: string): void {
   api.defaults.baseURL = newBaseURL;
@@ -148,7 +179,27 @@ api.interceptors.request.use(
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
+  async (response) => {
+    if (shouldRetryWithFallbackBaseURL(response)) {
+      const fallbackBaseURL = getHostDerivedApiBaseURL();
+      const currentBaseURL = api.defaults.baseURL || '';
+
+      if (fallbackBaseURL !== currentBaseURL) {
+        api.defaults.baseURL = fallbackBaseURL;
+        localStorage.setItem('REACT_APP_API_URL', fallbackBaseURL);
+
+        const retriedConfig = {
+          ...response.config,
+          _baseURLRetried: true,
+          baseURL: fallbackBaseURL,
+        };
+
+        return api(retriedConfig);
+      }
+    }
+
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config as any;
 
@@ -243,10 +294,21 @@ api.interceptors.response.use(
     // Handle network errors or server unavailable
     if (!error.response) {
       console.warn('Network error - server might be unavailable');
+      const originalRequest = error.config as any;
+
+      // Retry idempotent GET requests once to absorb transient backend wake-up/network hiccups.
+      if (
+        originalRequest &&
+        String(originalRequest.method || 'get').toLowerCase() === 'get' &&
+        !originalRequest._networkRetried
+      ) {
+        originalRequest._networkRetried = true;
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        return api(originalRequest);
+      }
 
       // Quietly recover when localStorage keeps a stale API endpoint.
       const savedURL = localStorage.getItem('REACT_APP_API_URL');
-      const originalRequest = error.config as any;
 
       if (
         originalRequest &&
