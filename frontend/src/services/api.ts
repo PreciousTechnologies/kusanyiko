@@ -50,7 +50,34 @@ function getApiBaseURL(): string {
 
   // If accessing via network IP, use the same IP for API
   return `${preferredProtocol}://${hostname}:8000`;
-}// Initialize API with dynamic base URL
+}
+
+function getHostDerivedApiBaseURL(): string {
+  const hostname = getCurrentHostIP();
+
+  if (hostname === 'kusanyiko-frontend.onrender.com') {
+    return 'https://kusanyiko-backend-g3je.onrender.com';
+  }
+
+  const port = window.location.port;
+  const isDevServer = port === '3000' || port === '5173';
+  if (isDevServer) {
+    return '';
+  }
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8000';
+  }
+
+  if (hostname.includes('netlify.app') || hostname.includes('vercel.app')) {
+    const backendHost = hostname.replace(/^[^.]+\./, 'api.');
+    return `https://${backendHost}`;
+  }
+
+  return `http://${hostname}:8000`;
+}
+
+// Initialize API with dynamic base URL
 const apiBaseURL = getApiBaseURL();
 console.log(`🌐 Frontend running on: ${window.location.origin}`);
 console.log(`🔗 API endpoint set to: ${apiBaseURL || 'proxy'}`);
@@ -216,6 +243,26 @@ api.interceptors.response.use(
     // Handle network errors or server unavailable
     if (!error.response) {
       console.warn('Network error - server might be unavailable');
+
+      // Quietly recover when localStorage keeps a stale API endpoint.
+      const savedURL = localStorage.getItem('REACT_APP_API_URL');
+      const originalRequest = error.config as any;
+
+      if (
+        originalRequest &&
+        !originalRequest._baseURLRetried &&
+        savedURL &&
+        api.defaults.baseURL === savedURL
+      ) {
+        const fallbackBaseURL = getHostDerivedApiBaseURL();
+        if (fallbackBaseURL !== savedURL) {
+          originalRequest._baseURLRetried = true;
+          api.defaults.baseURL = fallbackBaseURL;
+          localStorage.setItem('REACT_APP_API_URL', fallbackBaseURL);
+          console.log(`🔁 Retrying request with fallback API endpoint: ${fallbackBaseURL || 'proxy'}`);
+          return api(originalRequest);
+        }
+      }
     }
     
     return Promise.reject(error);

@@ -34,6 +34,35 @@ const initialState: MembersState = {
   },
 };
 
+const normalizeMembersPayload = (payload: any): { members: Member[]; totalCount: number } => {
+  if (Array.isArray(payload)) {
+    return { members: payload, totalCount: payload.length };
+  }
+
+  // Common non-paginated shape used by this backend.
+  if (Array.isArray(payload?.results)) {
+    const countFromPayload = typeof payload?.total_count === 'number'
+      ? payload.total_count
+      : payload.results.length;
+    return { members: payload.results, totalCount: countFromPayload };
+  }
+
+  // DRF paginated shape where data is nested under results.results.
+  if (Array.isArray(payload?.results?.results)) {
+    const nested = payload.results.results;
+    const nestedCount = payload.results.total_count;
+    const fallbackCount = payload.count;
+    const totalCount = typeof nestedCount === 'number'
+      ? nestedCount
+      : typeof fallbackCount === 'number'
+        ? fallbackCount
+        : nested.length;
+    return { members: nested, totalCount };
+  }
+
+  return { members: [], totalCount: 0 };
+};
+
 // Async thunks
 export const fetchMembers = createAsyncThunk(
   'members/fetchMembers',
@@ -173,17 +202,9 @@ const membersSlice = createSlice({
       })
       .addCase(fetchMembers.fulfilled, (state, action) => {
         state.loading = false;
-        // Handle both old format (array) and new format (object with results and total_count)
-        if (Array.isArray(action.payload)) {
-          state.members = action.payload;
-          state.totalCount = action.payload.length;
-        } else if (action.payload.results) {
-          state.members = action.payload.results || [];
-          state.totalCount = action.payload.total_count || 0;
-        } else {
-          state.members = [];
-          state.totalCount = 0;
-        }
+        const normalized = normalizeMembersPayload(action.payload);
+        state.members = normalized.members;
+        state.totalCount = normalized.totalCount;
       })
       .addCase(fetchMembers.rejected, (state, action) => {
         state.loading = false;
