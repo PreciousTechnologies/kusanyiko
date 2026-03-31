@@ -90,12 +90,14 @@ function getHostDerivedApiBaseURL(): string {
 
 // Initialize API with dynamic base URL
 const apiBaseURL = getApiBaseURL();
+const isProductionLikeHost = !['localhost', '127.0.0.1'].includes(getCurrentHostIP());
+const API_TIMEOUT_MS = isProductionLikeHost ? 45000 : 10000;
 console.log(`🌐 Frontend running on: ${window.location.origin}`);
 console.log(`🔗 API endpoint set to: ${apiBaseURL || 'proxy'}`);
 
 const api = axios.create({
   baseURL: apiBaseURL,
-  timeout: 10000,
+  timeout: API_TIMEOUT_MS,
   headers: {
     "Content-Type": "application/json",
   },
@@ -163,6 +165,26 @@ const shouldRetryWithFallbackBaseURL = (response: any): boolean => {
   }
 
   return isLikelyHtmlPayload(response);
+};
+
+const shouldRetryNetworkRequest = (error: any, requestConfig: any): boolean => {
+  if (!requestConfig) {
+    return false;
+  }
+
+  const method = String(requestConfig.method || 'get').toLowerCase();
+  if (method !== 'get') {
+    return false;
+  }
+
+  const isTimeoutError = error?.code === 'ECONNABORTED' || String(error?.message || '').toLowerCase().includes('timeout');
+  const isNetworkError = !error?.response;
+  if (!isTimeoutError && !isNetworkError) {
+    return false;
+  }
+
+  const retryCount = Number(requestConfig._networkRetryCount || 0);
+  return retryCount < 3;
 };
 
 // Function to update API base URL
@@ -303,14 +325,13 @@ api.interceptors.response.use(
       console.warn('Network error - server might be unavailable');
       const originalRequest = error.config as any;
 
-      // Retry idempotent GET requests once to absorb transient backend wake-up/network hiccups.
-      if (
-        originalRequest &&
-        String(originalRequest.method || 'get').toLowerCase() === 'get' &&
-        !originalRequest._networkRetried
-      ) {
-        originalRequest._networkRetried = true;
-        await new Promise((resolve) => setTimeout(resolve, 1200));
+      if (shouldRetryNetworkRequest(error, originalRequest)) {
+        const retryCount = Number(originalRequest._networkRetryCount || 0) + 1;
+        originalRequest._networkRetryCount = retryCount;
+
+        // Progressive backoff helps when backend is waking from cold start.
+        const backoffMs = retryCount === 1 ? 1500 : retryCount === 2 ? 4000 : 8000;
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
         return api(originalRequest);
       }
 
