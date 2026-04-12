@@ -17,7 +17,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, LongTable
 from members.models import Member
 from users.models import User, AuditLog
 from .models import ExportHistory, BrandingSettings
@@ -63,6 +63,13 @@ def _safe_percent(part, total):
     if not total:
         return 0.0
     return round((part / total) * 100, 1)
+
+
+def _safe_text(value, max_len=80):
+    text = str(value or '-').strip()
+    if len(text) <= max_len:
+        return text
+    return f'{text[:max_len - 1]}...'
 
 
 def _members_for_period(date_range):
@@ -278,8 +285,9 @@ def _pdf_header_block(report_title, subtitle):
     return [title_table, Spacer(1, 0.25 * cm), *metadata, Spacer(1, 0.25 * cm)]
 
 
-def _pdf_table(rows, col_widths=None, repeat_rows=1, font_size=9, compact=False):
-    table = Table(rows, colWidths=col_widths, repeatRows=repeat_rows)
+def _pdf_table(rows, col_widths=None, repeat_rows=1, font_size=9, compact=False, long_table=False):
+    table_cls = LongTable if long_table else Table
+    table = table_cls(rows, colWidths=col_widths, repeatRows=repeat_rows)
     top_padding = 2 if compact else 4
     bottom_padding = 2 if compact else 4
     table.setStyle(
@@ -595,10 +603,24 @@ def export_members_excel(queryset):
 def export_members_pdf(queryset):
     """Export members to a branded and professional PDF report."""
     styles = _pdf_styles()
-    total_members = queryset.count()
-    saved_count = queryset.filter(saved=True).count()
-    male_count = queryset.filter(gender='male').count()
-    female_count = queryset.filter(gender='female').count()
+    optimized_qs = queryset.select_related('created_by').only(
+        'first_name',
+        'last_name',
+        'email',
+        'mobile_no',
+        'country',
+        'region',
+        'gender',
+        'marital_status',
+        'saved',
+        'created_at',
+        'created_by__username',
+    )
+
+    total_members = optimized_qs.count()
+    saved_count = optimized_qs.filter(saved=True).count()
+    male_count = optimized_qs.filter(gender='male').count()
+    female_count = optimized_qs.filter(gender='female').count()
 
     story = []
     story.extend(_pdf_header_block('KUSANYIKO MEMBER REGISTER', f'Total records: {total_members}'))
@@ -620,27 +642,28 @@ def export_members_pdf(queryset):
         'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Region',
         'Gender', 'Marital Status', 'Saved', 'Registered', 'Registered By'
     ]]
-    for member in queryset:
+    for member in optimized_qs.iterator(chunk_size=300):
         member_rows.append([
-            Paragraph(member.first_name or '-', cell_style),
-            Paragraph(member.last_name or '-', cell_style),
-            Paragraph(member.email or '-', cell_style),
-            Paragraph(member.mobile_no or '-', cell_style),
-            Paragraph(member.country or '-', cell_style),
-            Paragraph(member.region or '-', cell_style),
-            Paragraph(member.gender or '-', cell_style),
-            Paragraph(member.marital_status or '-', cell_style),
+            Paragraph(_safe_text(member.first_name, 32), cell_style),
+            Paragraph(_safe_text(member.last_name, 32), cell_style),
+            Paragraph(_safe_text(member.email, 64), cell_style),
+            Paragraph(_safe_text(member.mobile_no, 24), cell_style),
+            Paragraph(_safe_text(member.country, 32), cell_style),
+            Paragraph(_safe_text(member.region, 32), cell_style),
+            Paragraph(_safe_text(member.gender, 16), cell_style),
+            Paragraph(_safe_text(member.marital_status, 24), cell_style),
             Paragraph('Yes' if member.saved else 'No', cell_style),
             Paragraph(member.created_at.strftime('%Y-%m-%d'), cell_style),
-            Paragraph(member.created_by.username if member.created_by else 'N/A', cell_style),
+            Paragraph(_safe_text(member.created_by.username if member.created_by else 'N/A', 36), cell_style),
         ])
 
     story.append(
         _pdf_table(
             member_rows,
-            col_widths=[2.0 * cm, 2.0 * cm, 4.1 * cm, 2.3 * cm, 2.0 * cm, 2.3 * cm, 1.6 * cm, 2.3 * cm, 1.4 * cm, 2.2 * cm, 2.5 * cm],
+            col_widths=[2.0 * cm, 2.0 * cm, 4.0 * cm, 2.3 * cm, 2.0 * cm, 2.3 * cm, 1.4 * cm, 2.1 * cm, 1.2 * cm, 2.0 * cm, 2.4 * cm],
             font_size=7,
             compact=True,
+            long_table=True,
         )
     )
 
