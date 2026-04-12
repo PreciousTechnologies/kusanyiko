@@ -267,7 +267,8 @@ const ExportData: React.FC = () => {
           
         case 'analytics-monthly':
           updateProgress(40);
-          response = await exportAPI.exportAnalytics(selectedFormat as 'pdf' | 'excel', {
+          const monthlyFormat = selectedFormat === 'csv' ? 'excel' : selectedFormat;
+          response = await exportAPI.exportAnalytics(monthlyFormat as 'pdf' | 'excel', {
             type: 'monthly',
             date_range: {
               start_date: dateRange.start,
@@ -320,9 +321,9 @@ const ExportData: React.FC = () => {
         let filename = `${option?.name.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.${getFileExtension(selectedFormat)}`;
         const contentDisposition = response.headers['content-disposition'];
         if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+          const filenameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
           if (filenameMatch) {
-            filename = filenameMatch[1];
+            filename = decodeURIComponent(filenameMatch[1] || filenameMatch[2]);
           }
         }
         

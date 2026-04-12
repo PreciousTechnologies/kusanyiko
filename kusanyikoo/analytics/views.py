@@ -4,11 +4,20 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from django.db.models import Count, Q
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.http import HttpResponse
 from datetime import timedelta, datetime
 import csv
 import io
 import json
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from members.models import Member
 from users.models import User, AuditLog
 from .models import ExportHistory, BrandingSettings
@@ -48,6 +57,220 @@ def get_member_scope_queryset(user):
         return queryset.filter(scope_q)
 
     return queryset.filter(created_by=user)
+
+
+def _safe_percent(part, total):
+    if not total:
+        return 0.0
+    return round((part / total) * 100, 1)
+
+
+def _members_for_period(date_range):
+    queryset = Member.objects.filter(is_deleted=False)
+
+    start_date = parse_date(str(date_range.get('start_date', '')).strip()) if date_range else None
+    end_date = parse_date(str(date_range.get('end_date', '')).strip()) if date_range else None
+
+    if start_date:
+        queryset = queryset.filter(created_at__date__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(created_at__date__lte=end_date)
+
+    return queryset
+
+
+def _create_workbook(title):
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = title
+    return workbook, sheet
+
+
+def _style_title(sheet, text):
+    sheet['A1'] = text
+    sheet.merge_cells('A1:D1')
+    sheet['A1'].font = Font(size=16, bold=True, color='FFFFFF')
+    sheet['A1'].alignment = Alignment(horizontal='left', vertical='center')
+    sheet['A1'].fill = PatternFill(start_color='1F4E78', end_color='1F4E78', fill_type='solid')
+    sheet.row_dimensions[1].height = 28
+
+
+def _style_table_header(row):
+    header_fill = PatternFill(start_color='D9E1F2', end_color='D9E1F2', fill_type='solid')
+    thin = Side(style='thin', color='C9CED6')
+    for cell in row:
+        cell.font = Font(bold=True, color='1F2937')
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = Border(top=thin, bottom=thin, left=thin, right=thin)
+
+
+def _autosize_columns(sheet, min_width=14, max_width=46):
+    for col_idx, column_cells in enumerate(sheet.columns, start=1):
+        values = [str(cell.value) for cell in column_cells if cell.value is not None]
+        longest = max((len(v) for v in values), default=min_width)
+        width = max(min_width, min(longest + 2, max_width))
+        sheet.column_dimensions[get_column_letter(col_idx)].width = width
+
+
+def _build_kpi_section(sheet, row_idx, members_qs):
+    total_members = members_qs.count()
+    male_count = members_qs.filter(gender='male').count()
+    female_count = members_qs.filter(gender='female').count()
+    saved_count = members_qs.filter(saved=True).count()
+    unsaved_count = members_qs.filter(saved=False).count()
+
+    sheet.cell(row=row_idx, column=1, value='Executive KPI Summary').font = Font(size=12, bold=True, color='1F4E78')
+    row_idx += 1
+
+    headers = ['Indicator', 'Value', 'Share (%)']
+    for col, header in enumerate(headers, start=1):
+        sheet.cell(row=row_idx, column=col, value=header)
+    _style_table_header(sheet[row_idx])
+    row_idx += 1
+
+    rows = [
+        ('Total Members Registered', total_members, 100.0 if total_members else 0.0),
+        ('Male Members', male_count, _safe_percent(male_count, total_members)),
+        ('Female Members', female_count, _safe_percent(female_count, total_members)),
+        ('Saved Members', saved_count, _safe_percent(saved_count, total_members)),
+        ('Unsaved Members', unsaved_count, _safe_percent(unsaved_count, total_members)),
+    ]
+    for label, value, percentage in rows:
+        sheet.cell(row=row_idx, column=1, value=label)
+        sheet.cell(row=row_idx, column=2, value=value)
+        sheet.cell(row=row_idx, column=3, value=percentage)
+        sheet.cell(row=row_idx, column=3).number_format = '0.0'
+        row_idx += 1
+
+    return row_idx + 1
+
+
+def _write_distribution_sheet(workbook, title, header_a, rows):
+    ws = workbook.create_sheet(title=title)
+    _style_title(ws, title)
+    ws['A3'] = header_a
+    ws['B3'] = 'Member Count'
+    _style_table_header(ws[3])
+
+    current_row = 4
+    for row_label, count in rows:
+        ws.cell(row=current_row, column=1, value=row_label or 'Not Specified')
+        ws.cell(row=current_row, column=2, value=count)
+        current_row += 1
+
+    ws.freeze_panes = 'A4'
+    _autosize_columns(ws)
+
+
+def _workbook_response(workbook, filename):
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    response.write(output.getvalue())
+    return response
+
+
+def _pdf_styles():
+    styles = getSampleStyleSheet()
+    styles.add(
+        ParagraphStyle(
+            name='ExecutiveTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            textColor=colors.white,
+            leading=22,
+            spaceAfter=0,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='ExecutiveMeta',
+            parent=styles['Normal'],
+            fontSize=9,
+            textColor=colors.HexColor('#374151'),
+            leading=12,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name='ExecutiveSection',
+            parent=styles['Heading2'],
+            fontSize=12,
+            textColor=colors.HexColor('#1F4E78'),
+            leading=14,
+            spaceBefore=10,
+            spaceAfter=6,
+        )
+    )
+    return styles
+
+
+def _pdf_header_block(report_title, subtitle):
+    title_table = Table([[Paragraph(report_title, _pdf_styles()['ExecutiveTitle'])]], colWidths=[18.5 * cm])
+    title_table.setStyle(
+        TableStyle(
+            [
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#1F4E78')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ]
+        )
+    )
+
+    meta_style = _pdf_styles()['ExecutiveMeta']
+    metadata = [
+        Paragraph(f'<b>Prepared On:</b> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', meta_style),
+        Paragraph(f'<b>Report Scope:</b> {subtitle}', meta_style),
+    ]
+
+    return [title_table, Spacer(1, 0.25 * cm), *metadata, Spacer(1, 0.25 * cm)]
+
+
+def _pdf_table(rows, col_widths=None, repeat_rows=1):
+    table = Table(rows, colWidths=col_widths, repeatRows=repeat_rows)
+    table.setStyle(
+        TableStyle(
+            [
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#D9E1F2')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#C9CED6')),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
+    return table
+
+
+def _pdf_response(story, filename, pagesize=A4):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=pagesize,
+        leftMargin=1.4 * cm,
+        rightMargin=1.4 * cm,
+        topMargin=1.2 * cm,
+        bottomMargin=1.2 * cm,
+    )
+    doc.build(story)
+    buffer.seek(0)
+    response.write(buffer.getvalue())
+    return response
 
 
 class BrandingSettingsView(APIView):
@@ -272,22 +495,29 @@ def export_members_csv(queryset):
 
 
 def export_members_excel(queryset):
-    """Export members to Excel format (placeholder - requires openpyxl)"""
-    # For now, return CSV with Excel MIME type
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="members_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
-    
-    # This would require openpyxl library for proper Excel export
-    # For now, we'll return a CSV file
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
-        'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Region', 
+    """Export members to a professionally formatted Excel workbook."""
+    workbook, sheet = _create_workbook('Member Register')
+    _style_title(sheet, 'KUSANYIKO MEMBER REGISTER')
+
+    generated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    sheet['A3'] = 'Generated On'
+    sheet['B3'] = generated_at
+    sheet['A4'] = 'Records'
+    sheet['B4'] = queryset.count()
+    sheet['A3'].font = Font(bold=True)
+    sheet['A4'].font = Font(bold=True)
+
+    headers = [
+        'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Region',
         'Gender', 'Marital Status', 'Saved', 'Date Registered', 'Registered By'
-    ])
-    
+    ]
+    for col, header in enumerate(headers, start=1):
+        sheet.cell(row=6, column=col, value=header)
+    _style_table_header(sheet[6])
+
+    row_idx = 7
     for member in queryset:
-        writer.writerow([
+        values = [
             member.first_name,
             member.last_name,
             member.email,
@@ -299,33 +529,69 @@ def export_members_excel(queryset):
             'Yes' if member.saved else 'No',
             member.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             member.created_by.username if member.created_by else 'N/A'
-        ])
-    
-    response.write(output.getvalue().encode('utf-8'))
-    return response
+        ]
+        for col, value in enumerate(values, start=1):
+            sheet.cell(row=row_idx, column=col, value=value)
+        row_idx += 1
+
+    sheet.freeze_panes = 'A7'
+    _autosize_columns(sheet)
+
+    filename = f'members-register-{datetime.now().strftime("%Y-%m-%d")}.xlsx'
+    return _workbook_response(workbook, filename)
 
 
 def export_members_pdf(queryset):
-    """Export members to PDF format (placeholder - requires reportlab)"""
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="members_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
-    
-    # This would require reportlab library for proper PDF export
-    # For now, we'll return a simple text representation
-    content = "MEMBERS EXPORT REPORT\n"
-    content += "=" * 50 + "\n\n"
-    
+    """Export members to a branded and professional PDF report."""
+    styles = _pdf_styles()
+    total_members = queryset.count()
+    saved_count = queryset.filter(saved=True).count()
+    male_count = queryset.filter(gender='male').count()
+    female_count = queryset.filter(gender='female').count()
+
+    story = []
+    story.extend(_pdf_header_block('KUSANYIKO MEMBER REGISTER', f'Total records: {total_members}'))
+
+    story.append(Paragraph('Executive KPI Summary', styles['ExecutiveSection']))
+    kpi_rows = [
+        ['Indicator', 'Value', 'Share (%)'],
+        ['Total Members Registered', total_members, '100.0' if total_members else '0.0'],
+        ['Male Members', male_count, f'{_safe_percent(male_count, total_members):.1f}'],
+        ['Female Members', female_count, f'{_safe_percent(female_count, total_members):.1f}'],
+        ['Saved Members', saved_count, f'{_safe_percent(saved_count, total_members):.1f}'],
+    ]
+    story.append(_pdf_table(kpi_rows, col_widths=[9.5 * cm, 3 * cm, 3 * cm]))
+    story.append(Spacer(1, 0.3 * cm))
+
+    story.append(Paragraph('Detailed Member Register', styles['ExecutiveSection']))
+    member_rows = [[
+        'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Region',
+        'Gender', 'Marital Status', 'Saved', 'Registered', 'Registered By'
+    ]]
     for member in queryset:
-        content += f"Name: {member.first_name} {member.last_name}\n"
-        content += f"Email: {member.email}\n"
-        content += f"Phone: {member.mobile_no}\n"
-        content += f"Region: {member.region}\n"
-        content += f"Gender: {member.gender}\n"
-        content += f"Registered: {member.created_at.strftime('%Y-%m-%d')}\n"
-        content += "-" * 30 + "\n"
-    
-    response.write(content.encode('utf-8'))
-    return response
+        member_rows.append([
+            member.first_name,
+            member.last_name,
+            member.email,
+            member.mobile_no,
+            member.country,
+            member.region,
+            member.gender,
+            member.marital_status,
+            'Yes' if member.saved else 'No',
+            member.created_at.strftime('%Y-%m-%d'),
+            member.created_by.username if member.created_by else 'N/A',
+        ])
+
+    story.append(
+        _pdf_table(
+            member_rows,
+            col_widths=[1.4 * cm, 1.4 * cm, 2.7 * cm, 1.8 * cm, 1.5 * cm, 1.8 * cm, 1.2 * cm, 1.8 * cm, 1.0 * cm, 1.9 * cm, 1.8 * cm],
+        )
+    )
+
+    filename = f'members-register-{datetime.now().strftime("%Y-%m-%d")}.pdf'
+    return _pdf_response(story, filename, pagesize=landscape(A4))
 
 
 @api_view(['POST'])
@@ -342,7 +608,7 @@ def export_analytics(request):
         if format_type not in ['pdf', 'excel']:
             return Response({'error': f'Unsupported format: {format_type}'}, status=400)
         
-        if export_type not in ['overview', 'summary', 'demographics', 'geographical']:
+        if export_type not in ['overview', 'summary', 'demographics', 'geographical', 'monthly']:
             return Response({'error': f'Unsupported export type: {export_type}'}, status=400)
         
         if format_type == 'pdf':
@@ -374,208 +640,236 @@ def export_analytics(request):
 
 
 def export_analytics_pdf(export_type, date_range):
-    """Export analytics to PDF"""
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="analytics_{export_type}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
-    
-    # Generate analytics content based on type
-    content = f"ANALYTICS REPORT - {export_type.upper()}\n"
-    content += "=" * 50 + "\n\n"
-    content += f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    """Export analytics to a structured and branded executive PDF report."""
+    members_qs = _members_for_period(date_range)
+    styles = _pdf_styles()
+    start_label = date_range.get('start_date') or 'Beginning'
+    end_label = date_range.get('end_date') or 'Present'
+
+    story = []
+    story.extend(
+        _pdf_header_block(
+            f'KUSANYIKO {export_type.upper()} ANALYTICS REPORT',
+            f'Reporting window: {start_label} to {end_label}',
+        )
+    )
+
+    total_members = members_qs.count()
+    males = members_qs.filter(gender='male').count()
+    females = members_qs.filter(gender='female').count()
+    saved = members_qs.filter(saved=True).count()
+    unsaved = members_qs.filter(saved=False).count()
+
+    story.append(Paragraph('Executive KPI Summary', styles['ExecutiveSection']))
+    story.append(
+        _pdf_table(
+            [
+                ['Indicator', 'Value', 'Share (%)'],
+                ['Total Members Registered', total_members, '100.0' if total_members else '0.0'],
+                ['Male Members', males, f'{_safe_percent(males, total_members):.1f}'],
+                ['Female Members', females, f'{_safe_percent(females, total_members):.1f}'],
+                ['Saved Members', saved, f'{_safe_percent(saved, total_members):.1f}'],
+                ['Unsaved Members', unsaved, f'{_safe_percent(unsaved, total_members):.1f}'],
+            ],
+            col_widths=[9.5 * cm, 3 * cm, 3 * cm],
+        )
+    )
+    story.append(Spacer(1, 0.3 * cm))
     
     if export_type in ['summary', 'overview']:
-        # Summary Report
-        total_members = Member.objects.filter(is_deleted=False).count()
-        males = Member.objects.filter(is_deleted=False, gender='male').count()
-        females = Member.objects.filter(is_deleted=False, gender='female').count()
-        saved = Member.objects.filter(is_deleted=False, saved=True).count()
-        unsaved = Member.objects.filter(is_deleted=False, saved=False).count()
-        
-        content += f"Total Members Registered: {total_members}\n"
-        content += f"Number of Males: {males}\n"
-        content += f"Number of Females: {females}\n"
-        content += f"Number of Saved Members: {saved}\n"
-        content += f"Number of Unsaved Members: {unsaved}\n\n"
-        
-        # Countries
-        country_stats = Member.objects.filter(is_deleted=False).values('country').annotate(count=Count('id')).order_by('-count')
-        content += "Members by Country:\n"
+        story.append(Paragraph('Country Distribution', styles['ExecutiveSection']))
+        country_stats = members_qs.values('country').annotate(count=Count('id')).order_by('-count')
+        country_rows = [['Country', 'Members']]
         for stat in country_stats:
-            content += f"  {stat['country']}: {stat['count']}\n"
-        content += "\n"
+            country_rows.append([stat['country'] or 'Not Specified', stat['count']])
+        story.append(_pdf_table(country_rows, col_widths=[10 * cm, 5.5 * cm]))
+        story.append(Spacer(1, 0.2 * cm))
         
-        # Tanzania Regions
-        tanzania_regions = Member.objects.filter(is_deleted=False, country='Tanzania').exclude(region__isnull=True).exclude(region='').values('region').annotate(count=Count('id')).order_by('-count')
-        if tanzania_regions:
-            content += "Members by Region (Tanzania):\n"
-            for stat in tanzania_regions:
-                content += f"  {stat['region']}: {stat['count']}\n"
-            content += "\n"
+        story.append(Paragraph('Regional Distribution (Tanzania)', styles['ExecutiveSection']))
+        tanzania_regions = members_qs.filter(country='Tanzania').exclude(region__isnull=True).exclude(region='').values('region').annotate(count=Count('id')).order_by('-count')
+        region_rows = [['Region', 'Members']]
+        for stat in tanzania_regions:
+            region_rows.append([stat['region'] or 'Not Specified', stat['count']])
+        story.append(_pdf_table(region_rows, col_widths=[10 * cm, 5.5 * cm]))
+        story.append(Spacer(1, 0.2 * cm))
         
-        # Dar es Salaam Areas
-        dar_areas = Member.objects.filter(is_deleted=False, country='Tanzania', region='Dar es Salaam').exclude(center_area__isnull=True).exclude(center_area='').values('center_area').annotate(count=Count('id')).order_by('-count')
-        if dar_areas:
-            content += "Members by Center/Area (Dar es Salaam):\n"
-            for stat in dar_areas:
-                content += f"  {stat['center_area']}: {stat['count']}\n"
+        story.append(Paragraph('Dar es Salaam Center/Area Distribution', styles['ExecutiveSection']))
+        dar_areas = members_qs.filter(country='Tanzania', region='Dar es Salaam').exclude(center_area__isnull=True).exclude(center_area='').values('center_area').annotate(count=Count('id')).order_by('-count')
+        area_rows = [['Center/Area', 'Members']]
+        for stat in dar_areas:
+            area_rows.append([stat['center_area'] or 'Not Specified', stat['count']])
+        story.append(_pdf_table(area_rows, col_widths=[10 * cm, 5.5 * cm]))
     
     elif export_type == 'demographics':
-        # Demographics Report
-        total_members = Member.objects.filter(is_deleted=False).count()
-        males = Member.objects.filter(is_deleted=False, gender='male').count()
-        females = Member.objects.filter(is_deleted=False, gender='female').count()
-        saved = Member.objects.filter(is_deleted=False, saved=True).count()
-        unsaved = Member.objects.filter(is_deleted=False, saved=False).count()
-        
-        content += "DEMOGRAPHICS REPORT\n"
-        content += "=" * 30 + "\n\n"
-        content += f"Total Members: {total_members}\n\n"
-        content += f"Gender Distribution:\n"
-        content += f"  Males: {males}\n"
-        content += f"  Females: {females}\n\n"
-        content += f"Salvation Status:\n"
-        content += f"  Saved: {saved}\n"
-        content += f"  Unsaved: {unsaved}\n"
-        
-        # Marital status
-        marital_stats = Member.objects.filter(is_deleted=False).values('marital_status').annotate(count=Count('id')).order_by('-count')
-        content += "\nMarital Status Distribution:\n"
+        story.append(Paragraph('Marital Status Distribution', styles['ExecutiveSection']))
+        marital_stats = members_qs.values('marital_status').annotate(count=Count('id')).order_by('-count')
+        marital_rows = [['Marital Status', 'Members']]
         for stat in marital_stats:
-            content += f"  {stat['marital_status']}: {stat['count']}\n"
+            marital_rows.append([stat['marital_status'] or 'Not Specified', stat['count']])
+        story.append(_pdf_table(marital_rows, col_widths=[10 * cm, 5.5 * cm]))
     
     elif export_type == 'geographical':
-        # Geographical Report
-        content += "GEOGRAPHICAL DISTRIBUTION REPORT\n"
-        content += "=" * 35 + "\n\n"
-        
-        # Countries
-        country_stats = Member.objects.filter(is_deleted=False).values('country').annotate(count=Count('id')).order_by('-count')
-        content += "Members by Country:\n"
+        story.append(Paragraph('Country Distribution', styles['ExecutiveSection']))
+        country_stats = members_qs.values('country').annotate(count=Count('id')).order_by('-count')
+        country_rows = [['Country', 'Members']]
         for stat in country_stats:
-            content += f"  {stat['country']}: {stat['count']}\n"
-        content += "\n"
+            country_rows.append([stat['country'] or 'Not Specified', stat['count']])
+        story.append(_pdf_table(country_rows, col_widths=[10 * cm, 5.5 * cm]))
+        story.append(Spacer(1, 0.2 * cm))
         
-        # Tanzania Regions
-        tanzania_regions = Member.objects.filter(is_deleted=False, country='Tanzania').exclude(region__isnull=True).exclude(region='').values('region').annotate(count=Count('id')).order_by('-count')
-        content += "Members by Region (Tanzania):\n"
+        story.append(Paragraph('Regional Distribution (Tanzania)', styles['ExecutiveSection']))
+        tanzania_regions = members_qs.filter(country='Tanzania').exclude(region__isnull=True).exclude(region='').values('region').annotate(count=Count('id')).order_by('-count')
+        region_rows = [['Region', 'Members']]
         for stat in tanzania_regions:
-            content += f"  {stat['region']}: {stat['count']}\n"
-        content += "\n"
+            region_rows.append([stat['region'] or 'Not Specified', stat['count']])
+        story.append(_pdf_table(region_rows, col_widths=[10 * cm, 5.5 * cm]))
+        story.append(Spacer(1, 0.2 * cm))
         
-        # Dar es Salaam Areas
-        dar_areas = Member.objects.filter(is_deleted=False, country='Tanzania', region='Dar es Salaam').exclude(center_area__isnull=True).exclude(center_area='').values('center_area').annotate(count=Count('id')).order_by('-count')
-        content += "Members by Center/Area (Dar es Salaam):\n"
+        story.append(Paragraph('Dar es Salaam Center/Area Distribution', styles['ExecutiveSection']))
+        dar_areas = members_qs.filter(country='Tanzania', region='Dar es Salaam').exclude(center_area__isnull=True).exclude(center_area='').values('center_area').annotate(count=Count('id')).order_by('-count')
+        area_rows = [['Center/Area', 'Members']]
         for stat in dar_areas:
-            content += f"  {stat['center_area']}: {stat['count']}\n"
-    
-    response.write(content.encode('utf-8'))
-    return response
+            area_rows.append([stat['center_area'] or 'Not Specified', stat['count']])
+        story.append(_pdf_table(area_rows, col_widths=[10 * cm, 5.5 * cm]))
+
+    elif export_type == 'monthly':
+        story.append(Paragraph('Monthly Registration Trend (Last 12 Months)', styles['ExecutiveSection']))
+        monthly_rows = [['Month', 'Registrations']]
+
+        current = timezone.now().date().replace(day=1)
+        months = []
+        for _ in range(12):
+            months.insert(0, current)
+            if current.month == 1:
+                current = current.replace(year=current.year - 1, month=12)
+            else:
+                current = current.replace(month=current.month - 1)
+
+        for month_start in months:
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1)
+            else:
+                month_end = month_start.replace(month=month_start.month + 1)
+
+            monthly_count = members_qs.filter(
+                created_at__date__gte=month_start,
+                created_at__date__lt=month_end,
+            ).count()
+            monthly_rows.append([month_start.strftime('%b %Y'), monthly_count])
+
+        story.append(_pdf_table(monthly_rows, col_widths=[10 * cm, 5.5 * cm]))
+
+    filename = f'{export_type}-report-{datetime.now().strftime("%Y-%m-%d")}.pdf'
+    return _pdf_response(story, filename)
 
 
 def export_analytics_excel(export_type, date_range):
-    """Export analytics to Excel"""
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="analytics_{export_type}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
-    
-    # Generate CSV content based on type
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    if export_type in ['summary', 'overview']:
-        writer.writerow(['Summary Report'])
-        writer.writerow(['Generated', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
-        writer.writerow([])
-        
-        # Basic stats
-        total_members = Member.objects.filter(is_deleted=False).count()
-        males = Member.objects.filter(is_deleted=False, gender='male').count()
-        females = Member.objects.filter(is_deleted=False, gender='female').count()
-        saved = Member.objects.filter(is_deleted=False, saved=True).count()
-        unsaved = Member.objects.filter(is_deleted=False, saved=False).count()
-        
-        writer.writerow(['Metric', 'Count'])
-        writer.writerow(['Total Members Registered', total_members])
-        writer.writerow(['Number of Males', males])
-        writer.writerow(['Number of Females', females])
-        writer.writerow(['Number of Saved Members', saved])
-        writer.writerow(['Number of Unsaved Members', unsaved])
-        writer.writerow([])
-        
-        # Countries
-        writer.writerow(['Country', 'Member Count'])
-        country_stats = Member.objects.filter(is_deleted=False).values('country').annotate(count=Count('id')).order_by('-count')
-        for stat in country_stats:
-            writer.writerow([stat['country'], stat['count']])
-        writer.writerow([])
-        
-        # Tanzania Regions
-        writer.writerow(['Region (Tanzania)', 'Member Count'])
-        tanzania_regions = Member.objects.filter(is_deleted=False, country='Tanzania').exclude(region__isnull=True).exclude(region='').values('region').annotate(count=Count('id')).order_by('-count')
-        for stat in tanzania_regions:
-            writer.writerow([stat['region'], stat['count']])
-        writer.writerow([])
-        
-        # Dar es Salaam Areas
-        writer.writerow(['Center/Area (Dar es Salaam)', 'Member Count'])
-        dar_areas = Member.objects.filter(is_deleted=False, country='Tanzania', region='Dar es Salaam').exclude(center_area__isnull=True).exclude(center_area='').values('center_area').annotate(count=Count('id')).order_by('-count')
-        for stat in dar_areas:
-            writer.writerow([stat['center_area'], stat['count']])
-    
-    elif export_type == 'demographics':
-        writer.writerow(['Demographics Report'])
-        writer.writerow(['Generated', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
-        writer.writerow([])
-        
-        total_members = Member.objects.filter(is_deleted=False).count()
-        males = Member.objects.filter(is_deleted=False, gender='male').count()
-        females = Member.objects.filter(is_deleted=False, gender='female').count()
-        saved = Member.objects.filter(is_deleted=False, saved=True).count()
-        unsaved = Member.objects.filter(is_deleted=False, saved=False).count()
-        
-        writer.writerow(['Total Members', total_members])
-        writer.writerow([])
-        writer.writerow(['Gender Distribution'])
-        writer.writerow(['Males', males])
-        writer.writerow(['Females', females])
-        writer.writerow([])
-        writer.writerow(['Salvation Status'])
-        writer.writerow(['Saved', saved])
-        writer.writerow(['Unsaved', unsaved])
-        writer.writerow([])
-        
-        # Marital status
-        writer.writerow(['Marital Status', 'Count'])
-        marital_stats = Member.objects.filter(is_deleted=False).values('marital_status').annotate(count=Count('id')).order_by('-count')
+    """Export analytics to a structured, executive-style Excel workbook."""
+    members_qs = _members_for_period(date_range)
+    report_title = f'{export_type.title()} Analytics Report'
+    workbook, summary_sheet = _create_workbook('Executive Summary')
+    _style_title(summary_sheet, report_title.upper())
+
+    summary_sheet['A3'] = 'Prepared On'
+    summary_sheet['B3'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    summary_sheet['A4'] = 'Reporting Window'
+    start_label = date_range.get('start_date') or 'Beginning'
+    end_label = date_range.get('end_date') or 'Present'
+    summary_sheet['B4'] = f'{start_label} to {end_label}'
+    summary_sheet['A3'].font = Font(bold=True)
+    summary_sheet['A4'].font = Font(bold=True)
+
+    next_row = _build_kpi_section(summary_sheet, 6, members_qs)
+
+    if export_type in ['summary', 'overview', 'demographics']:
+        marital_stats = members_qs.values('marital_status').annotate(count=Count('id')).order_by('-count')
+        summary_sheet.cell(row=next_row, column=1, value='Marital Status Distribution').font = Font(size=12, bold=True, color='1F4E78')
+        next_row += 1
+        summary_sheet.cell(row=next_row, column=1, value='Status')
+        summary_sheet.cell(row=next_row, column=2, value='Member Count')
+        _style_table_header(summary_sheet[next_row])
+        next_row += 1
         for stat in marital_stats:
-            writer.writerow([stat['marital_status'], stat['count']])
-    
-    elif export_type == 'geographical':
-        writer.writerow(['Geographical Distribution Report'])
-        writer.writerow(['Generated', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
-        writer.writerow([])
-        
-        # Countries
-        writer.writerow(['Country', 'Member Count'])
-        country_stats = Member.objects.filter(is_deleted=False).values('country').annotate(count=Count('id')).order_by('-count')
-        for stat in country_stats:
-            writer.writerow([stat['country'], stat['count']])
-        writer.writerow([])
-        
-        # Tanzania Regions
-        writer.writerow(['Region (Tanzania)', 'Member Count'])
-        tanzania_regions = Member.objects.filter(is_deleted=False, country='Tanzania').exclude(region__isnull=True).exclude(region='').values('region').annotate(count=Count('id')).order_by('-count')
-        for stat in tanzania_regions:
-            writer.writerow([stat['region'], stat['count']])
-        writer.writerow([])
-        
-        # Dar es Salaam Areas
-        writer.writerow(['Center/Area (Dar es Salaam)', 'Member Count'])
-        dar_areas = Member.objects.filter(is_deleted=False, country='Tanzania', region='Dar es Salaam').exclude(center_area__isnull=True).exclude(center_area='').values('center_area').annotate(count=Count('id')).order_by('-count')
-        for stat in dar_areas:
-            writer.writerow([stat['center_area'], stat['count']])
-    
-    response.write(output.getvalue().encode('utf-8'))
-    return response
+            summary_sheet.cell(row=next_row, column=1, value=stat['marital_status'] or 'Not Specified')
+            summary_sheet.cell(row=next_row, column=2, value=stat['count'])
+            next_row += 1
+
+    country_stats = list(members_qs.values('country').annotate(count=Count('id')).order_by('-count'))
+    tanzania_regions = list(
+        members_qs.filter(country='Tanzania')
+        .exclude(region__isnull=True)
+        .exclude(region='')
+        .values('region')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    dar_areas = list(
+        members_qs.filter(country='Tanzania', region='Dar es Salaam')
+        .exclude(center_area__isnull=True)
+        .exclude(center_area='')
+        .values('center_area')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    if export_type in ['summary', 'overview', 'geographical']:
+        _write_distribution_sheet(
+            workbook,
+            'Countries',
+            'Country',
+            [(stat['country'] or 'Not Specified', stat['count']) for stat in country_stats],
+        )
+        _write_distribution_sheet(
+            workbook,
+            'Tanzania Regions',
+            'Region (Tanzania)',
+            [(stat['region'] or 'Not Specified', stat['count']) for stat in tanzania_regions],
+        )
+        _write_distribution_sheet(
+            workbook,
+            'Dar es Salaam Areas',
+            'Center/Area (Dar es Salaam)',
+            [(stat['center_area'] or 'Not Specified', stat['count']) for stat in dar_areas],
+        )
+
+    if export_type == 'monthly':
+        monthly_sheet = workbook.create_sheet(title='Monthly Trend')
+        _style_title(monthly_sheet, 'MONTHLY REGISTRATION TREND')
+        monthly_sheet['A3'] = 'Month'
+        monthly_sheet['B3'] = 'Registrations'
+        _style_table_header(monthly_sheet[3])
+
+        current = timezone.now().date().replace(day=1)
+        months = []
+        for _ in range(12):
+            months.insert(0, current)
+            if current.month == 1:
+                current = current.replace(year=current.year - 1, month=12)
+            else:
+                current = current.replace(month=current.month - 1)
+
+        row_idx = 4
+        for month_start in months:
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1)
+            else:
+                month_end = month_start.replace(month=month_start.month + 1)
+            count = members_qs.filter(
+                created_at__date__gte=month_start,
+                created_at__date__lt=month_end,
+            ).count()
+            monthly_sheet.cell(row=row_idx, column=1, value=month_start.strftime('%b %Y'))
+            monthly_sheet.cell(row=row_idx, column=2, value=count)
+            row_idx += 1
+
+        monthly_sheet.freeze_panes = 'A4'
+        _autosize_columns(monthly_sheet)
+
+    summary_sheet.freeze_panes = 'A7'
+    _autosize_columns(summary_sheet)
+
+    filename = f'{export_type}-report-{datetime.now().strftime("%Y-%m-%d")}.xlsx'
+    return _workbook_response(workbook, filename)
 
 
 @api_view(['POST'])
@@ -640,27 +934,41 @@ def export_user_activity_csv(queryset):
 
 
 def export_user_activity_excel(queryset):
-    """Export user activity to Excel"""
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="user_activity_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
-    
-    # For now, return CSV format
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['User', 'Action', 'Resource Type', 'Resource ID', 'Timestamp', 'IP Address'])
-    
+    """Export user activity to a styled Excel worksheet."""
+    workbook, sheet = _create_workbook('User Activity')
+    _style_title(sheet, 'SYSTEM USER ACTIVITY REPORT')
+
+    sheet['A3'] = 'Generated On'
+    sheet['B3'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    sheet['A4'] = 'Total Events'
+    sheet['B4'] = queryset.count()
+    sheet['A3'].font = Font(bold=True)
+    sheet['A4'].font = Font(bold=True)
+
+    headers = ['User', 'Action', 'Resource Type', 'Resource ID', 'Timestamp', 'IP Address']
+    for col, header in enumerate(headers, start=1):
+        sheet.cell(row=6, column=col, value=header)
+    _style_table_header(sheet[6])
+
+    row_idx = 7
     for log in queryset:
-        writer.writerow([
+        values = [
             log.user.username if log.user else 'N/A',
             log.action,
             log.resource_type,
             log.resource_id,
             log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            log.ip_address
-        ])
-    
-    response.write(output.getvalue().encode('utf-8'))
-    return response
+            log.ip_address,
+        ]
+        for col, value in enumerate(values, start=1):
+            sheet.cell(row=row_idx, column=col, value=value)
+        row_idx += 1
+
+    sheet.freeze_panes = 'A7'
+    _autosize_columns(sheet)
+
+    filename = f'user-activity-{datetime.now().strftime("%Y-%m-%d")}.xlsx'
+    return _workbook_response(workbook, filename)
 
 
 @api_view(['POST'])
@@ -669,13 +977,19 @@ def export_financial(request):
     """Export financial data (placeholder)"""
     format_type = request.data.get('format', 'excel')
     date_range = request.data.get('date_range', {})
-    
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="financial_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
-    
-    writer = csv.writer(response)
-    writer.writerow(['Date', 'Type', 'Amount', 'Member', 'Description'])
-    writer.writerow([datetime.now().strftime('%Y-%m-%d'), 'Tithe', '100.00', 'Sample Member', 'Monthly tithe'])
+
+    if format_type == 'pdf':
+        response = export_financial_pdf(date_range)
+    elif format_type == 'excel':
+        response = export_financial_excel(date_range)
+    elif format_type == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="financial-summary-{datetime.now().strftime("%Y-%m-%d")}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Date', 'Type', 'Amount', 'Member', 'Description'])
+        writer.writerow([datetime.now().strftime('%Y-%m-%d'), 'Tithe', '100.00', 'Sample Member', 'Monthly tithe'])
+    else:
+        return Response({'error': 'Unsupported format'}, status=400)
     
     # Log export activity
     file_size = f"{len(response.content) / 1024:.1f} KB"
@@ -688,6 +1002,94 @@ def export_financial(request):
     )
     
     return response
+
+
+def export_financial_excel(date_range):
+    """Export sample financial summary to executive-style Excel."""
+    workbook, sheet = _create_workbook('Financial Summary')
+    _style_title(sheet, 'KUSANYIKO FINANCIAL SUMMARY REPORT')
+
+    start_label = date_range.get('start_date') or 'Beginning'
+    end_label = date_range.get('end_date') or 'Present'
+    sheet['A3'] = 'Prepared On'
+    sheet['B3'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    sheet['A4'] = 'Reporting Window'
+    sheet['B4'] = f'{start_label} to {end_label}'
+    sheet['A3'].font = Font(bold=True)
+    sheet['A4'].font = Font(bold=True)
+
+    headers = ['Date', 'Type', 'Amount (TZS)', 'Member', 'Description']
+    for col, header in enumerate(headers, start=1):
+        sheet.cell(row=6, column=col, value=header)
+    _style_table_header(sheet[6])
+
+    sample_rows = [
+        [datetime.now().strftime('%Y-%m-%d'), 'Tithe', 100000, 'Sample Member', 'Monthly tithe'],
+        [datetime.now().strftime('%Y-%m-%d'), 'Offering', 50000, 'Sample Member', 'Sunday service offering'],
+        [datetime.now().strftime('%Y-%m-%d'), 'Special Seed', 250000, 'Sample Member', 'Special contribution'],
+    ]
+
+    row_idx = 7
+    for row in sample_rows:
+        for col, value in enumerate(row, start=1):
+            sheet.cell(row=row_idx, column=col, value=value)
+        sheet.cell(row=row_idx, column=3).number_format = '#,##0'
+        row_idx += 1
+
+    sheet.freeze_panes = 'A7'
+    _autosize_columns(sheet)
+
+    filename = f'financial-summary-{datetime.now().strftime("%Y-%m-%d")}.xlsx'
+    return _workbook_response(workbook, filename)
+
+
+def export_financial_pdf(date_range):
+    """Export sample financial summary to branded executive PDF."""
+    styles = _pdf_styles()
+    start_label = date_range.get('start_date') or 'Beginning'
+    end_label = date_range.get('end_date') or 'Present'
+
+    sample_rows = [
+        [datetime.now().strftime('%Y-%m-%d'), 'Tithe', 100000, 'Sample Member', 'Monthly tithe'],
+        [datetime.now().strftime('%Y-%m-%d'), 'Offering', 50000, 'Sample Member', 'Sunday service offering'],
+        [datetime.now().strftime('%Y-%m-%d'), 'Special Seed', 250000, 'Sample Member', 'Special contribution'],
+    ]
+    total_amount = sum(row[2] for row in sample_rows)
+
+    story = []
+    story.extend(
+        _pdf_header_block(
+            'KUSANYIKO FINANCIAL SUMMARY REPORT',
+            f'Reporting window: {start_label} to {end_label}',
+        )
+    )
+    story.append(Paragraph('Executive KPI Summary', styles['ExecutiveSection']))
+    story.append(
+        _pdf_table(
+            [
+                ['Indicator', 'Value'],
+                ['Total Transactions (Sample)', len(sample_rows)],
+                ['Total Amount (TZS)', f'{total_amount:,}'],
+            ],
+            col_widths=[10 * cm, 5.5 * cm],
+        )
+    )
+    story.append(Spacer(1, 0.3 * cm))
+
+    story.append(Paragraph('Transaction Register', styles['ExecutiveSection']))
+    transaction_rows = [['Date', 'Type', 'Amount (TZS)', 'Member', 'Description']]
+    for row in sample_rows:
+        transaction_rows.append([row[0], row[1], f'{row[2]:,}', row[3], row[4]])
+
+    story.append(
+        _pdf_table(
+            transaction_rows,
+            col_widths=[2.4 * cm, 2.4 * cm, 2.8 * cm, 3.5 * cm, 5.4 * cm],
+        )
+    )
+
+    filename = f'financial-summary-{datetime.now().strftime("%Y-%m-%d")}.pdf'
+    return _pdf_response(story, filename)
 
 
 @api_view(['GET'])
