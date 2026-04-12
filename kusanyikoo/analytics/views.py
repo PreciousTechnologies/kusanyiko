@@ -163,6 +163,43 @@ def _write_distribution_sheet(workbook, title, header_a, rows):
     _autosize_columns(ws)
 
 
+def _write_multi_distribution_sheet(workbook, title, headers, rows):
+    ws = workbook.create_sheet(title=title)
+    _style_title(ws, title)
+
+    for idx, header in enumerate(headers, start=1):
+        ws.cell(row=3, column=idx, value=header)
+    _style_table_header(ws[3])
+
+    current_row = 4
+    for row_values in rows:
+        for col_idx, value in enumerate(row_values, start=1):
+            ws.cell(row=current_row, column=col_idx, value=value)
+        current_row += 1
+
+    ws.freeze_panes = 'A4'
+    _autosize_columns(ws)
+
+
+def _collect_geographical_stats(members_qs):
+    country_stats = list(members_qs.values('country').annotate(count=Count('id')).order_by('-count'))
+    region_stats = list(
+        members_qs.exclude(region__isnull=True)
+        .exclude(region='')
+        .values('region')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    area_stats = list(
+        members_qs.exclude(center_area__isnull=True)
+        .exclude(center_area='')
+        .values('region', 'center_area')
+        .annotate(count=Count('id'))
+        .order_by('region', '-count', 'center_area')
+    )
+    return country_stats, region_stats, area_stats
+
+
 def _workbook_response(workbook, filename):
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -205,6 +242,16 @@ def _pdf_styles():
             spaceAfter=6,
         )
     )
+    styles.add(
+        ParagraphStyle(
+            name='ExecutiveTableCell',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor('#111827'),
+            wordWrap='CJK',
+        )
+    )
     return styles
 
 
@@ -231,8 +278,10 @@ def _pdf_header_block(report_title, subtitle):
     return [title_table, Spacer(1, 0.25 * cm), *metadata, Spacer(1, 0.25 * cm)]
 
 
-def _pdf_table(rows, col_widths=None, repeat_rows=1):
+def _pdf_table(rows, col_widths=None, repeat_rows=1, font_size=9, compact=False):
     table = Table(rows, colWidths=col_widths, repeatRows=repeat_rows)
+    top_padding = 2 if compact else 4
+    bottom_padding = 2 if compact else 4
     table.setStyle(
         TableStyle(
             [
@@ -243,11 +292,13 @@ def _pdf_table(rows, col_widths=None, repeat_rows=1):
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#C9CED6')),
                 ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), font_size),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 6),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), top_padding),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), bottom_padding),
+                ('WORDWRAP', (0, 0), (-1, -1), 'CJK'),
             ]
         )
     )
@@ -564,29 +615,32 @@ def export_members_pdf(queryset):
     story.append(Spacer(1, 0.3 * cm))
 
     story.append(Paragraph('Detailed Member Register', styles['ExecutiveSection']))
+    cell_style = styles['ExecutiveTableCell']
     member_rows = [[
         'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Region',
         'Gender', 'Marital Status', 'Saved', 'Registered', 'Registered By'
     ]]
     for member in queryset:
         member_rows.append([
-            member.first_name,
-            member.last_name,
-            member.email,
-            member.mobile_no,
-            member.country,
-            member.region,
-            member.gender,
-            member.marital_status,
-            'Yes' if member.saved else 'No',
-            member.created_at.strftime('%Y-%m-%d'),
-            member.created_by.username if member.created_by else 'N/A',
+            Paragraph(member.first_name or '-', cell_style),
+            Paragraph(member.last_name or '-', cell_style),
+            Paragraph(member.email or '-', cell_style),
+            Paragraph(member.mobile_no or '-', cell_style),
+            Paragraph(member.country or '-', cell_style),
+            Paragraph(member.region or '-', cell_style),
+            Paragraph(member.gender or '-', cell_style),
+            Paragraph(member.marital_status or '-', cell_style),
+            Paragraph('Yes' if member.saved else 'No', cell_style),
+            Paragraph(member.created_at.strftime('%Y-%m-%d'), cell_style),
+            Paragraph(member.created_by.username if member.created_by else 'N/A', cell_style),
         ])
 
     story.append(
         _pdf_table(
             member_rows,
-            col_widths=[1.4 * cm, 1.4 * cm, 2.7 * cm, 1.8 * cm, 1.5 * cm, 1.8 * cm, 1.2 * cm, 1.8 * cm, 1.0 * cm, 1.9 * cm, 1.8 * cm],
+            col_widths=[2.0 * cm, 2.0 * cm, 4.1 * cm, 2.3 * cm, 2.0 * cm, 2.3 * cm, 1.6 * cm, 2.3 * cm, 1.4 * cm, 2.2 * cm, 2.5 * cm],
+            font_size=7,
+            compact=True,
         )
     )
 
@@ -677,28 +731,30 @@ def export_analytics_pdf(export_type, date_range):
     story.append(Spacer(1, 0.3 * cm))
     
     if export_type in ['summary', 'overview']:
+        country_stats, region_stats, area_stats = _collect_geographical_stats(members_qs)
         story.append(Paragraph('Country Distribution', styles['ExecutiveSection']))
-        country_stats = members_qs.values('country').annotate(count=Count('id')).order_by('-count')
         country_rows = [['Country', 'Members']]
         for stat in country_stats:
             country_rows.append([stat['country'] or 'Not Specified', stat['count']])
         story.append(_pdf_table(country_rows, col_widths=[10 * cm, 5.5 * cm]))
         story.append(Spacer(1, 0.2 * cm))
         
-        story.append(Paragraph('Regional Distribution (Tanzania)', styles['ExecutiveSection']))
-        tanzania_regions = members_qs.filter(country='Tanzania').exclude(region__isnull=True).exclude(region='').values('region').annotate(count=Count('id')).order_by('-count')
+        story.append(Paragraph('Regional Distribution (All Regions)', styles['ExecutiveSection']))
         region_rows = [['Region', 'Members']]
-        for stat in tanzania_regions:
+        for stat in region_stats:
             region_rows.append([stat['region'] or 'Not Specified', stat['count']])
         story.append(_pdf_table(region_rows, col_widths=[10 * cm, 5.5 * cm]))
         story.append(Spacer(1, 0.2 * cm))
         
-        story.append(Paragraph('Dar es Salaam Center/Area Distribution', styles['ExecutiveSection']))
-        dar_areas = members_qs.filter(country='Tanzania', region='Dar es Salaam').exclude(center_area__isnull=True).exclude(center_area='').values('center_area').annotate(count=Count('id')).order_by('-count')
-        area_rows = [['Center/Area', 'Members']]
-        for stat in dar_areas:
-            area_rows.append([stat['center_area'] or 'Not Specified', stat['count']])
-        story.append(_pdf_table(area_rows, col_widths=[10 * cm, 5.5 * cm]))
+        story.append(Paragraph('Center/Area Distribution (All Regions)', styles['ExecutiveSection']))
+        area_rows = [['Region', 'Center/Area', 'Members']]
+        for stat in area_stats:
+            area_rows.append([
+                stat['region'] or 'Not Specified',
+                stat['center_area'] or 'Not Specified',
+                stat['count'],
+            ])
+        story.append(_pdf_table(area_rows, col_widths=[6.2 * cm, 6.2 * cm, 3.1 * cm]))
     
     elif export_type == 'demographics':
         story.append(Paragraph('Marital Status Distribution', styles['ExecutiveSection']))
@@ -709,28 +765,30 @@ def export_analytics_pdf(export_type, date_range):
         story.append(_pdf_table(marital_rows, col_widths=[10 * cm, 5.5 * cm]))
     
     elif export_type == 'geographical':
+        country_stats, region_stats, area_stats = _collect_geographical_stats(members_qs)
         story.append(Paragraph('Country Distribution', styles['ExecutiveSection']))
-        country_stats = members_qs.values('country').annotate(count=Count('id')).order_by('-count')
         country_rows = [['Country', 'Members']]
         for stat in country_stats:
             country_rows.append([stat['country'] or 'Not Specified', stat['count']])
         story.append(_pdf_table(country_rows, col_widths=[10 * cm, 5.5 * cm]))
         story.append(Spacer(1, 0.2 * cm))
         
-        story.append(Paragraph('Regional Distribution (Tanzania)', styles['ExecutiveSection']))
-        tanzania_regions = members_qs.filter(country='Tanzania').exclude(region__isnull=True).exclude(region='').values('region').annotate(count=Count('id')).order_by('-count')
+        story.append(Paragraph('Regional Distribution (All Regions)', styles['ExecutiveSection']))
         region_rows = [['Region', 'Members']]
-        for stat in tanzania_regions:
+        for stat in region_stats:
             region_rows.append([stat['region'] or 'Not Specified', stat['count']])
         story.append(_pdf_table(region_rows, col_widths=[10 * cm, 5.5 * cm]))
         story.append(Spacer(1, 0.2 * cm))
         
-        story.append(Paragraph('Dar es Salaam Center/Area Distribution', styles['ExecutiveSection']))
-        dar_areas = members_qs.filter(country='Tanzania', region='Dar es Salaam').exclude(center_area__isnull=True).exclude(center_area='').values('center_area').annotate(count=Count('id')).order_by('-count')
-        area_rows = [['Center/Area', 'Members']]
-        for stat in dar_areas:
-            area_rows.append([stat['center_area'] or 'Not Specified', stat['count']])
-        story.append(_pdf_table(area_rows, col_widths=[10 * cm, 5.5 * cm]))
+        story.append(Paragraph('Center/Area Distribution (All Regions)', styles['ExecutiveSection']))
+        area_rows = [['Region', 'Center/Area', 'Members']]
+        for stat in area_stats:
+            area_rows.append([
+                stat['region'] or 'Not Specified',
+                stat['center_area'] or 'Not Specified',
+                stat['count'],
+            ])
+        story.append(_pdf_table(area_rows, col_widths=[6.2 * cm, 6.2 * cm, 3.1 * cm]))
 
     elif export_type == 'monthly':
         story.append(Paragraph('Monthly Registration Trend (Last 12 Months)', styles['ExecutiveSection']))
@@ -794,23 +852,7 @@ def export_analytics_excel(export_type, date_range):
             summary_sheet.cell(row=next_row, column=2, value=stat['count'])
             next_row += 1
 
-    country_stats = list(members_qs.values('country').annotate(count=Count('id')).order_by('-count'))
-    tanzania_regions = list(
-        members_qs.filter(country='Tanzania')
-        .exclude(region__isnull=True)
-        .exclude(region='')
-        .values('region')
-        .annotate(count=Count('id'))
-        .order_by('-count')
-    )
-    dar_areas = list(
-        members_qs.filter(country='Tanzania', region='Dar es Salaam')
-        .exclude(center_area__isnull=True)
-        .exclude(center_area='')
-        .values('center_area')
-        .annotate(count=Count('id'))
-        .order_by('-count')
-    )
+    country_stats, region_stats, area_stats = _collect_geographical_stats(members_qs)
 
     if export_type in ['summary', 'overview', 'geographical']:
         _write_distribution_sheet(
@@ -821,15 +863,22 @@ def export_analytics_excel(export_type, date_range):
         )
         _write_distribution_sheet(
             workbook,
-            'Tanzania Regions',
-            'Region (Tanzania)',
-            [(stat['region'] or 'Not Specified', stat['count']) for stat in tanzania_regions],
+            'All Regions',
+            'Region',
+            [(stat['region'] or 'Not Specified', stat['count']) for stat in region_stats],
         )
-        _write_distribution_sheet(
+        _write_multi_distribution_sheet(
             workbook,
-            'Dar es Salaam Areas',
-            'Center/Area (Dar es Salaam)',
-            [(stat['center_area'] or 'Not Specified', stat['count']) for stat in dar_areas],
+            'All Centers Areas',
+            ['Region', 'Center/Area', 'Members'],
+            [
+                [
+                    stat['region'] or 'Not Specified',
+                    stat['center_area'] or 'Not Specified',
+                    stat['count'],
+                ]
+                for stat in area_stats
+            ],
         )
 
     if export_type == 'monthly':
