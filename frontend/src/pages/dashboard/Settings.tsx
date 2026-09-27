@@ -249,17 +249,17 @@ const Settings: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 flex items-center">
-                <CogIcon className="h-10 w-10 text-green-500 mr-4" />
-                Settings
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 flex items-center">
+                <CogIcon className="h-8 w-8 sm:h-10 sm:w-10 text-green-500 mr-3 sm:mr-4 flex-shrink-0" />
+                <span className="truncate">Settings</span>
               </h1>
-              <p className="text-gray-600 mt-2 text-lg">
+              <p className="text-gray-600 mt-2 text-base sm:text-lg">
                 Configure system preferences and administrative settings
               </p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 self-start sm:self-auto flex-shrink-0">
               <button
                 onClick={handleExportSettings}
                 className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-all duration-200"

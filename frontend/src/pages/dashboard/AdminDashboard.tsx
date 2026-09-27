@@ -430,17 +430,17 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Welcome Header with Enhanced Green Theme */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2 break-words">
               Welcome back, {user?.first_name || user?.username}!
             </h1>
-            <p className="text-gray-600 text-lg">
-              {branding.admin_dashboard_subtitle} • {branding.camp_start_date} - {branding.camp_end_date}
+            <p className="text-gray-600 text-base sm:text-lg">
+              {branding.admin_dashboard_subtitle}  {branding.camp_start_date} - {branding.camp_end_date}
             </p>
           </div>
-          <div className="flex items-center space-x-3 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-3 rounded-xl border border-green-200">
+          <div className="flex items-center space-x-3 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-3 rounded-xl border border-green-200 self-start sm:self-auto flex-shrink-0">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
             <span className="text-green-700 font-semibold text-sm">{branding.registration_status_label}</span>
           </div>

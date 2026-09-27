@@ -74,10 +74,12 @@ html, body {
   width: 100%;
 }
 
-/* Touch-friendly buttons and interactive elements */
-button, a.btn, input, select, textarea {
+/* Touch-friendly buttons and interactive elements.
+   NOTE: min-width is intentionally NOT set globally — it breaks compact
+   icon buttons, table action buttons and checkboxes. Components opt in
+   with their own classes where a 44px target is needed. */
+button, a.btn, input:not([type="checkbox"]):not([type="radio"]), select, textarea {
   min-height: 44px; /* iOS recommended minimum touch target */
-  min-width: 44px;
   font-size: var(--text-base);
 }
 
@@ -111,50 +113,27 @@ img, video, iframe {
   margin: var(--padding-mobile);
 }
 
-/* Responsive table overflow */
+/* Responsive tables.
+   Tables keep their native layout at every viewport. On narrow screens the
+   PAGE must wrap a table in a horizontal scroll container
+   (<div class="table-scroll"> or Tailwind `overflow-x-auto`) instead of
+   restyling the table itself — the old card-stacking approach required
+   `data-label` attributes that no table in this app provides, so it
+   rendered headerless, label-less cells on phones. */
 table {
   font-size: var(--text-sm);
-  overflow-x: auto;
-  display: block;
+  width: 100%;
+  border-collapse: collapse;
 }
 
-@media (max-width: 640px) {
-  table {
-    border: 0;
-  }
-  
-  table thead {
-    display: none;
-  }
-  
-  table tr {
-    display: block;
-    margin-bottom: var(--space-lg);
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-  }
-  
-  table tr:hover {
-    background: transparent;
-  }
-  
-  table td {
-    display: block;
-    text-align: right;
-    padding-left: 50%;
-    position: relative;
-    border: 0;
-    padding-bottom: 12px;
-    padding-top: 12px;
-  }
-  
-  table td:before {
-    content: attr(data-label);
-    position: absolute;
-    left: 6px;
-    font-weight: bold;
-    text-align: left;
-  }
+/* Opt-in scroll wrapper for wide tables on small screens */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* momentum scroll on iOS */
+}
+.table-scroll > table {
+  min-width: 560px; /* keep columns readable; container scrolls instead */
 }
 
 /* ============================================
@@ -186,30 +165,7 @@ table {
   }
 
   table {
-    display: table;
     width: 100%;
-  }
-
-  table thead {
-    display: table-header-group;
-  }
-
-  table tr {
-    display: table-row;
-    margin-bottom: 0;
-    border: 0;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  table td {
-    display: table-cell;
-    text-align: left;
-    padding: 12px;
-    position: relative;
-  }
-
-  table td:before {
-    display: none;
   }
 }
 

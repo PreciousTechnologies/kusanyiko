@@ -528,6 +528,12 @@
   }
 }
 
+@media (min-width: 768px) {
+  .hero-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .landing-header-content {
@@ -539,7 +545,7 @@
   }
   
   .hero-title {
-    font-size: 3rem;
+    font-size: clamp(28px, 9vw, 48px);
   }
   
   .hero-description {

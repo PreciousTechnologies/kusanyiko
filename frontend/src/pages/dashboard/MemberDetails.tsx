@@ -406,22 +406,22 @@ const MemberDetails: React.FC = () => {
           </button>
           
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-8 py-12">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-4 sm:px-8 py-8 sm:py-12">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:space-x-6 min-w-0">
                   <ProfilePicture
                     src={member.picture}
                     firstName={member.first_name}
                     lastName={member.last_name}
                     size="lg"
-                    className="bg-white text-green-600"
+                    className="bg-white text-green-600 flex-shrink-0"
                   />
-                  <div className="text-white">
-                    <h1 className="text-3xl font-bold">
+                  <div className="text-white min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-bold break-words">
                       {member.first_name} {member.middle_name && `${member.middle_name} `}{member.last_name}
                     </h1>
-                    <p className="text-green-100 text-lg flex items-center mt-2">
-                      <UserIcon className="h-5 w-5 mr-2" />
+                    <p className="text-green-100 text-base sm:text-lg flex items-center mt-2 flex-wrap">
+                      <UserIcon className="h-5 w-5 mr-2 flex-shrink-0" />
                       {member.gender} • {member.age} years • {member.marital_status}
                     </p>
                     <div className="flex items-center mt-2">

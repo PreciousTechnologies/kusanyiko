@@ -525,13 +525,13 @@ const UserManagement: React.FC = () => {
     <div className="user-management-container min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="user-management-header mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 flex items-center">
-              <UsersIcon className="h-10 w-10 text-green-500 mr-4" />
-              User Management
+        <div className="user-management-header mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 flex items-center">
+              <UsersIcon className="h-8 w-8 sm:h-10 sm:w-10 text-green-500 mr-3 sm:mr-4 flex-shrink-0" />
+              <span className="truncate">User Management</span>
             </h1>
-            <p className="text-gray-600 mt-2 text-lg">
+            <p className="text-gray-600 mt-2 text-base sm:text-lg">
               Manage system users, roles, and permissions
               {loading && (
                 <span className="inline-flex items-center ml-4">
@@ -543,7 +543,7 @@ const UserManagement: React.FC = () => {
           </div>
           <button
             onClick={handleCreateUser}
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center"
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center justify-center self-start sm:self-auto w-full sm:w-auto"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
             Add User
@@ -1049,7 +1049,7 @@ const UserManagement: React.FC = () => {
               </div>
               
               <div className="px-6 py-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">First Name</label>
                     <input

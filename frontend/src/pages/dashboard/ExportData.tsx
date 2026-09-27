@@ -417,7 +417,7 @@ const ExportData: React.FC = () => {
 
         <p className="text-gray-600 text-sm mb-4">{option.description}</p>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-2">
             {option.formats.map((format) => (
               <span
@@ -439,7 +439,7 @@ const ExportData: React.FC = () => {
           <button
             onClick={() => simulateExport(option.id)}
             disabled={!isSupported}
-            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {status === 'exporting' ? 'Exporting...' : 'Export Now'}
           </button>
@@ -487,17 +487,17 @@ const ExportData: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 flex items-center">
-                <DocumentArrowDownIcon className="h-10 w-10 text-green-500 mr-4" />
-                Export Data
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 flex items-center">
+                <DocumentArrowDownIcon className="h-8 w-8 sm:h-10 sm:w-10 text-green-500 mr-3 sm:mr-4 flex-shrink-0" />
+                <span className="truncate">Export Data</span>
               </h1>
-              <p className="text-gray-600 mt-2 text-lg">
+              <p className="text-gray-600 mt-2 text-base sm:text-lg">
                 Export church data in various formats for reporting and analysis
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right flex-shrink-0">
               <p className="text-sm text-gray-500">Total Members</p>
               <p className="text-2xl font-bold text-green-600">{members.length}</p>
             </div>
