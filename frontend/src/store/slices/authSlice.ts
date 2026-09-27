@@ -53,11 +53,12 @@ export const signupUser = createAsyncThunk(
       
       const response = await authAPI.signup(signupData);
       const { user, access, refresh, message } = response.data;
-      
-      // Store tokens and user data just like login
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
-      localStorage.setItem('user', JSON.stringify(user));
+
+      // Store tokens and user data just like login (may be null when
+      // Supabase email confirmation is ON — user signs in after confirming)
+      if (access) localStorage.setItem('access_token', access);
+      if (refresh) localStorage.setItem('refresh_token', refresh);
+      if (user) localStorage.setItem('user', JSON.stringify(user));
       
       return { user, access, refresh, message };
     } catch (error: any) {
