@@ -1,5 +1,16 @@
 ﻿import React from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ArrowRight,
+  CalendarDays,
+  Church,
+  ClipboardList,
+  LogIn,
+  MapPin,
+  Search,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import '../styles/landing.css';
 import { useBranding } from '../context/BrandingContext';
 
@@ -8,101 +19,164 @@ const LandingPage = () => {
 
   return (
     <div className="landing-container">
-      {/* Background Elements */}
-      <div className="landing-bg-element landing-bg-element-1"></div>
-      <div className="landing-bg-element landing-bg-element-2"></div>
-      <div className="landing-bg-element landing-bg-element-3"></div>
+      {/* Aurora background */}
+      <div className="landing-bg-element landing-bg-element-1" aria-hidden="true" />
+      <div className="landing-bg-element landing-bg-element-2" aria-hidden="true" />
+      <div className="landing-bg-element landing-bg-element-3" aria-hidden="true" />
+      <div className="landing-grain" aria-hidden="true" />
 
+      {/* Floating glass header */}
       <header className="landing-header">
         <div className="landing-header-content">
           <div className="landing-logo">
             <div className="landing-logo-icon">
-              <img src={`${process.env.PUBLIC_URL}/image.png`} alt="Efatha Members logo" className="landing-logo-image" />
+              <img
+                src={`${process.env.PUBLIC_URL}/image.png`}
+                alt="Efatha Members logo"
+                className="landing-logo-image"
+              />
             </div>
             <div className="landing-logo-text">
               <h1>{branding.landing_header_title}</h1>
               <p>{branding.landing_header_subtitle}</p>
             </div>
           </div>
-          <nav className="landing-nav">
-            <Link to="/login" className="nav-btn nav-btn-ghost">
+          <nav className="landing-nav" aria-label="Primary">
+            <Link to="/member-search" className="nav-btn nav-btn-ghost">
+              <Search size={16} />
+              Search
+            </Link>
+            <Link to="/login" className="nav-btn nav-btn-primary">
+              <LogIn size={16} />
               Sign In
             </Link>
           </nav>
         </div>
       </header>
 
+      {/* Hero */}
       <section className="landing-hero">
         <div className="landing-hero-content">
-          <h1 className="hero-title">
+          <span className="hero-badge animate-fadeInUp">
+            <span className="hero-live-dot" aria-hidden="true" />
+            {branding.registration_status_label}
+          </span>
+          <h1 className="hero-title animate-fadeInUp stagger-1">
             {branding.landing_hero_prefix}{' '}
-            <span className="hero-title-gradient">
-              {branding.landing_hero_highlight}
-            </span>{' '}
+            <span className="hero-title-gradient">{branding.landing_hero_highlight}</span>{' '}
             {branding.landing_hero_suffix}
           </h1>
-          <p className="hero-description">
-            {branding.landing_description}
-          </p>
-
-          {/* Gathering Info Cards */}
-          <div className="hero-stats">
-            <div className="stat-card">
-              <div className="stat-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
-                </svg>
-              </div>
-              <div className="stat-number">5 Days</div>
-              <div className="stat-label">Leaders' Camp</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                </svg>
-              </div>
-              <div className="stat-number">Kibaha</div>
-              <div className="stat-label">{branding.camp_location}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
-              </div>
-              <div className="stat-number">All</div>
-              <div className="stat-label">Church Leaders</div>
-            </div>
+          <p className="hero-description animate-fadeInUp stagger-2">{branding.landing_description}</p>
+          <div className="hero-buttons animate-fadeInUp stagger-3">
+            <Link to="/login" className="hero-btn hero-btn-primary">
+              Sign In to Register
+              <ArrowRight size={18} />
+            </Link>
+            <Link to="/member-search" className="hero-btn hero-btn-secondary">
+              <Search size={18} />
+              Search Members
+            </Link>
           </div>
-        </div>
-      </section>
 
-      {/* About Section */}
-      <section className="landing-hero" style={{ paddingTop: '48px', paddingBottom: '96px' }}>
-        <div className="landing-hero-content">
-          <div className="hero-stats" style={{ gridTemplateColumns: '1fr', maxWidth: '600px', gap: '32px' }}>
-            <div className="stat-card" style={{ textAlign: 'left', padding: '24px' }}>
-              <h3 style={{ color: '#10b981', fontSize: '20px', marginBottom: '16px', fontWeight: '600' }}>
-                What to Expect
-              </h3>
-              <p style={{ color: '#d1d5db', lineHeight: '1.6', margin: '0' }}>
-                Multiple days of worship, prayer, teaching and ministry sessions. 
-                Experience spiritual renewal, healing, and prophetic ministry under 
-                the leadership of {branding.ministry_lead}.
+          {/* Bento grid */}
+          <div className="bento-grid animate-fadeInUp stagger-4">
+            {/* Feature tile — What to expect */}
+            <article className="liquid-glass bento-tile bento-feature">
+              <div className="bento-icon-tile">
+                <Church size={22} />
+              </div>
+              <h3 className="bento-title">What to Expect</h3>
+              <p className="bento-text">
+                Multiple days of worship, prayer, teaching and ministry sessions. Experience
+                spiritual renewal, healing, and prophetic ministry under the leadership of{' '}
+                <span className="bento-highlight">{branding.ministry_lead}</span>.
               </p>
-            </div>
-            <div className="stat-card" style={{ textAlign: 'left', padding: '24px' }}>
-              <h3 style={{ color: '#06b6d4', fontSize: '20px', marginBottom: '16px', fontWeight: '600' }}>
-                Registration Info
-              </h3>
-              <p style={{ color: '#d1d5db', lineHeight: '1.6', margin: '0' }}>
+              <div className="bento-chips">
+                <span className="bento-chip">Worship</span>
+                <span className="bento-chip">Prayer</span>
+                <span className="bento-chip">Teaching</span>
+                <span className="bento-chip">Ministry</span>
+              </div>
+            </article>
+
+            {/* Dates tile */}
+            <article className="liquid-glass bento-tile">
+              <div className="bento-icon-tile bento-icon-cyan">
+                <CalendarDays size={22} />
+              </div>
+              <p className="bento-kicker">Camp Dates</p>
+              <p className="bento-big">{branding.camp_start_date}</p>
+              <p className="bento-sub">to {branding.camp_end_date}</p>
+            </article>
+
+            {/* Location tile */}
+            <article className="liquid-glass bento-tile">
+              <div className="bento-icon-tile bento-icon-violet">
+                <MapPin size={22} />
+              </div>
+              <p className="bento-kicker">Location</p>
+              <p className="bento-big">Kibaha</p>
+              <p className="bento-sub">{branding.camp_location}</p>
+            </article>
+
+            {/* Registration tile */}
+            <article className="liquid-glass bento-tile bento-wide">
+              <div className="bento-icon-tile bento-icon-amber">
+                <ClipboardList size={22} />
+              </div>
+              <h3 className="bento-title">Registration Info</h3>
+              <p className="bento-text">
                 Register church leaders from different regions and branches for this special
-                Kibaha camp. Ensure each leader's details are complete to support smooth
+                Kibaha camp. Ensure each leader&apos;s details are complete to support smooth
                 coordination, ministry planning, and event participation.
               </p>
+            </article>
+
+            {/* Leaders tile */}
+            <article className="liquid-glass bento-tile">
+              <div className="bento-icon-tile bento-icon-emerald">
+                <Users size={22} />
+              </div>
+              <p className="bento-kicker">Who attends</p>
+              <p className="bento-big">All</p>
+              <p className="bento-sub">Church Leaders</p>
+            </article>
+
+            {/* Status tile */}
+            <article className="liquid-glass bento-tile">
+              <div className="bento-icon-tile bento-icon-rose">
+                <Sparkles size={22} />
+              </div>
+              <p className="bento-kicker">Status</p>
+              <p className="bento-big bento-live">
+                <span className="hero-live-dot" aria-hidden="true" />
+                Live
+              </p>
+              <p className="bento-sub">{branding.registration_status_label}</p>
+            </article>
+          </div>
+
+          {/* CTA banner */}
+          <div className="liquid-glass cta-banner animate-fadeInUp stagger-5">
+            <div className="cta-text">
+              <h2 className="cta-title">Ready to register your leaders?</h2>
+              <p className="cta-sub">Sign in to your account or look up an existing registration.</p>
+            </div>
+            <div className="cta-actions">
+              <Link to="/login" className="hero-btn hero-btn-primary">
+                <LogIn size={18} />
+                Sign In
+              </Link>
+              <Link to="/member-search" className="hero-btn hero-btn-secondary">
+                <Search size={18} />
+                Search
+              </Link>
             </div>
           </div>
+
+          <p className="landing-footnote">
+            {branding.ministry_lead} • {branding.camp_location}
+          </p>
         </div>
       </section>
     </div>
