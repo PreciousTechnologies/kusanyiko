@@ -11,7 +11,7 @@
  *  Django /api/export/*    → client-side CSV/Excel/PDF via utils/exportHelpers
  *  Django AuditLog         → public.audit_logs
  */
-import { supabase, MEMBER_PICTURES_BUCKET, publicPictureUrl } from '../lib/supabaseClient';
+import { supabase, MEMBER_PICTURES_BUCKET, publicPictureUrl } from '../utils/supabaseClient';
 import { buildExportBlob, asAxiosBlobResponse, ExportFormat } from '../utils/exportHelpers';
 
 // ---------- small helpers ----------
