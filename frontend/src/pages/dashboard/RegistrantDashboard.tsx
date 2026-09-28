@@ -278,8 +278,8 @@ const RegistrantDashboard: React.FC = () => {
           <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2 break-words">
               {user?.role === 'apostle'
-                ? `Welcome Apostle ${user?.first_name || user?.username}${user?.kanda ? `, ${formatKanda(user.kanda)}` : ''}!`
-                : `Welcome, ${user?.first_name || user?.username}!`}
+                ? `Welcome Apostle ${user?.username}${user?.kanda ? `, ${formatKanda(user.kanda)}` : ''}!`
+                : `Welcome, ${user?.username}!`}
             </h1>
             <p className="text-gray-600 text-base sm:text-lg">
               {user?.role === 'apostle'

@@ -77,9 +77,12 @@ function formDataToMemberPayload(fd: FormData) {
 // ============================================================
 async function resolveEmailForLogin(usernameOrEmail: string): Promise<string> {
   if (usernameOrEmail.includes('@')) return usernameOrEmail;
-  const { data } = await supabase.from('profiles').select('email').eq('username', usernameOrEmail).single();
-  if (!data?.email) throw { response: { data: { error: 'Invalid credentials' } } };
-  return data.email;
+  // Username lookup via RPC: profiles has no anon SELECT policy (by design),
+  // so a security-definer function resolves one username → email.
+  // SQL (run once in dashboard): see LOGIN_RPC note below.
+  const { data, error } = await supabase.rpc('resolve_login_email', { p_login: usernameOrEmail });
+  if (error || !data) throw { response: { data: { error: 'Invalid credentials' } } };
+  return data as string;
 }
 
 export const authAPI = {

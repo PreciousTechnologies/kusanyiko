@@ -434,7 +434,7 @@ const AdminDashboard: React.FC = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2 break-words">
-              Welcome back, {user?.first_name || user?.username}!
+              Welcome back, {user?.username}!
             </h1>
             <p className="text-gray-600 text-base sm:text-lg">
               {branding.admin_dashboard_subtitle}  {branding.camp_start_date} - {branding.camp_end_date}
