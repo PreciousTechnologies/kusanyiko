@@ -280,6 +280,78 @@ export const membersAPI = {
     exportAPI.exportMembers(format, filters),
 };
 
+// ---------- Edge Functions (admin user management) ----------
+// create-user / delete-user run with the service role (Auth Admin API):
+// no session swap, no public-signup rate limits, full auth-row delete.
+// If the functions aren't deployed yet we fall back to the legacy
+// browser flow so the UI keeps working during rollout.
+function isFunctionMissingError(e: any): boolean {
+  const status = e?.status ?? e?.context?.status;
+  if (status === 404) return true;
+  return /Failed to fetch|Load failed|NetworkError|not found/i.test(String(e?.message ?? ''));
+}
+
+// Poll for a profile row instead of a fixed sleep — the
+// handle_new_user() trigger needs a moment after signUp.
+async function waitForProfile(id: string, tries = 12, delayMs = 500): Promise<any | null> {
+  for (let i = 0; i < tries; i++) {
+    const { data } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+    if (data) return data;
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return null;
+}
+
+// Legacy browser-side creation (used only when the create-user
+// Edge Function is not deployed). signUp swaps the admin session,
+// so the restore MUST happen in a finally block.
+async function legacyCreateUser(userData: any) {
+  const { data: { session: adminSession } } = await supabase.auth.getSession();
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password,
+      options: {
+        data: {
+          username: userData.username,
+          first_name: userData.first_name || '',
+          last_name: userData.last_name || '',
+          role: userData.role || 'registrant',
+          kanda: userData.kanda || '',
+          country: userData.country || '',
+          region: userData.region || '',
+        },
+      },
+    });
+    if (error) throw { response: { data: { message: error.message } } };
+    if (!data.user) throw { response: { data: { message: 'Signup returned no user record' } } };
+    const base = await waitForProfile(data.user.id);
+    if (!base) {
+      throw {
+        response: {
+          data: {
+            message: 'Account created but its profile row is missing — check the handle_new_user trigger, then refresh the list.',
+          },
+        },
+      };
+    }
+    const { error: upErr } = await supabase.from('profiles').update({
+      role: userData.role || 'registrant',
+      kanda: userData.kanda || '',
+      is_staff: userData.is_staff ?? (userData.role === 'admin'),
+      is_superuser: userData.is_superuser ?? false,
+    }).eq('id', data.user.id);
+    if (upErr) throw { response: { data: { message: upErr.message } } };
+    await logAudit('create', 'user', data.user.id, { created_user: userData.username });
+    const created = await waitForProfile(data.user.id, 4, 400);
+    return { data: toFrontendUser(created ?? base) };
+  } finally {
+    if (adminSession) {
+      try { await supabase.auth.setSession(adminSession); } catch { /* keep current session */ }
+    }
+  }
+}
+
 // ============================================================
 // USER MANAGEMENT — mirrors userManagementAPI (admin)
 // ============================================================
@@ -311,39 +383,36 @@ export const userManagementAPI = {
   },
 
   createUser: async (userData: any) => {
-    // Preserve admin session: signUp swaps session to the new user, so save + restore.
-    const { data: { session: adminSession } } = await supabase.auth.getSession();
-    const { data, error } = await supabase.auth.signUp({
+    const payload = {
       email: userData.email,
       password: userData.password,
-      options: {
-        data: {
-          username: userData.username,
-          first_name: userData.first_name || '',
-          last_name: userData.last_name || '',
-          role: userData.role || 'registrant',
-          kanda: userData.kanda || '',
-          country: userData.country || '',
-          region: userData.region || '',
-        },
-      },
-    });
-    if (error) throw { response: { data: { message: error.message } } };
-    // Promote role/status/flags (trigger creates base row; admin updates it)
-    if (data.user) {
-      await new Promise((r) => setTimeout(r, 800));
-      await supabase.from('profiles').update({
-        role: userData.role || 'registrant',
-        kanda: userData.kanda || '',
-        is_staff: userData.is_staff ?? (userData.role === 'admin'),
-        is_superuser: userData.is_superuser ?? false,
-      }).eq('id', data.user.id);
+      username: userData.username,
+      first_name: userData.first_name || '',
+      last_name: userData.last_name || '',
+      role: userData.role || 'registrant',
+      kanda: userData.kanda || '',
+      country: userData.country || '',
+      region: userData.region || '',
+      status: userData.status || 'active',
+      is_staff: userData.is_staff ?? (userData.role === 'admin'),
+      is_superuser: userData.is_superuser ?? false,
+    };
+    if (!payload.password) {
+      throw { response: { data: { message: 'A password is required to create a user' } } };
     }
-    // Restore admin session
-    if (adminSession) await supabase.auth.setSession(adminSession);
-    await logAudit('create', 'user', data.user?.id, { created_user: userData.username });
-    const { data: created } = await supabase.from('profiles').select('*').eq('id', data.user?.id || '').single();
-    return { data: toFrontendUser(created) };
+    // Preferred: Edge Function (Admin API — no session swap, no signup rate limits)
+    try {
+      const { data, error } = await supabase.functions.invoke('create-user', { body: payload });
+      if (error) throw error;
+      const fnErr = (data as any)?.error;
+      if (fnErr) throw { response: { data: { message: String(fnErr) } } };
+      const created = (data as any)?.user ?? data;
+      if (!created?.id) throw { response: { data: { message: 'User creation returned no profile' } } };
+      return { data: toFrontendUser(created) };
+    } catch (fnErr: any) {
+      if (fnErr?.response || !isFunctionMissingError(fnErr)) throw fnErr; // real error → surface it
+      return legacyCreateUser(userData); // function not deployed yet → legacy flow
+    }
   },
 
   updateUser: async (id: string | number, userData: any) => {
@@ -358,11 +427,25 @@ export const userManagementAPI = {
   },
 
   deleteUser: async (id: string | number) => {
-    await supabase.from('members').update({ is_deleted: true }).eq('created_by', String(id));
-    const { error } = await supabase.from('profiles').delete().eq('id', String(id));
-    if (error) throw { response: { data: { error: error.message } } };
-    await logAudit('delete', 'user', String(id), {});
-    return { data: { success: true } };
+    // Preferred: Edge Function removes profile + auth row + soft-deletes members.
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user', { body: { id: String(id) } });
+      if (error) throw error;
+      const fnErr = (data as any)?.error;
+      if (fnErr) throw { response: { data: { message: String(fnErr) } } };
+      return { data: { success: true } };
+    } catch (fnErr: any) {
+      if (fnErr?.response || !isFunctionMissingError(fnErr)) throw fnErr; // real error → surface it
+      // Legacy fallback: soft-delete members + delete profile.
+      // NOTE: the auth.users row survives this path — re-creating the same
+      // email afterwards will hit "already registered". Deploy delete-user
+      // to remove users fully.
+      await supabase.from('members').update({ is_deleted: true }).eq('created_by', String(id));
+      const { error } = await supabase.from('profiles').delete().eq('id', String(id));
+      if (error) throw { response: { data: { error: error.message } } };
+      await logAudit('delete', 'user', String(id), {});
+      return { data: { success: true } };
+    }
   },
 
   getCurrentUser: () => authAPI.getProfile(),

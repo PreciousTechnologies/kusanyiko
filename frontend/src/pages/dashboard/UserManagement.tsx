@@ -97,7 +97,7 @@ const UserManagement: React.FC = () => {
     try {
       const response = await userManagementAPI.getUsers();
       console.log('API response:', response);
-      setUsers(response.data);
+      setUsers((response.data || []).filter(Boolean));
       console.log('Users set:', response.data);
     } catch (error) {
       console.error('Failed to fetch users:', error);
@@ -140,9 +140,10 @@ const UserManagement: React.FC = () => {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!user) return false; // never crash the list on a bad row
+    const matchesSearch = (user.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     
@@ -237,6 +238,9 @@ const UserManagement: React.FC = () => {
       } else {
         // Create new user
         const response = await userManagementAPI.createUser(userForm);
+        if (!response.data?.id) {
+          throw new Error('Server returned no user record — the account may still have been created. Refresh the list to check.');
+        }
         setUsers(prev => [...prev, response.data]);
         alert('User created successfully!');
       }
