@@ -287,8 +287,12 @@ const UserManagement: React.FC = () => {
 
   const handleDeleteUser = async (user: User) => {
     setLoading(true);
-    
+
     try {
+      if (currentUser && user.id === currentUser.id) {
+        alert('You cannot delete your own account here. Use Profile Settings → Danger Zone instead.');
+        return;
+      }
       await userManagementAPI.deleteUser(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));
       setShowDeleteModal(null);

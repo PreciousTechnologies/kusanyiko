@@ -4,6 +4,8 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { updateUser, logout } from '../../store/slices/authSlice';
+import { authAPI, userManagementAPI } from '../../services/api';
 import {
   UserCircleIcon,
   CameraIcon,
@@ -142,21 +144,19 @@ const ProfileSettings: React.FC = () => {
     setLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
-    
+
     try {
-      // Here you would make an API call to update the profile
-      console.log('Updating profile:', data);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const response = await userManagementAPI.updateOwnProfile(data, profileFile);
+      // Sync Redux + localStorage so header/dashboard show the new values instantly
+      if (response.data) dispatch(updateUser(response.data));
+      setProfileFile(null);
       setSuccessMessage('Profile updated successfully!');
       setIsProfileEditing(false);
-      
+
       // Auto-hide success message
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      setErrorMessage('Failed to update profile. Please try again.');
+    } catch (error: any) {
+      setErrorMessage(error.response?.data?.message || 'Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -167,21 +167,16 @@ const ProfileSettings: React.FC = () => {
     setLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
-    
+
     try {
-      // Here you would make an API call to change the password
-      console.log('Changing password');
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSuccessMessage('Password changed successfully!');
+      const response = await authAPI.changePassword(data.current_password, data.new_password);
+      setSuccessMessage(response.data.message || 'Password changed successfully!');
       resetPassword();
-      
+
       // Auto-hide success message
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      setErrorMessage('Failed to change password. Please try again.');
+    } catch (error: any) {
+      setErrorMessage(error.response?.data?.message || 'Failed to change password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -191,18 +186,16 @@ const ProfileSettings: React.FC = () => {
   const handleDeleteAccount = async () => {
     setLoading(true);
     setErrorMessage('');
-    
+
     try {
-      // Here you would make an API call to delete the account
-      console.log('Deleting account');
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Logout and redirect
+      await userManagementAPI.deleteOwnAccount();
+      dispatch(logout());
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
       navigate('/login');
-    } catch (error) {
-      setErrorMessage('Failed to delete account. Please try again.');
+    } catch (error: any) {
+      setErrorMessage(error.response?.data?.message || 'Failed to delete account. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -388,7 +381,7 @@ const ProfileSettings: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Email */}
+                      {/* Email (managed by Auth — contact an admin to change it) */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Email Address *
@@ -397,19 +390,17 @@ const ProfileSettings: React.FC = () => {
                           <EnvelopeIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                           <input
                             {...registerProfile('email')}
-                            disabled={!isProfileEditing}
+                            disabled
                             type="email"
-                            className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl transition-all duration-200 ${
-                              isProfileEditing
-                                ? 'border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500'
-                                : 'border-gray-100 bg-gray-50 cursor-not-allowed'
-                            }`}
+                            title="Email changes must go through account verification — ask an admin"
+                            className="w-full pl-10 pr-4 py-3 border-2 rounded-xl transition-all duration-200 border-gray-100 bg-gray-50 cursor-not-allowed"
                             placeholder="Enter email address"
                           />
                         </div>
                         {profileErrors.email && (
                           <p className="text-red-500 text-sm mt-1">{profileErrors.email.message}</p>
                         )}
+                        <p className="text-xs text-gray-400 mt-1">Locked — ask an admin to change your email.</p>
                       </div>
 
                       {/* Username */}

@@ -28,6 +28,22 @@ export interface AdminContext {
 
 /** Returns AdminContext if caller is an authenticated admin, else a 401/403 Response. */
 export async function requireAdmin(req: Request): Promise<AdminContext | Response> {
+  const ctx = await authenticate(req);
+  if (ctx instanceof Response) return ctx;
+  const { admin, callerId } = ctx;
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('role')
+    .eq('id', callerId)
+    .maybeSingle();
+  if (profile?.role !== 'admin') return json({ error: 'Forbidden: admins only' }, 403);
+
+  return { admin, callerId };
+}
+
+/** Authenticates the caller via JWT. Returns service-role context (no role check). */
+export async function authenticate(req: Request): Promise<AdminContext | Response> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -47,13 +63,5 @@ export async function requireAdmin(req: Request): Promise<AdminContext | Respons
   } = await caller.auth.getUser();
   if (error || !user) return json({ error: 'Not authenticated' }, 401);
 
-  const admin = createClient(supabaseUrl, serviceKey);
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (profile?.role !== 'admin') return json({ error: 'Forbidden: admins only' }, 403);
-
-  return { admin, callerId: user.id };
+  return { admin: createClient(supabaseUrl, serviceKey), callerId: user.id };
 }

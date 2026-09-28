@@ -159,6 +159,20 @@ export const authAPI = {
     if (!profile) throw { response: { status: 401, data: { error: 'Not authenticated' } } };
     return { data: toFrontendUser(profile) };
   },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    // Supabase has no "verify current password" endpoint — re-authenticate,
+    // then set the new password on the verified session.
+    const { data: { user } } = await supabase.auth.getUser();
+    const email = user?.email ?? (await currentProfile())?.email;
+    if (!user || !email) throw { response: { data: { message: 'Not authenticated' } } };
+    const { error: signErr } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+    if (signErr) throw { response: { data: { message: 'Current password is incorrect' } } };
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw { response: { data: { message: error.message } } };
+    await logAudit('update', 'user', user.id, { password_changed: true });
+    return { data: { message: 'Password changed successfully.' } };
+  },
 };
 
 function toFrontendUser(p: any): any {
@@ -179,7 +193,21 @@ function toFrontendUser(p: any): any {
     is_superuser: p.is_superuser,
     date_joined: p.date_joined,
     last_login: p.last_login,
+    // Avatar lives in the member_pictures bucket; resolve to a public URL.
+    profile_picture: p.avatar_url ? publicPictureUrl(p.avatar_url) : null,
   };
+}
+
+// Upload a user avatar (<user_id>/avatars/…) — upsert so re-uploads replace.
+async function uploadAvatar(file: File, userId: string): Promise<string> {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${userId}/avatar.${ext}`;
+  const { error } = await supabase.storage.from(MEMBER_PICTURES_BUCKET).upload(path, file, {
+    contentType: file.type || 'image/jpeg',
+    upsert: true,
+  });
+  if (error) throw error;
+  return path;
 }
 
 // ============================================================
@@ -455,12 +483,48 @@ export const userManagementAPI = {
   getCurrentUser: () => authAPI.getProfile(),
   updateProfile: (profileData: any) => userManagementAPI.updateOwnProfile(profileData),
 
-  updateOwnProfile: async (profileData: any) => {
+  updateOwnProfile: async (profileData: any, avatarFile?: File | null) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw { response: { data: { message: 'Not authenticated' } } };
-    const { data, error } = await supabase.from('profiles').update(profileData).eq('id', user.id).select().single();
-    if (error) throw { response: { data: { message: error.message } } };
+    const clean = { ...profileData };
+    // Own-profile edits must never drift privilege/identity fields:
+    // role/status/flags are admin-only (User Management), and email changes
+    // go through Supabase Auth's confirmation flow, not this table.
+    delete clean.id;
+    delete clean.role;
+    delete clean.status;
+    delete clean.is_staff;
+    delete clean.is_superuser;
+    delete clean.email;
+    delete clean.members_registered;
+    delete clean.profile_picture;
+    if (avatarFile) clean.avatar_url = await uploadAvatar(avatarFile, user.id);
+    const { data, error } = await supabase.from('profiles').update(clean).eq('id', user.id).select().single();
+    if (error) {
+      const msg = /duplicate|unique/i.test(error.message)
+        ? 'That username is already taken. Choose another one.'
+        : error.message;
+      throw { response: { data: { message: msg } } };
+    }
+    await logAudit('update', 'user', user.id, { own_profile: true, fields: Object.keys(clean) });
     return { data: toFrontendUser(data) };
+  },
+
+  deleteOwnAccount: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw { response: { data: { message: 'Not authenticated' } } };
+    // The delete-user Edge Function allows self-deletion (admins only for others).
+    const { data, error } = await supabase.functions.invoke('delete-user', { body: { id: user.id } });
+    if (error) {
+      if (isFunctionMissingError(error)) {
+        throw { response: { data: { message: 'Account deletion is not deployed yet — ask an admin to deploy the delete-user function.' } } };
+      }
+      throw error;
+    }
+    const fnErr = (data as any)?.error;
+    if (fnErr) throw { response: { data: { message: String(fnErr) } } };
+    await supabase.auth.signOut();
+    return { data: { success: true } };
   },
 
   updateUserStatus: async (id: string | number, status: string) => {

@@ -6,14 +6,14 @@
 // POST { id: <profile uuid> } -> 200 { success: true }
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { handleOptions, json, requireAdmin } from '../_shared/auth.ts';
+import { authenticate, handleOptions, json } from '../_shared/auth.ts';
 
 serve(async (req: Request) => {
   const opt = handleOptions(req);
   if (opt) return opt;
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  const ctx = await requireAdmin(req);
+  const ctx = await authenticate(req);
   if (ctx instanceof Response) return ctx;
   const { admin, callerId } = ctx;
 
@@ -25,7 +25,13 @@ serve(async (req: Request) => {
   }
   const id = String(body.id ?? '');
   if (!id) return json({ error: 'id is required' }, 400);
-  if (id === callerId) return json({ error: 'You cannot delete your own account' }, 400);
+
+  const isSelf = id === callerId;
+  if (!isSelf) {
+    // Deleting someone else requires the admin role; anyone may delete self.
+    const { data: me } = await admin.from('profiles').select('role').eq('id', callerId).maybeSingle();
+    if (me?.role !== 'admin') return json({ error: 'Forbidden: admins only' }, 403);
+  }
 
   const { data: target } = await admin.from('profiles').select('id,username').eq('id', id).maybeSingle();
   if (!target) return json({ error: 'User not found' }, 404);
