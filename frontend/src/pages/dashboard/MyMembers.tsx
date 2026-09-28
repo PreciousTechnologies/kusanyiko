@@ -24,6 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Member } from '../../types';
 import ProfilePicture from '../../components/ui/ProfilePicture';
+import { dialog } from '../../components/ui/Dialog';
 import '../../styles/mobile-members.css';
 
 const MyMembers: React.FC = () => {
@@ -185,26 +186,22 @@ const MyMembers: React.FC = () => {
     const memberName = member ? `${member.first_name} ${member.last_name}` : 'this member';
     
     // Show confirmation dialog with member name
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${memberName}?\n\nThis action cannot be undone and will permanently remove all member data from the database.`
-    );
-    
+    const confirmed = await dialog.danger({
+      title: `Delete ${memberName}?`,
+      message: 'This action cannot be undone and will permanently remove the member from all lists.',
+      confirmText: 'Delete member',
+    });
+
     if (confirmed) {
       try {
         await dispatch(deleteMember(memberId)).unwrap();
-        
-        // Show success notification
-        console.log(`${memberName} has been successfully deleted.`);
-        
-        // Optional: You could add a toast notification here
-        // toast.success(`${memberName} has been successfully deleted.`);
-        
+        await dialog.success('Member deleted', `${memberName} has been successfully deleted.`);
       } catch (error: any) {
         console.error('Failed to delete member:', error);
-        
+
         // Show error message with details
         const errorMessage = error?.message || 'An unexpected error occurred while deleting the member.';
-        alert(`Failed to delete ${memberName}.\n\nError: ${errorMessage}\n\nPlease try again or contact support if the problem persists.`);
+        await dialog.error(`Failed to delete ${memberName}`, `${errorMessage}\n\nPlease try again or contact support if the problem persists.`);
       }
     }
   };

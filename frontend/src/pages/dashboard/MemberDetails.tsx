@@ -25,6 +25,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Member } from '../../types';
 import ProfilePicture from '../../components/ui/ProfilePicture';
+import { dialog } from '../../components/ui/Dialog';
 import '../../styles/mobile-members.css';
 
 const MemberDetails: React.FC = () => {
@@ -78,17 +79,21 @@ const MemberDetails: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this member? This action cannot be undone.')) {
-      try {
-        if (member?.id) {
-          await dispatch(deleteMember(member.id)).unwrap();
-          console.log('Member deleted successfully');
-          handleBack();
-        }
-      } catch (error) {
-        console.error('Failed to delete member:', error);
-        alert('Failed to delete member. Please try again.');
+    const name = member ? `${member.first_name} ${member.last_name}` : 'this member';
+    const ok = await dialog.danger({
+      title: `Delete ${name}?`,
+      message: 'This removes the member from all lists. This action cannot be undone.',
+      confirmText: 'Delete member',
+    });
+    if (!ok) return;
+    try {
+      if (member?.id) {
+        await dispatch(deleteMember(member.id)).unwrap();
+        handleBack();
       }
+    } catch (error) {
+      console.error('Failed to delete member:', error);
+      await dialog.error('Delete failed', 'Failed to delete member. Please try again.');
     }
   };
 

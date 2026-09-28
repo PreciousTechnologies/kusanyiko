@@ -16,6 +16,7 @@ import {
   EyeIcon,
   EyeSlashIcon,
 } from '@heroicons/react/24/outline';
+import { dialog } from '../../components/ui/Dialog';
 
 interface SystemSettings {
   siteName: string;
@@ -204,9 +205,9 @@ const Settings: React.FC = () => {
     setLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 3000));
-      alert('Backup test completed successfully!');
+      await dialog.success('Backup test passed', 'Backup test completed successfully!');
     } catch (error) {
-      alert('Backup test failed. Please check your configuration.');
+      await dialog.error('Backup test failed', 'Backup test failed. Please check your configuration.');
     } finally {
       setLoading(false);
     }
@@ -799,14 +800,14 @@ const Settings: React.FC = () => {
                           </button>
                           
                           <button
-                            onClick={() => alert('Manual backup initiated')}
+                            onClick={() => dialog.info('Manual backup', 'Manual backup initiated. You will be notified when it completes.')}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
                           >
                             Create Backup
                           </button>
-                          
+
                           <button
-                            onClick={() => alert('Restore functionality coming soon')}
+                            onClick={() => dialog.info('Restore data', 'Restore functionality coming soon.')}
                             className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700"
                           >
                             Restore Data
@@ -838,7 +839,7 @@ const Settings: React.FC = () => {
                       <h3 className="text-lg font-medium text-gray-900 mb-4">Maintenance</h3>
                       <div className="space-y-4">
                         <button
-                          onClick={() => alert('Database optimization started')}
+                          onClick={() => dialog.info('Database optimization', 'Database optimization started. This runs in the background.')}
                           className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
                         >
                           Optimize Database

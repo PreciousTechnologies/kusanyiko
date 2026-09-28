@@ -14,6 +14,7 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
+import { dialog } from '../../components/ui/Dialog';
 
 interface ExportOption {
   id: string;
@@ -341,7 +342,7 @@ const ExportData: React.FC = () => {
       console.error('Export failed:', error);
       setExportStatus(prev => ({ ...prev, [exportId]: 'error' }));
       // Show error message to user
-      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await dialog.error('Export failed', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { userManagementAPI } from '../../services/api';
+import { dialog } from '../../components/ui/Dialog';
 import '../../styles/user-management.css';
 import {
   UsersIcon,
@@ -184,39 +185,39 @@ const UserManagement: React.FC = () => {
   const handleSaveUser = async () => {
     // Validation
     if (!userForm.username.trim()) {
-      alert('Username is required');
+      await dialog.error('Username required', 'Please enter a username for this user.');
       return;
     }
-    
+
     if (!userForm.email.trim()) {
-      alert('Email is required');
+      await dialog.error('Email required', 'Please enter an email address for this user.');
       return;
     }
-    
+
     if (!userForm.first_name.trim()) {
-      alert('First name is required');
+      await dialog.error('First name required', 'Please enter the user\u2019s first name.');
       return;
     }
-    
+
     if (!userForm.last_name.trim()) {
-      alert('Last name is required');
+      await dialog.error('Last name required', 'Please enter the user\u2019s last name.');
       return;
     }
-    
+
     if (!editingUser && (!userForm.password || userForm.password.length < 6)) {
-      alert('Password is required and must be at least 6 characters long');
+      await dialog.error('Weak password', 'A password of at least 6 characters is required for new users.');
       return;
     }
 
     if (userForm.role === 'apostle' && !userForm.kanda) {
-      alert('Please select a kanda for apostle users');
+      await dialog.error('Kanda required', 'Please select a kanda for apostle users.');
       return;
     }
-    
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(userForm.email)) {
-      alert('Please enter a valid email address');
+      await dialog.error('Invalid email', 'Please enter a valid email address.');
       return;
     }
     
@@ -231,20 +232,20 @@ const UserManagement: React.FC = () => {
         const response = await userManagementAPI.updateUser(editingUser.id, updateData);
         setUsers(prev => prev.map(user => 
           user.id === editingUser.id 
-            ? { ...user, ...response.data }
+            ? { ...user, ...response.data } 
             : user
         ));
-        alert('User updated successfully!');
+        await dialog.success('User updated', `${editingUser.username} was updated successfully.`);
       } else {
         // Create new user
         const response = await userManagementAPI.createUser(userForm);
         if (!response.data?.id) {
-          throw new Error('Server returned no user record — the account may still have been created. Refresh the list to check.');
+          throw new Error('Server returned no user record - the account may still have been created. Refresh the list to check.');
         }
         setUsers(prev => [...prev, response.data]);
-        alert('User created successfully!');
+        await dialog.success('User created', `${userForm.username} was created successfully. They can sign in right away.`);
       }
-      
+
       setShowUserModal(false);
       setUserForm({
         username: '',
@@ -258,27 +259,26 @@ const UserManagement: React.FC = () => {
       });
     } catch (error: any) {
       console.error('Failed to save user:', error);
-      
+
       // Handle specific error messages
       if (error.response?.data) {
         const errorData = error.response.data;
-        let errorMessage = `Failed to ${editingUser ? 'update' : 'create'} user:\n`;
-        
+        let errorMessage = '';
+
         if (typeof errorData === 'string') {
-          errorMessage += errorData;
+          errorMessage = errorData;
         } else if (typeof errorData === 'object') {
-          Object.keys(errorData).forEach(key => {
+          errorMessage = Object.keys(errorData).map(key => {
             if (Array.isArray(errorData[key])) {
-              errorMessage += `${key}: ${errorData[key].join(', ')}\n`;
-            } else {
-              errorMessage += `${key}: ${errorData[key]}\n`;
+              return `${key}: ${errorData[key].join(', ')}`;
             }
-          });
+            return `${key}: ${errorData[key]}`;
+          }).join('\n');
         }
-        
-        alert(errorMessage);
+
+        await dialog.error(`Failed to ${editingUser ? 'update' : 'create'} user`, errorMessage || 'Unknown error');
       } else {
-        alert(`Failed to ${editingUser ? 'update' : 'create'} user: ${error.message || 'Unknown error'}`);
+        await dialog.error(`Failed to ${editingUser ? 'update' : 'create'} user`, error.message || 'Unknown error');
       }
     } finally {
       setLoading(false);
@@ -290,16 +290,16 @@ const UserManagement: React.FC = () => {
 
     try {
       if (currentUser && user.id === currentUser.id) {
-        alert('You cannot delete your own account here. Use Profile Settings → Danger Zone instead.');
+        await dialog.info('Cannot delete your own account', 'Use Profile Settings → Danger Zone instead.');
         return;
       }
       await userManagementAPI.deleteUser(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));
       setShowDeleteModal(null);
-      alert(`User ${user.username} has been deleted successfully.`);
+      await dialog.success('User deleted', `${user.username} has been deleted successfully.`);
     } catch (error: any) {
       console.error('Failed to delete user:', error);
-      
+
       let errorMessage = 'Failed to delete user';
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
@@ -308,8 +308,8 @@ const UserManagement: React.FC = () => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
-      alert(`Error: ${errorMessage}`);
+
+      await dialog.error('Delete failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -326,7 +326,7 @@ const UserManagement: React.FC = () => {
       ));
     } catch (error) {
       console.error('Failed to update user status:', error);
-      alert(`Failed to update user status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await dialog.error('Status update failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -349,25 +349,31 @@ const UserManagement: React.FC = () => {
       ));
     } catch (error) {
       console.error('Failed to update user role:', error);
-      alert(`Failed to update user role: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await dialog.error('Role update failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
 
   const handleResetPassword = async (user: User) => {
-    if (!window.confirm(`Are you sure you want to reset password for ${user.username}? This will generate a new temporary password.`)) {
-      return;
-    }
+    const ok = await dialog.confirm({
+      title: `Reset password for ${user.username}?`,
+      message: `A password reset link will be emailed to ${user.email}. They can then choose a new password.`,
+      confirmText: 'Send reset link',
+    });
+    if (!ok) return;
 
     setLoading(true);
-    
+
     try {
       const response = await userManagementAPI.resetUserPassword(user.id);
-      alert(`Password reset for ${user.username}!\nTemporary password: ${response.data.temporary_password}\n\nPlease share this securely with the user.`);
+      await dialog.success(
+        'Reset link sent',
+        response.data?.message || `A password reset link was sent to ${user.email}.`
+      );
     } catch (error) {
       console.error('Failed to reset password:', error);
-      alert(`Failed to reset password: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await dialog.error('Password reset failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -379,11 +385,11 @@ const UserManagement: React.FC = () => {
     
     try {
       await userManagementAPI.unlockAccount(user.id);
-      alert(`Account unlocked for ${user.username}!`);
+      await dialog.success('Account unlocked', `${user.username} can sign in again.`);
       fetchUsers(); // Refresh user list
     } catch (error) {
       console.error('Failed to unlock account:', error);
-      alert(`Failed to unlock account: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await dialog.error('Unlock failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -394,16 +400,19 @@ const UserManagement: React.FC = () => {
     
     try {
       const response = await userManagementAPI.getUserActivity(user.id);
-      // Open activity in a modal or new window
       const activityData = response.data;
-      const activityText = activityData.map((activity: any) => 
-        `${new Date(activity.timestamp).toLocaleString()} - ${activity.action} (${activity.details || 'No details'})`
+      if (!activityData || activityData.length === 0) {
+        await dialog.info(`No recent activity`, `There is no recorded activity for ${user.username} yet.`);
+        return;
+      }
+      const activityText = activityData.map((activity: any) =>
+        `${new Date(activity.timestamp).toLocaleString()} — ${activity.action}${activity.resource_type ? ` (${activity.resource_type})` : ''}`
       ).join('\n');
-      
-      alert(`Recent activity for ${user.username}:\n\n${activityText.slice(0, 1000)}${activityText.length > 1000 ? '...' : ''}`);
+      const shown = activityText.length > 1500 ? `${activityText.slice(0, 1500)}\n… and more` : activityText;
+      await dialog.info(`Recent activity — ${user.username}`, shown);
     } catch (error) {
       console.error('Failed to fetch user activity:', error);
-      alert(`Failed to fetch user activity: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await dialog.error('Activity unavailable', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -428,29 +437,32 @@ const UserManagement: React.FC = () => {
 
   const handleBulkStatusChange = async (newStatus: 'active' | 'inactive' | 'suspended') => {
     if (selectedUsers.length === 0) return;
-    
-    if (!window.confirm(`Are you sure you want to change status to "${newStatus}" for ${selectedUsers.length} users?`)) {
-      return;
-    }
-    
+
+    const ok = await dialog.confirm({
+      title: `Change status for ${selectedUsers.length} users?`,
+      message: `This will set the status of ${selectedUsers.length} selected users to "${newStatus}".`,
+      confirmText: 'Change status',
+    });
+    if (!ok) return;
+
     setLoading(true);
-    
+
     try {
       await Promise.all(
-        selectedUsers.map(userId => 
+        selectedUsers.map(userId =>
           userManagementAPI.updateUserStatus(userId, newStatus)
         )
       );
-      
-      setUsers(prev => prev.map(user => 
+
+      setUsers(prev => prev.map(user =>
         selectedUsers.includes(user.id) ? { ...user, status: newStatus } : user
       ));
-      
+
       setSelectedUsers([]);
-      alert(`Successfully updated ${selectedUsers.length} users`);
+      await dialog.success('Statuses updated', `Successfully updated ${selectedUsers.length} users.`);
     } catch (error) {
       console.error('Failed to bulk update users:', error);
-      alert(`Failed to bulk update users: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await dialog.error('Bulk update failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -458,26 +470,29 @@ const UserManagement: React.FC = () => {
 
   const handleBulkDelete = async () => {
     if (selectedUsers.length === 0) return;
-    
-    if (!window.confirm(`Are you sure you want to delete ${selectedUsers.length} users? This action cannot be undone.`)) {
-      return;
-    }
-    
+
+    const ok = await dialog.danger({
+      title: `Delete ${selectedUsers.length} users?`,
+      message: 'This permanently removes the selected users and their login access. Their registered members are kept as soft-deleted records. This action cannot be undone.',
+      confirmText: `Delete ${selectedUsers.length} users`,
+    });
+    if (!ok) return;
+
     setLoading(true);
-    
+
     try {
       await Promise.all(
-        selectedUsers.map(userId => 
+        selectedUsers.map(userId =>
           userManagementAPI.deleteUser(userId)
         )
       );
-      
+
       setUsers(prev => prev.filter(user => !selectedUsers.includes(user.id)));
       setSelectedUsers([]);
-      alert(`Successfully deleted ${selectedUsers.length} users`);
+      await dialog.success('Users deleted', `Successfully deleted ${selectedUsers.length} users.`);
     } catch (error) {
       console.error('Failed to bulk delete users:', error);
-      alert(`Failed to bulk delete users: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await dialog.error('Bulk delete failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }

@@ -24,6 +24,7 @@ import {
 import { Member } from '../../types';
 import ProfilePicture from '../../components/ui/ProfilePicture';
 import Camera from '../../components/ui/Camera';
+import { dialog } from '../../components/ui/Dialog';
 import '../../styles/forms.css';
 import '../../styles/mobile-members.css';
 
@@ -368,11 +369,11 @@ const EditMember: React.FC = () => {
         }, 2000);
       } else {
         console.error('Failed to update member:', result.payload);
-        alert('Failed to update member. Please try again.');
+        await dialog.error('Update failed', 'Failed to update member. Please try again.');
       }
     } catch (error) {
       console.error('Error updating member:', error);
-      alert('Failed to update member. Please try again.');
+      await dialog.error('Update failed', 'Failed to update member. Please try again.');
     } finally {
       setIsSubmitted(false);
     }

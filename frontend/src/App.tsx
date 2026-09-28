@@ -6,6 +6,7 @@ import { useAppDispatch } from './hooks/redux';
 import { initializeAuth } from './store/slices/authSlice';
 import AppRouter from './router/AppRouter';
 import ErrorBoundary from './components/ErrorBoundary';
+import { DialogProvider } from './components/ui/Dialog';
 import { BrandingProvider } from './context/BrandingContext';
 import { initializeConsoleOverrides } from './utils/consoleOverrides';
 import 'react-toastify/dist/ReactToastify.css';
@@ -29,6 +30,7 @@ function App() {
   return (
     <Provider store={store}>
       <ErrorBoundary>
+        <DialogProvider>
         <div className="App">
           <BrandingProvider>
             <AuthInitializer>
@@ -48,6 +50,7 @@ function App() {
             theme="light"
           />
         </div>
+        </DialogProvider>
       </ErrorBoundary>
     </Provider>
   );
