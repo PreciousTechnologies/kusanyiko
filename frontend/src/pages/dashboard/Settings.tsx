@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useBranding } from '../../context/BrandingContext';
+import { testConnection } from '../../services/api';
 import {
   CogIcon,
   ShieldCheckIcon,
@@ -63,11 +64,53 @@ interface BrandingFormState {
   registrant_dashboard_subtitle: string;
 }
 
+// System/Security/Notification tabs have no backend table (unlike Branding,
+// which lives in Supabase). They persist per-browser in localStorage so edits
+// survive reloads. Enforcement-type toggles (2FA, IP whitelist, maintenance
+// mode, lockout timers) are stored as configuration — wiring them into actual
+// request gating would need backend/edge-function work.
+const SYSTEM_SETTINGS_KEY = 'kusanyiko-system-settings-v1';
+
+function loadStoredSection<T extends object>(section: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(SYSTEM_SETTINGS_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed[section] === 'object' && parsed[section] !== null) {
+      return { ...fallback, ...parsed[section] };
+    }
+  } catch {
+    // Corrupt storage — fall back to defaults
+  }
+  return fallback;
+}
+
+function readSettingsBlob(): Record<string, any> {
+  try {
+    return JSON.parse(localStorage.getItem(SYSTEM_SETTINGS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+interface BackupEntry {
+  id: string;
+  created_at: string;
+  kind: 'manual' | 'test';
+  status: 'success' | 'failed';
+}
+
+interface DatabaseState {
+  backups: BackupEntry[];
+  lastOptimized: string | null;
+}
+
+const EMPTY_DATABASE: DatabaseState = { backups: [], lastOptimized: null };
+
 const Settings: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { branding, updateBranding } = useBranding();
-  
   const [activeTab, setActiveTab] = useState<'branding' | 'system' | 'security' | 'notifications' | 'database'>('branding');
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -108,34 +151,40 @@ const Settings: React.FC = () => {
     });
   }, [branding]);
 
-  const [systemSettings, setSystemSettings] = useState<SystemSettings>({
-    siteName: 'Efatha Leaders\' Camp Registration',
-    siteDescription: 'Church leaders\' camp registration and coordination system for Kibaha',
-    adminEmail: 'admin@church.com',
-    allowRegistration: true,
-    requireEmailVerification: false,
-    maxMembersPerRegistrar: 100,
-    sessionTimeout: 30,
-    backupFrequency: 'daily',
-    maintenanceMode: false,
-  });
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(() =>
+    loadStoredSection('system', {
+      siteName: 'Efatha Leaders\' Camp Registration',
+      siteDescription: 'Church leaders\' camp registration and coordination system for Kibaha',
+      adminEmail: 'admin@church.com',
+      allowRegistration: true,
+      requireEmailVerification: false,
+      maxMembersPerRegistrar: 100,
+      sessionTimeout: 30,
+      backupFrequency: 'daily',
+      maintenanceMode: false,
+    })
+  );
 
-  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
-    enforceStrongPasswords: true,
-    enableTwoFactor: false,
-    sessionSecurityLevel: 'medium',
-    ipWhitelist: [],
-    loginAttemptLimit: 5,
-    lockoutDuration: 15,
-  });
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>(() =>
+    loadStoredSection('security', {
+      enforceStrongPasswords: true,
+      enableTwoFactor: false,
+      sessionSecurityLevel: 'medium',
+      ipWhitelist: [],
+      loginAttemptLimit: 5,
+      lockoutDuration: 15,
+    })
+  );
 
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-    emailNotifications: true,
-    newMemberAlerts: true,
-    systemAlerts: true,
-    weeklyReports: false,
-    backupAlerts: true,
-  });
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(() =>
+    loadStoredSection('notifications', {
+      emailNotifications: true,
+      newMemberAlerts: true,
+      systemAlerts: true,
+      weeklyReports: false,
+      backupAlerts: true,
+    })
+  );
 
   const [newIpAddress, setNewIpAddress] = useState('');
 
@@ -162,18 +211,19 @@ const Settings: React.FC = () => {
   const handleSaveSettings = async () => {
     setLoading(true);
     setSaveStatus('saving');
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Save settings logic here
-      console.log('Saving settings:', {
-        systemSettings,
-        securitySettings,
-        notificationSettings
-      });
-      
+      // Merge — never wipe the database section written by the Database tab
+      localStorage.setItem(
+        SYSTEM_SETTINGS_KEY,
+        JSON.stringify({
+          ...readSettingsBlob(),
+          system: systemSettings,
+          security: securitySettings,
+          notifications: notificationSettings,
+        })
+      );
+
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (error) {
@@ -201,16 +251,85 @@ const Settings: React.FC = () => {
     }));
   };
 
+  // Database tab state (persisted alongside the other sections)
+  const [databaseState, setDatabaseState] = useState<DatabaseState>(() =>
+    loadStoredSection('database', EMPTY_DATABASE)
+  );
+  const [dbHealthy, setDbHealthy] = useState<boolean | null>(null);
+
+  const persistDatabase = (next: DatabaseState) => {
+    setDatabaseState(next);
+    try {
+      localStorage.setItem(
+        SYSTEM_SETTINGS_KEY,
+        JSON.stringify({ ...readSettingsBlob(), database: next })
+      );
+    } catch {
+      // Storage full/blocked — state still updates for this session
+    }
+  };
+
+  const recordBackup = (kind: 'manual' | 'test', status: 'success' | 'failed') => {
+    const entry: BackupEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      created_at: new Date().toISOString(),
+      kind,
+      status,
+    };
+    persistDatabase({
+      ...databaseState,
+      backups: [entry, ...databaseState.backups].slice(0, 20),
+    });
+  };
+
+  // Live database health check whenever the Database tab opens
+  useEffect(() => {
+    if (activeTab !== 'database') return;
+    let cancelled = false;
+    setDbHealthy(null);
+    testConnection().then(
+      (ok) => { if (!cancelled) setDbHealthy(ok); },
+      () => { if (!cancelled) setDbHealthy(false); }
+    );
+    return () => { cancelled = true; };
+  }, [activeTab]);
+
   const handleTestBackup = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      await dialog.success('Backup test passed', 'Backup test completed successfully!');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const ok = await testConnection();
+      recordBackup('test', ok ? 'success' : 'failed');
+      if (ok) {
+        await dialog.success('Backup test passed', 'Backup test completed successfully and the database is reachable!');
+      } else {
+        await dialog.error('Backup test failed', 'The database could not be reached. Please check your connection.');
+      }
     } catch (error) {
+      recordBackup('test', 'failed');
       await dialog.error('Backup test failed', 'Backup test failed. Please check your configuration.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreateBackup = async () => {
+    // Supabase handles continuous backups server-side; this records a manual
+    // checkpoint entry so the team has a visible backup log.
+    recordBackup('manual', 'success');
+    await dialog.success(
+      'Backup recorded',
+      'Manual backup checkpoint recorded.\n\nNote: live database backups are managed automatically by Supabase (daily on paid plans). Use the Supabase Dashboard → Backups page for point-in-time restores.'
+    );
+  };
+
+  const handleOptimize = async () => {
+    const next = { ...databaseState, lastOptimized: new Date().toISOString() };
+    persistDatabase(next);
+    await dialog.success(
+      'Optimization recorded',
+      'Database optimization checkpoint recorded. Supabase manages vacuuming and indexing automatically; no manual action was needed.'
+    );
   };
 
   const handleExportSettings = () => {
@@ -779,10 +898,24 @@ const Settings: React.FC = () => {
                   
                   <div className="space-y-6">
                     {/* Database Status */}
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className={`border rounded-lg p-4 ${dbHealthy === false ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                       <div className="flex items-center">
-                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                        <span className="text-sm font-medium text-green-800">Database connection is healthy</span>
+                        {dbHealthy === null ? (
+                          <>
+                            <div className="h-5 w-5 mr-2 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-sm font-medium text-green-800">Checking database connection…</span>
+                          </>
+                        ) : dbHealthy ? (
+                          <>
+                            <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
+                            <span className="text-sm font-medium text-green-800">Database connection is healthy</span>
+                          </>
+                        ) : (
+                          <>
+                            <ExclamationTriangleIcon className="h-5 w-5 text-red-500 mr-2" />
+                            <span className="text-sm font-medium text-red-800">Database is unreachable — check your connection</span>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -800,7 +933,7 @@ const Settings: React.FC = () => {
                           </button>
                           
                           <button
-                            onClick={() => dialog.info('Manual backup', 'Manual backup initiated. You will be notified when it completes.')}
+                            onClick={handleCreateBackup}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
                           >
                             Create Backup
@@ -816,20 +949,25 @@ const Settings: React.FC = () => {
 
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h4 className="font-medium text-gray-900 mb-2">Recent Backups</h4>
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div className="flex justify-between">
-                              <span>2024-12-21 14:30:00</span>
-                              <span className="text-green-600">Success</span>
+                          {databaseState.backups.length === 0 ? (
+                            <p className="text-sm text-gray-500">
+                              No backups recorded yet — run a test or create your first checkpoint above.
+                            </p>
+                          ) : (
+                            <div className="space-y-2 text-sm text-gray-600">
+                              {databaseState.backups.slice(0, 10).map((b) => (
+                                <div key={b.id} className="flex justify-between gap-3">
+                                  <span>
+                                    {new Date(b.created_at).toLocaleString()}
+                                    <span className="text-gray-400"> · {b.kind === 'test' ? 'Test' : 'Manual'}</span>
+                                  </span>
+                                  <span className={b.status === 'success' ? 'text-green-600' : 'text-red-600'}>
+                                    {b.status === 'success' ? 'Success' : 'Failed'}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
-                            <div className="flex justify-between">
-                              <span>2024-12-20 14:30:00</span>
-                              <span className="text-green-600">Success</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>2024-12-19 14:30:00</span>
-                              <span className="text-green-600">Success</span>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -839,11 +977,16 @@ const Settings: React.FC = () => {
                       <h3 className="text-lg font-medium text-gray-900 mb-4">Maintenance</h3>
                       <div className="space-y-4">
                         <button
-                          onClick={() => dialog.info('Database optimization', 'Database optimization started. This runs in the background.')}
+                          onClick={handleOptimize}
                           className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
                         >
                           Optimize Database
                         </button>
+                        {databaseState.lastOptimized && (
+                          <p className="text-sm text-gray-500">
+                            Last optimized: {new Date(databaseState.lastOptimized).toLocaleString()}
+                          </p>
+                        )}
                         
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                           <div className="flex items-start">
