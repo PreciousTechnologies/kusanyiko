@@ -116,9 +116,10 @@ export const authAPI = {
       },
     });
     if (error) throw { response: { data: { error: error.message } } };
-    // If email confirmation is ON, there is no session yet — user must confirm email.
+    // Email confirmation is disabled project-wide (Supabase Auth → Confirm email OFF,
+    // plus mailer autoconfirm), so a session always comes back immediately.
     if (!data.session) {
-      return { data: { message: 'Account created. Check your email to confirm, then sign in.', user: null, access: null, refresh: null } };
+      throw { response: { data: { error: 'Account created but no session started. Please sign in.' } } };
     }
     // Wait a tick for handle_new_user() trigger, then fetch profile
     await new Promise((r) => setTimeout(r, 800));
