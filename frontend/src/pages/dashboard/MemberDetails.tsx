@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { deleteMember } from '../../store/slices/membersSlice';
+import { deleteMember, fetchMember } from '../../store/slices/membersSlice';
 import {
   ArrowLeftIcon,
   UserIcon,
@@ -43,6 +43,7 @@ const MemberDetails: React.FC = () => {
   
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showActions, setShowActions] = useState(false);
 
@@ -56,19 +57,34 @@ const MemberDetails: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (id) {
-      // Find member in the current state first
-      const foundMember = members.find(m => m.id === parseInt(id));
-      if (foundMember) {
-        setMember(foundMember);
-        setLoading(false);
-      } else {
-        // If not found, you could fetch individual member here
-        // For now, we'll just show not found
-        setLoading(false);
-      }
+    if (!id) {
+      setMember(null);
+      setNotFound(true);
+      setLoading(false);
+      return;
     }
-  }, [id, members]);
+    // IDs are uuid strings now (Django used ints) — compare as strings.
+    const foundMember = members.find(m => String(m.id) === String(id));
+    if (foundMember) {
+      setMember(foundMember);
+      setNotFound(false);
+      setLoading(false);
+      return;
+    }
+    // Not in the loaded list (direct URL, fresh reload) — fetch it.
+    setLoading(true);
+    dispatch(fetchMember(id))
+      .unwrap()
+      .then((m) => {
+        setMember(m);
+        setNotFound(false);
+      })
+      .catch(() => {
+        setMember(null);
+        setNotFound(true);
+      })
+      .finally(() => setLoading(false));
+  }, [id, members, dispatch]);
 
   const handleBack = () => {
     navigate(`${getBasePath()}/members`);
@@ -131,7 +147,7 @@ const MemberDetails: React.FC = () => {
     );
   }
 
-  if (!member) {
+  if (notFound || !member) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

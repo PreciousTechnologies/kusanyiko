@@ -85,7 +85,7 @@ export const fetchMembers = createAsyncThunk(
 
 export const fetchMember = createAsyncThunk(
   'members/fetchMember',
-  async (id: number, { rejectWithValue }) => {
+  async (id: string | number, { rejectWithValue }) => {
     try {
       const response = await membersAPI.getMember(id);
       return response.data;

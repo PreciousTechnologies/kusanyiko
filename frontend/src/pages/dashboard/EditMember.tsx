@@ -4,7 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { updateMember } from '../../store/slices/membersSlice';
+import { updateMember, fetchMember } from '../../store/slices/membersSlice';
 import {
   UserIcon,
   PhoneIcon,
@@ -165,6 +165,8 @@ const EditMember: React.FC = () => {
   const { members, loading } = useAppSelector((state) => state.members);
   
   const [member, setMember] = useState<Member | null>(null);
+  const [loadingMember, setLoadingMember] = useState(true);
+  const [memberNotFound, setMemberNotFound] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -212,11 +214,17 @@ const EditMember: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (id) {
-      const foundMember = members.find(m => m.id === parseInt(id));
-      if (foundMember) {
-        setMember(foundMember);
-        reset({
+    if (!id) {
+      setMember(null);
+      setMemberNotFound(true);
+      setLoadingMember(false);
+      return;
+    }
+    const applyMember = (foundMember: Member) => {
+      setMember(foundMember);
+      setMemberNotFound(false);
+      setLoadingMember(false);
+      reset({
           first_name: foundMember.first_name,
           middle_name: foundMember.middle_name || '',
           last_name: foundMember.last_name,
@@ -244,9 +252,24 @@ const EditMember: React.FC = () => {
         if (foundMember.picture && typeof foundMember.picture === 'string') {
           setProfileImage(foundMember.picture);
         }
-      }
+    };
+    // IDs are uuid strings now (Django used ints) — compare as strings.
+    const listed = members.find(m => String(m.id) === String(id));
+    if (listed) {
+      applyMember(listed);
+      return;
     }
-  }, [id, members, reset]);
+    // Not in the loaded list (direct URL, fresh reload) — fetch it.
+    setLoadingMember(true);
+    dispatch(fetchMember(id))
+      .unwrap()
+      .then((m) => applyMember(m))
+      .catch(() => {
+        setMember(null);
+        setMemberNotFound(true);
+        setLoadingMember(false);
+      });
+  }, [id, members, reset, dispatch]);
 
   const handleBack = () => {
     navigate(`${getBasePath()}/members`);
@@ -388,7 +411,15 @@ const EditMember: React.FC = () => {
     }
   };
 
-  if (!member) {
+  if (loadingMember) {
+    return (
+      <div className={`min-h-screen bg-gray-50 flex items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (memberNotFound || !member) {
     return (
       <div className={`min-h-screen bg-gray-50 flex items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
         <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-md'}`}>
