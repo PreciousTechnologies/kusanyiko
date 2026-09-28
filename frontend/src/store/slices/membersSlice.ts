@@ -64,11 +64,16 @@ const normalizeMembersPayload = (payload: any): { members: Member[]; totalCount:
 };
 
 // Async thunks
+// Pass { silent: true } for background auto-refreshes so the UI doesn't
+// flash loading spinners every cycle. Initial loads and manual refreshes
+// stay loud (no flag) to give visible feedback.
 export const fetchMembers = createAsyncThunk(
   'members/fetchMembers',
   async (params: Record<string, any> = {}, { rejectWithValue }) => {
     try {
-      const response = await membersAPI.getMembers(params);
+      const query = { ...params };
+      delete query.silent; // internal flag — never sent to the API
+      const response = await membersAPI.getMembers(query);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -196,9 +201,12 @@ const membersSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Fetch Members
-      .addCase(fetchMembers.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      .addCase(fetchMembers.pending, (state, action) => {
+        // Silent background refreshes must not flash spinners/charts
+        if (!action.meta.arg?.silent) {
+          state.loading = true;
+          state.error = null;
+        }
       })
       .addCase(fetchMembers.fulfilled, (state, action) => {
         state.loading = false;

@@ -40,17 +40,17 @@ const AdminStatistics: React.FC = () => {
 
   useEffect(() => {
     // Initial fetch
-    dispatch(fetchAdminStats());
+    dispatch(fetchAdminStats({}));
     dispatch(fetchMembers({}));
     setLastUpdated(new Date());
   }, [dispatch]);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 30 seconds (silent — no UI flashing)
   useEffect(() => {
     if (isAutoRefresh && !refreshInterval) {
       const interval = setInterval(() => {
-        dispatch(fetchAdminStats());
-        dispatch(fetchMembers({}));
+        dispatch(fetchAdminStats({ silent: true }));
+        dispatch(fetchMembers({ silent: true }));
         setLastUpdated(new Date());
       }, 30000); // 30 seconds
       setRefreshInterval(interval);
@@ -68,7 +68,7 @@ const AdminStatistics: React.FC = () => {
   }, [dispatch, isAutoRefresh, refreshInterval]);
 
   const handleManualRefresh = () => {
-    dispatch(fetchAdminStats());
+    dispatch(fetchAdminStats({}));
     dispatch(fetchMembers({}));
     setLastUpdated(new Date());
   };

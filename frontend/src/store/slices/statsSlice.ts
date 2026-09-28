@@ -17,9 +17,12 @@ const initialState: StatsState = {
 };
 
 // Async thunks
+// Pass { silent: true } for background auto-refreshes so the UI doesn't
+// flash loading spinners every cycle. Initial loads and manual refreshes
+// stay loud (no flag) to give visible feedback.
 export const fetchAdminStats = createAsyncThunk(
   'stats/fetchAdminStats',
-  async (_, { rejectWithValue }) => {
+  async (options: { silent?: boolean } = {}, { rejectWithValue }) => {
     try {
       const response = await statsAPI.getAdminStats();
       return response.data;
@@ -33,7 +36,7 @@ export const fetchAdminStats = createAsyncThunk(
 
 export const fetchRegistrantStats = createAsyncThunk(
   'stats/fetchRegistrantStats',
-  async (_, { rejectWithValue }) => {
+  async (options: { silent?: boolean } = {}, { rejectWithValue }) => {
     try {
       const response = await statsAPI.getRegistrantStats();
       return response.data;
@@ -56,9 +59,12 @@ const statsSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Admin Stats
-      .addCase(fetchAdminStats.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      .addCase(fetchAdminStats.pending, (state, action) => {
+        // Silent background refreshes must not flash spinners/charts
+        if (!action.meta.arg?.silent) {
+          state.loading = true;
+          state.error = null;
+        }
       })
       .addCase(fetchAdminStats.fulfilled, (state, action) => {
         state.loading = false;
@@ -70,9 +76,12 @@ const statsSlice = createSlice({
       })
       
       // Registrant Stats
-      .addCase(fetchRegistrantStats.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      .addCase(fetchRegistrantStats.pending, (state, action) => {
+        // Silent background refreshes must not flash spinners/charts
+        if (!action.meta.arg?.silent) {
+          state.loading = true;
+          state.error = null;
+        }
       })
       .addCase(fetchRegistrantStats.fulfilled, (state, action) => {
         state.loading = false;

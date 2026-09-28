@@ -177,7 +177,7 @@ const ExportData: React.FC = () => {
 
   useEffect(() => {
     dispatch(fetchMembers({}));
-    dispatch(fetchAdminStats());
+    dispatch(fetchAdminStats({}));
   }, [dispatch]);
 
   const handleExportToggle = (exportId: string) => {

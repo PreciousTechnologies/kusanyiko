@@ -48,17 +48,17 @@ const AdminDashboard: React.FC = () => {
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    dispatch(fetchAdminStats());
+    dispatch(fetchAdminStats({}));
     dispatch(fetchMembers({}));
     setLastUpdated(new Date());
   }, [dispatch]);
 
-  // Auto-refresh data every 30 seconds if enabled
+  // Auto-refresh data every 30 seconds if enabled (silent — no UI flashing)
   useEffect(() => {
     if (isAutoRefresh && !refreshInterval) {
       const interval = setInterval(() => {
-        dispatch(fetchAdminStats());
-        dispatch(fetchMembers({}));
+        dispatch(fetchAdminStats({ silent: true }));
+        dispatch(fetchMembers({ silent: true }));
         setLastUpdated(new Date());
       }, 30000); // 30 seconds
       setRefreshInterval(interval);
@@ -76,7 +76,7 @@ const AdminDashboard: React.FC = () => {
   }, [dispatch, isAutoRefresh, refreshInterval]);
 
   const handleManualRefresh = () => {
-    dispatch(fetchAdminStats());
+    dispatch(fetchAdminStats({}));
     dispatch(fetchMembers({}));
     setLastUpdated(new Date());
   };
@@ -108,19 +108,6 @@ const AdminDashboard: React.FC = () => {
     const estimatedPreviousWeek = Math.max(1, (adminStats?.total_members || 0) - weeklyCount);
     return Math.round((weeklyCount / estimatedPreviousWeek) * 100);
   };
-
-  const refreshData = () => {
-    handleManualRefresh();
-  };
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshData();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [dispatch]);
 
   const statCards = [
     {

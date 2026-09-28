@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchMembers, setFilters, deleteMember } from '../../store/slices/membersSlice';
@@ -65,16 +65,31 @@ const MyMembers: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Fetch all members when component mounts and when filters change
+  // Debounce typing so we don't refetch (and flash the list) on every keystroke
+  const [debouncedSearch, setDebouncedSearch] = useState(filters.search);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Mirror the list in a ref so refetches can stay silent once data exists
+  // (reading members.length directly here would re-trigger this effect forever)
+  const membersRef = useRef(members);
+  membersRef.current = members;
+
+  // Fetch all members when component mounts and when filters change.
+  // Silent after the first load so the list updates in place instead of
+  // being replaced by a spinner on every keystroke/filter change.
   useEffect(() => {
     dispatch(fetchMembers({
-      search: searchTerm,
+      search: debouncedSearch,
       gender: selectedGender,
       region: selectedRegion,
       center_area: selectedCenterArea,
       saved: selectedSaved,
+      silent: membersRef.current.length > 0,
     }));
-  }, [dispatch, searchTerm, selectedGender, selectedRegion, selectedCenterArea, selectedSaved]);
+  }, [dispatch, debouncedSearch, selectedGender, selectedRegion, selectedCenterArea, selectedSaved]);
 
   // Filter members created by current admin (only when needed)
   const getMyMembers = (): Member[] => {

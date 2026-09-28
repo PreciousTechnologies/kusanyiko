@@ -46,16 +46,16 @@ const RegistrantDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    dispatch(fetchRegistrantStats());
+    dispatch(fetchRegistrantStats({}));
     dispatch(fetchMembers({}));
     setLastUpdated(new Date());
   }, [dispatch]);
 
-  // Auto-refresh data every 3 minutes for dashboard
+  // Auto-refresh data every 3 minutes for dashboard (silent — no UI flashing)
   useEffect(() => {
     const interval = setInterval(() => {
-      dispatch(fetchRegistrantStats());
-      dispatch(fetchMembers({}));
+      dispatch(fetchRegistrantStats({ silent: true }));
+      dispatch(fetchMembers({ silent: true }));
       setLastUpdated(new Date());
     }, 3 * 60 * 1000); // 3 minutes
 

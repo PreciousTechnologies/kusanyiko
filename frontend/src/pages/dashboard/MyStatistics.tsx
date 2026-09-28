@@ -41,16 +41,16 @@ const MyStatistics: React.FC = () => {
   const scopeLabel = user?.role === 'apostle' ? 'Kanda' : 'My';
 
   useEffect(() => {
-    dispatch(fetchRegistrantStats());
+    dispatch(fetchRegistrantStats({}));
     dispatch(fetchMembers({}));
     setLastUpdated(new Date());
   }, [dispatch]);
 
-  // Auto-refresh data every 5 minutes
+  // Auto-refresh data every 5 minutes (silent — no UI flashing)
   useEffect(() => {
     const interval = setInterval(() => {
-      dispatch(fetchRegistrantStats());
-      dispatch(fetchMembers({}));
+      dispatch(fetchRegistrantStats({ silent: true }));
+      dispatch(fetchMembers({ silent: true }));
       setLastUpdated(new Date());
     }, 5 * 60 * 1000); // 5 minutes
 
@@ -288,7 +288,7 @@ const MyStatistics: React.FC = () => {
     setIsRefreshing(true);
     try {
       await Promise.all([
-        dispatch(fetchRegistrantStats()),
+        dispatch(fetchRegistrantStats({})),
         dispatch(fetchMembers({}))
       ]);
       setLastUpdated(new Date());
