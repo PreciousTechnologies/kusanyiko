@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { userManagementAPI } from '../../services/api';
 import { dialog } from '../../components/ui/Dialog';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import '../../styles/user-management.css';
 import {
   UsersIcon,
@@ -80,8 +81,7 @@ const UserManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState<User | null>(null);
-  const [userForm, setUserForm] = useState<UserFormData>({
+  const [showDeleteModal, setShowDeleteModal] = useState<User | null>(null);  const [userForm, setUserForm] = useState<UserFormData>({
     username: '',
     email: '',
     first_name: '',
@@ -92,6 +92,9 @@ const UserManagement: React.FC = () => {
     is_staff: false,
     is_superuser: false,
   });
+
+  // Freeze background scroll whenever a modal is open
+  useBodyScrollLock(showUserModal || showDeleteModal !== null);
 
   // Fetch users from database
   useEffect(() => {

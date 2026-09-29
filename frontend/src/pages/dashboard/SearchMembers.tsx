@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppSelector } from '../../hooks/redux';
 import { Search, User, Phone, Mail, MapPin, Calendar, Filter } from 'lucide-react';
 import { userManagementAPI, membersAPI } from '../../services/api';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { toast } from 'react-toastify';
 import '../../styles/search-members.css';
 
@@ -56,6 +57,9 @@ const SearchMembers: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Freeze background scroll while the details modal is open
+  useBodyScrollLock(selectedMember !== null);
 
   // Fetch all users for filtering
   useEffect(() => {

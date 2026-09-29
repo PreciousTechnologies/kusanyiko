@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { updateUser, logout } from '../../store/slices/authSlice';
 import { authAPI, userManagementAPI } from '../../services/api';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
   UserCircleIcon,
   CameraIcon,
@@ -79,6 +80,9 @@ const ProfileSettings: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Freeze background scroll while the delete confirmation is open
+  useBodyScrollLock(showDeleteConfirm);
 
   // Profile form
   const {

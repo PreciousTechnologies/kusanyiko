@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { CameraIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import CameraPermissionGuide from './CameraPermissionGuide';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import '../../styles/camera-permission-guide.css';
 
 interface CameraProps {
@@ -18,6 +19,9 @@ const Camera: React.FC<CameraProps> = ({ isOpen, onClose, onCapture }) => {
   const [error, setError] = useState<string | null>(null);
   const [showPermissionGuide, setShowPermissionGuide] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+
+  // Freeze the page behind the fullscreen camera so it can't scroll
+  useBodyScrollLock(isOpen);
 
   const startCamera = useCallback(async () => {
     if (!mountedRef.current || !isOpen) return;
