@@ -31,7 +31,6 @@ import '../../styles/mobile-members.css';
 // All Tanzania regions (mainland and Zanzibar)
 const ALL_TANZANIA_REGIONS = [
   'Arusha',
-  'Dar es Salaam',
   'Dodoma', 
   'Geita',
   'Iringa',
@@ -56,6 +55,13 @@ const ALL_TANZANIA_REGIONS = [
   'Songwe',
   'Tabora',
   'Tanga',
+  'Mwenge',
+  'Imara',
+  'Kinondoni',
+  'Kisukulu',
+  'Temeke',
+  'Ushindi',
+  'Yombo',
   'Kusini Unguja',
   'Kaskazini Unguja',
   'Mjini Magharibi',
@@ -63,18 +69,43 @@ const ALL_TANZANIA_REGIONS = [
   'Kusini Pemba'
 ];
 
-// Dar es Salaam areas/centers
-const DAR_ES_SALAAM_CENTERS = [
-  'Mwenge',
-  'Ushindi', 
-  'Temeke',
-  'Kinondoni',
-  'Imara',
-  'Yombo',
-  'Kisukulu',
-  'Kisukuru',
-  'Zanzibar'
-];
+// Centers grouped by region (Dar es Salaam zones each have their own list;
+// other regions fall back to the region name itself)
+const REGION_CENTERS: Record<string, string[]> = {
+  Mwenge: [
+    'yerusalemu', 'utukufu', 'amani', 'nazareth', 'shalom', 'sayuni',
+    'bethlehem', 'upendo', 'tumaini'
+  ],
+  Imara: [
+    'Kwembe', 'Gilgali', 'Makurunge', 'Mpigi Mheza', 'Sweet Corner',
+    'Mbezi Msakuzi', 'Kibwegere', 'Mwanabwito', 'Boko Mnemela',
+    'Malamba Mawili', 'Mwendakasi', 'Maili Moja', 'Makabe', 'Kibamba',
+    'Msangani', 'Kongowe', 'Kiluvya', 'Mbezi Luis', 'Matosa', 'Soga',
+    'Mamlaka Pangani', 'Mlaneno', 'Imara Mbezi'
+  ],
+  Kinondoni: [
+    'Nazareth', 'Msata', 'Makurunge', 'Madesa', 'Zinga', 'Kiwangwa',
+    'Mbweni', 'Fukayosi', 'Ubena', 'Utulivu', 'Kiembeni', 'Miale ya Moto',
+    'Salasala', 'Lugoba', 'Chalinze', 'Boko', 'Bagamoyo', 'Bubujiko', 'Mwenge'
+  ],
+  Kisukulu: [
+    'Makoka', 'Bonyokwa', 'Kisukulu'
+  ],
+  Temeke: [
+    'Kilakala', 'Tuangoma', 'Gezaulole', 'Kisarawe II', 'Kimbilio',
+    'Kijichi', 'Kimanzichana', 'Bungu', 'Vikunai', 'Kibiti', 'Mbutu',
+    'Changamkeni', 'Mbande', 'Ikwiriri', 'Mkuranga', 'Mbagala', 'Kigamboni'
+  ],
+  Ushindi: [
+    'Pugu', 'Kivule Ebeneza', 'Msongola', 'Kisarawe', 'Mongolandege',
+    'Magole Amani', 'Bangulo', 'Chanika Ukombozi', 'Mvuti', 'Kivule Shalom',
+    'Ulongoni', 'Magole B', 'Kifuru', 'Kiyombo', 'Mbondole', 'Mbombambili',
+    'Viwege', 'Chanika Buyuni', 'Majohe', 'Mazizini', 'Kinyerezi', 'Matunda'
+  ],
+  Yombo: [
+    'Yombo'
+  ],
+};
 
 // Church position options
 const CHURCH_POSITION_OPTIONS = [
@@ -870,7 +901,7 @@ const EditMember: React.FC = () => {
                       </div>
                     )}
 
-                    {watchedRegion === 'Dar es Salaam' && (
+                    {watchedRegion && REGION_CENTERS[watchedRegion] && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Center/Area
@@ -880,7 +911,7 @@ const EditMember: React.FC = () => {
                           className="mobile-form-input w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         >
                           <option value="">Select center/area</option>
-                          {DAR_ES_SALAAM_CENTERS.map((area) => (
+                          {REGION_CENTERS[watchedRegion].map((area) => (
                             <option key={area} value={area}>
                               {area}
                             </option>
@@ -1471,17 +1502,17 @@ const EditMember: React.FC = () => {
                     <select
                       {...register('center_area')}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
-                      disabled={watchedRegion !== 'Dar es Salaam'}
+                      disabled={!watchedRegion || !REGION_CENTERS[watchedRegion]}
                     >
                       <option value="">Select center/area</option>
-                      {watchedRegion === 'Dar es Salaam' && 
-                        DAR_ES_SALAAM_CENTERS.map((area) => (
+                      {watchedRegion && REGION_CENTERS[watchedRegion] &&
+                        REGION_CENTERS[watchedRegion].map((area) => (
                           <option key={area} value={area}>
                             {area}
                           </option>
                         ))
                       }
-                      {watchedRegion && watchedRegion !== 'Dar es Salaam' && (
+                      {watchedRegion && !REGION_CENTERS[watchedRegion] && (
                         <option value={watchedRegion}>{watchedRegion}</option>
                       )}
                     </select>

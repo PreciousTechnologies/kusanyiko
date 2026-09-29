@@ -26,7 +26,6 @@ import Camera from '../../components/ui/Camera';
 const ALL_TANZANIA_REGIONS = [
   // Mainland Tanzania (26 regions)
   'Arusha',
-  'Dar es Salaam',
   'Dodoma', 
   'Geita',
   'Iringa',
@@ -51,6 +50,14 @@ const ALL_TANZANIA_REGIONS = [
   'Songwe',
   'Tabora',
   'Tanga',
+  // Dar es Salaam zones (each with its own centers below)
+  'Mwenge',
+  'Imara',
+  'Kinondoni',
+  'Kisukulu',
+  'Temeke',
+  'Ushindi',
+  'Yombo',
   // Zanzibar (5 regions)
   'Kusini Unguja',
   'Kaskazini Unguja',
@@ -68,14 +75,39 @@ const TANZANIA_REGION_CENTERS: Record<string, string[]> = {
     'Kiserian', 'USA River', 'Rhotia', 'Mto Yordan', 'Karatu', 'Namanga',
     'Yerusalemu', 'Sharon Zizi la Kondoo'
   ],
-  'Dar es Salaam': [
-    'Yombo', 'Nazareth', 'Mbweni', 'Salasala', 'Boko', 'Bubujiko', 'Mbagala',
-    'Kigamboni', 'Mwenge', 'Pugu', 'Kivule Ebeneza', 'Msongola', 'Kisarawe',
-    'Mongolandege', 'Magole Amani', 'Bangulo', 'Chanika Ukombozi', 'Mvuti',
-    'Kivule Shalom', 'Ulongoni', 'Magole B', 'Kifuru', 'Kiyombo', 'Mbondole',
-    'Mbombambili', 'Viwege', 'Chanika Buyuni', 'Majohe', 'Mazizini', 'Kinyerezi',
-    'Matunda', 'Kilakala', 'Tuangoma', 'Gezaulole', 'Kisarawe II', 'Kimbilio',
-    'Kijichi', 'Vikunai', 'Mbutu', 'Kisukulu'
+  // Dar es Salaam zones — each is its own region with its own centers
+  Mwenge: [
+    'yerusalemu', 'utukufu', 'amani', 'nazareth', 'shalom', 'sayuni',
+    'bethlehem', 'upendo', 'tumaini'
+  ],
+  Imara: [
+    'Kwembe', 'Gilgali', 'Makurunge', 'Mpigi Mheza', 'Sweet Corner',
+    'Mbezi Msakuzi', 'Kibwegere', 'Mwanabwito', 'Boko Mnemela',
+    'Malamba Mawili', 'Mwendakasi', 'Maili Moja', 'Makabe', 'Kibamba',
+    'Msangani', 'Kongowe', 'Kiluvya', 'Mbezi Luis', 'Matosa', 'Soga',
+    'Mamlaka Pangani', 'Mlaneno', 'Imara Mbezi'
+  ],
+  Kinondoni: [
+    'Nazareth', 'Msata', 'Makurunge', 'Madesa', 'Zinga', 'Kiwangwa',
+    'Mbweni', 'Fukayosi', 'Ubena', 'Utulivu', 'Kiembeni', 'Miale ya Moto',
+    'Salasala', 'Lugoba', 'Chalinze', 'Boko', 'Bagamoyo', 'Bubujiko', 'Mwenge'
+  ],
+  Kisukulu: [
+    'Makoka', 'Bonyokwa', 'Kisukulu'
+  ],
+  Temeke: [
+    'Kilakala', 'Tuangoma', 'Gezaulole', 'Kisarawe II', 'Kimbilio',
+    'Kijichi', 'Kimanzichana', 'Bungu', 'Vikunai', 'Kibiti', 'Mbutu',
+    'Changamkeni', 'Mbande', 'Ikwiriri', 'Mkuranga', 'Mbagala', 'Kigamboni'
+  ],
+  Ushindi: [
+    'Pugu', 'Kivule Ebeneza', 'Msongola', 'Kisarawe', 'Mongolandege',
+    'Magole Amani', 'Bangulo', 'Chanika Ukombozi', 'Mvuti', 'Kivule Shalom',
+    'Ulongoni', 'Magole B', 'Kifuru', 'Kiyombo', 'Mbondole', 'Mbombambili',
+    'Viwege', 'Chanika Buyuni', 'Majohe', 'Mazizini', 'Kinyerezi', 'Matunda'
+  ],
+  Yombo: [
+    'Yombo'
   ],
   Dodoma: [
     'Kibaigwa', 'Kinusi', 'Hogoro', 'Veyula', 'Mbande', 'Ihumwa',
