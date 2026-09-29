@@ -118,6 +118,9 @@ const MemberSearchPage: React.FC = () => {
 
   return (
     <div className="member-search-page">
+      <div className="msp-bg msp-bg-1" aria-hidden="true" />
+      <div className="msp-bg msp-bg-2" aria-hidden="true" />
+      <div className="msp-grain" aria-hidden="true" />
       <div className="search-container">
         {/* Back to Login Link */}
         <Link to="/login" className="back-to-login">
@@ -128,7 +131,10 @@ const MemberSearchPage: React.FC = () => {
         {/* Search Card - Similar to Login Form */}
         <div className="search-card">
           <div className="search-card-header">
-            <h1 className="search-card-title">🔍 Member Search</h1>
+            <h1 className="search-card-title">
+              <Search size={26} />
+              Member Search
+            </h1>
             <p className="search-card-subtitle">
               Search for registered members in the EFATHA system
             </p>
