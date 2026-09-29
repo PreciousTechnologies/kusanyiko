@@ -340,9 +340,12 @@ export const membersAPI = {
   searchMembers: async (searchTerm: string) => {
     if (!searchTerm?.trim()) return { data: [] };
     const s = `%${searchTerm.trim()}%`;
+    // Full rows: the results UI + details modal display ~25 fields
+    // (contact, location, church info, dates). A narrow select renders
+    // everything else empty + "Invalid Date".
     const { data, error } = await supabase
       .from('members')
-      .select('id,first_name,middle_name,last_name,gender,region,center_area,picture_url,created_by,creator:profiles!members_created_by_fkey(username)')
+      .select('*, creator:profiles!members_created_by_fkey(username)')
       .eq('is_deleted', false)
       .or(`first_name.ilike.${s},last_name.ilike.${s},middle_name.ilike.${s},mobile_no.ilike.${s},email.ilike.${s}`)
       .limit(50);

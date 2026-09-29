@@ -109,7 +109,10 @@ const MemberSearchPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return 'N/A';
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -317,7 +320,7 @@ const MemberSearchPage: React.FC = () => {
                     </p>
                     <p className="profile-registration-details">
                       Registered by {(selectedMember as any).created_by_name || 'Unknown'}
-                      on {formatDate(selectedMember.created_at)}
+                      {' '}on {formatDate(selectedMember.created_at)}
                     </p>
                   </div>
                 </div>
