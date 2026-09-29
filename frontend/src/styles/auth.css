@@ -159,8 +159,11 @@ body:has(.auth-container) {
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
-/* Flat glass fields, green-theme tinted: deep emerald fill, mint text. */
-.auth-input {
+/* Flat glass fields, green-theme tinted: deep emerald fill, mint text.
+   NOTE: selectors are scoped as `.auth-card .auth-input` (0,2,0) because
+   forms.css paints every input[type=...] white at (0,1,1) — a bare class
+   loses that fight. Dashboard/member forms are untouched. */
+.auth-card .auth-input {
   width: 100%;
   box-sizing: border-box;
   padding: 0.95rem 1.1rem;
@@ -173,11 +176,11 @@ body:has(.auth-container) {
   font-family: inherit;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
-.auth-input::placeholder {
+.auth-card .auth-input::placeholder {
   color: rgba(167, 243, 208, 0.6);
   opacity: 1; /* browsers dim placeholders by default — override */
 }
-.auth-input:focus {
+.auth-card .auth-input:focus {
   outline: none;
   border-color: rgba(110, 231, 183, 0.7);
   background: linear-gradient(135deg, rgba(6, 95, 70, 0.55), rgba(4, 60, 48, 0.6));
@@ -185,10 +188,14 @@ body:has(.auth-container) {
     0 0 0 4px rgba(52, 211, 153, 0.18),
     0 6px 22px rgba(16, 185, 129, 0.3);
 }
-.auth-input.error {
+.auth-card .auth-input.error {
   border-color: rgba(248, 113, 113, 0.7);
   background: linear-gradient(135deg, rgba(69, 26, 32, 0.5), rgba(42, 15, 20, 0.55));
   box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.15);
+}
+.auth-card .auth-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .auth-input:disabled {
   opacity: 0.6;
