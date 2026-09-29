@@ -6,6 +6,14 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Modal inner scroll areas: momentum on old iOS, and scroll chaining
+   contained so the page behind never moves while a modal scrolls. */
+.modal-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
 /* Default desktop visibility */
 .desktop-table-view {
   display: block;
