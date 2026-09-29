@@ -19,6 +19,12 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 
+// Crash-safe initials (names can be empty strings from the API)
+const getInitials = (firstName?: string, lastName?: string, username?: string): string => {
+  const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  return initials || (username?.[0] || 'U').toUpperCase();
+};
+
 interface User {
   id: number;
   username: string;
@@ -573,49 +579,49 @@ const UserManagement: React.FC = () => {
           </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="user-stats-grid grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="stat-icon h-12 w-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
-              <UsersIcon className="h-6 w-6 text-blue-600" />
+        {/* Stats Cards — 2 columns on phones, 4 on desktop */}
+        <div className="user-stats-grid grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 flex items-center gap-3 sm:gap-0 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+            <div className="stat-icon h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center flex-shrink-0">
+              <UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
-            <div className="stat-content ml-4">
-              <p className="stat-label text-sm font-medium text-gray-600">Total Users</p>
-              <p className="stat-value text-2xl font-bold text-gray-900">{users.length}</p>
+            <div className="stat-content sm:ml-4 min-w-0">
+              <p className="stat-label text-xs sm:text-sm font-medium text-gray-600 truncate">Total Users</p>
+              <p className="stat-value text-xl sm:text-2xl font-bold text-gray-900">{users.length}</p>
             </div>
           </div>
 
-          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="stat-icon h-12 w-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center">
-              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 flex items-center gap-3 sm:gap-0 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+            <div className="stat-icon h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center flex-shrink-0">
+              <CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
-            <div className="stat-content ml-4">
-              <p className="stat-label text-sm font-medium text-gray-600">Active Users</p>
-              <p className="stat-value text-2xl font-bold text-gray-900">
+            <div className="stat-content sm:ml-4 min-w-0">
+              <p className="stat-label text-xs sm:text-sm font-medium text-gray-600 truncate">Active Users</p>
+              <p className="stat-value text-xl sm:text-2xl font-bold text-gray-900">
                 {users.filter(u => u.status === 'active').length}
               </p>
             </div>
           </div>
 
-          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="stat-icon h-12 w-12 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center">
-              <ShieldCheckIcon className="h-6 w-6 text-red-600" />
+          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 flex items-center gap-3 sm:gap-0 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+            <div className="stat-icon h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center flex-shrink-0">
+              <ShieldCheckIcon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
             </div>
-            <div className="stat-content ml-4">
-              <p className="stat-label text-sm font-medium text-gray-600">Administrators</p>
-              <p className="stat-value text-2xl font-bold text-gray-900">
+            <div className="stat-content sm:ml-4 min-w-0">
+              <p className="stat-label text-xs sm:text-sm font-medium text-gray-600 truncate">Administrators</p>
+              <p className="stat-value text-xl sm:text-2xl font-bold text-gray-900">
                 {users.filter(u => u.role === 'admin').length}
               </p>
             </div>
           </div>
 
-          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="stat-icon h-12 w-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center">
-              <UserCircleIcon className="h-6 w-6 text-purple-600" />
+          <div className="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 flex items-center gap-3 sm:gap-0 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+            <div className="stat-icon h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center flex-shrink-0">
+              <UserCircleIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
             </div>
-            <div className="stat-content ml-4">
-              <p className="stat-label text-sm font-medium text-gray-600">Registrants</p>
-              <p className="stat-value text-2xl font-bold text-gray-900">
+            <div className="stat-content sm:ml-4 min-w-0">
+              <p className="stat-label text-xs sm:text-sm font-medium text-gray-600 truncate">Registrants</p>
+              <p className="stat-value text-xl sm:text-2xl font-bold text-gray-900">
                 {users.filter(u => u.role === 'registrant' || u.role === 'apostle').length}
               </p>
             </div>
@@ -623,7 +629,7 @@ const UserManagement: React.FC = () => {
         </div>
 
         {/* Filters and Search */}
-        <div className="user-filters-section bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="user-filters-section bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 mb-6 sm:mb-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           <div className="relative">
             <MagnifyingGlassIcon className="user-filter-icon h-5 w-5 absolute left-3 top-3 text-gray-400" />
             <input
@@ -667,13 +673,13 @@ const UserManagement: React.FC = () => {
         {/* Bulk Actions */}
         {selectedUsers.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center">
-                <span className="text-blue-700 font-medium">
+                <span className="text-blue-700 font-medium text-sm sm:text-base">
                   {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
                 </span>
               </div>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => handleBulkStatusChange('active')}
                   className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
@@ -736,11 +742,11 @@ const UserManagement: React.FC = () => {
                           className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                         />
                         <div className="user-avatar">
-                          {user.first_name[0]}{user.last_name[0]}
+                          {getInitials(user.first_name, user.last_name, user.username)}
                         </div>
                         <div className="user-header-info">
                           <div className="user-name">
-                            {user.first_name} {user.last_name}
+                            {user.first_name || ''} {user.last_name || ''}
                           </div>
                           <div className="user-username">@{user.username}</div>
                         </div>
@@ -860,69 +866,80 @@ const UserManagement: React.FC = () => {
 
           {/* Desktop Table View */}
           <div className="desktop-table-view overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-green-100">
+              <thead className="bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 border-b-2 border-green-200">
                 <tr>
-                  <th className="px-6 py-3 text-left">
+                  <th className="pl-4 sm:pl-6 pr-2 py-3.5 text-left w-10">
                     <input
                       type="checkbox"
                       checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                       onChange={handleSelectAll}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+                      title="Select all"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 py-3.5 text-left text-[11px] font-bold text-green-800 uppercase tracking-wider whitespace-nowrap">
                     User
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 py-3.5 text-left text-[11px] font-bold text-green-800 uppercase tracking-wider whitespace-nowrap">
                     Role & Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                  <th className="px-3 sm:px-4 py-3.5 text-left text-[11px] font-bold text-green-800 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
                     Activity
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    Members Registered
+                  <th className="px-3 sm:px-4 py-3.5 text-left text-[11px] font-bold text-green-800 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
+                    Members
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3.5 text-right text-[11px] font-bold text-green-800 uppercase tracking-wider whitespace-nowrap">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-100">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <tr
+                    key={user.id}
+                    className={`transition-colors duration-150 ${selectedUsers.includes(user.id) ? 'bg-green-50/80 hover:bg-green-50' : 'hover:bg-green-50/40'}`}
+                  >
+                    <td className="pl-4 sm:pl-6 pr-2 py-3.5 whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedUsers.includes(user.id)}
                         onChange={() => handleSelectUser(user.id)}
-                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center">
-                          <span className="text-green-600 font-medium">
-                            {user.first_name[0]}{user.last_name[0]}
-                          </span>
+                    <td className="px-3 sm:px-4 py-3.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative flex-shrink-0">
+                          <div className="h-10 w-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center ring-2 ring-green-100 shadow-sm">
+                            <span className="text-white text-xs font-bold">
+                              {getInitials(user.first_name, user.last_name, user.username)}
+                            </span>
+                          </div>
+                          <span
+                            title={user.status}
+                            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${user.status === 'active' ? 'bg-green-500' : user.status === 'suspended' ? 'bg-red-500' : 'bg-gray-400'}`}
+                          />
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                        <div className="ml-0 min-w-0">
+                          <div className="text-sm font-bold text-gray-900 truncate max-w-[160px] sm:max-w-[220px]">
                             {user.first_name} {user.last_name}
                           </div>
-                          <div className="text-sm text-gray-500">@{user.username}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="text-xs text-green-700 font-medium truncate">@{user.username}</div>
+                          <div className="text-xs text-gray-500 truncate max-w-[160px] sm:max-w-[220px]">{user.email}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2 mb-2">
+                    <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap">
+                      <div className="flex items-center gap-2 mb-2">
                         {getRoleIcon(user.role)}
                         <select
                           value={user.role}
                           onChange={(e) => handleRoleChange(user, e.target.value as any)}
                           disabled={user.id === currentUser?.id || loading}
-                          className="text-sm font-medium text-gray-900 bg-transparent border-none focus:ring-2 focus:ring-green-500 rounded px-1"
+                          className="text-xs font-bold text-gray-800 bg-green-50 hover:bg-green-100 border border-green-200 rounded-full pl-2 pr-1 py-1 focus:ring-2 focus:ring-green-500 focus:outline-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                          title="Change role"
                         >
                           <option value="admin">Administrator</option>
                           <option value="apostle">Apostle</option>
@@ -930,45 +947,43 @@ const UserManagement: React.FC = () => {
                           <option value="member">Member</option>
                         </select>
                       </div>
-                      <div className="space-y-1">
+                      <div className="flex flex-col items-start gap-1">
                         {getStatusBadge(user.status)}
                         {user.is_superuser && (
-                          <div>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                              Superuser
-                            </span>
-                          </div>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                            Superuser
+                          </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                      <div className="flex items-center">
-                        <ClockIcon className="h-4 w-4 mr-1" />
-                        <div>
+                    <td className="px-3 sm:px-4 py-3.5 text-xs text-gray-500 hidden lg:table-cell whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <div className="leading-relaxed">
                           <div>Joined: {formatDate(user.date_joined)}</div>
                           <div>Last login: {formatDate(user.last_login)}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.members_registered}
-                      </div>
-                      <div className="text-sm text-gray-500">members</div>
+                    <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap hidden lg:table-cell">
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+                        <span className="text-sm font-bold text-emerald-700">{user.members_registered}</span>
+                        <span className="text-[11px] text-emerald-600 font-medium">members</span>
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-1 lg:space-x-2">
+                    <td className="px-3 sm:px-6 py-3.5 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-0.5 sm:gap-1">
                         <button
                           onClick={() => handleEditUser(user)}
-                          className="text-green-600 hover:text-green-900 p-1 rounded-full hover:bg-green-100"
+                          className="text-green-700 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-green-600 transition-colors"
                           title="Edit User"
                         >
                           <PencilIcon className="h-4 w-4" />
                         </button>
-                        
+
                         <button
                           onClick={() => handleViewActivity(user)}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded-full hover:bg-blue-100 hidden md:block"
+                          className="text-blue-700 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-blue-600 transition-colors"
                           title="View Activity"
                         >
                           <EyeIcon className="h-4 w-4" />
@@ -976,7 +991,7 @@ const UserManagement: React.FC = () => {
 
                         <button
                           onClick={() => handleResetPassword(user)}
-                          className="text-purple-600 hover:text-purple-900 p-1 rounded-full hover:bg-purple-100 hidden lg:block"
+                          className="text-purple-700 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-purple-600 transition-colors"
                           title="Reset Password"
                           disabled={loading}
                         >
@@ -984,11 +999,11 @@ const UserManagement: React.FC = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2h-6m6 0v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6a2 2 0 012-2m0 0V7a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                           </svg>
                         </button>
-                        
+
                         {user.status !== 'active' ? (
                           <button
                             onClick={() => handleStatusChange(user, 'active')}
-                            className="text-green-600 hover:text-green-900 p-1 rounded-full hover:bg-green-100"
+                            className="text-green-700 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-green-600 transition-colors"
                             title="Activate"
                           >
                             <CheckCircleIcon className="h-4 w-4" />
@@ -996,7 +1011,7 @@ const UserManagement: React.FC = () => {
                         ) : (
                           <button
                             onClick={() => handleStatusChange(user, 'inactive')}
-                            className="text-yellow-600 hover:text-yellow-900 p-1 rounded-full hover:bg-yellow-100"
+                            className="text-amber-600 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-amber-500 transition-colors"
                             title="Deactivate"
                           >
                             <XCircleIcon className="h-4 w-4" />
@@ -1005,7 +1020,7 @@ const UserManagement: React.FC = () => {
 
                         <button
                           onClick={() => handleStatusChange(user, 'suspended')}
-                          className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-100 hidden md:block"
+                          className="text-orange-600 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-orange-500 transition-colors"
                           title="Suspend"
                         >
                           <ExclamationTriangleIcon className="h-4 w-4" />
@@ -1014,25 +1029,12 @@ const UserManagement: React.FC = () => {
                         {user.id !== currentUser?.id && (
                           <button
                             onClick={() => setShowDeleteModal(user)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-100"
+                            className="text-red-600 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-red-600 transition-colors"
                             title="Delete User"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         )}
-                        
-                        {/* More Actions Dropdown for smaller screens */}
-                        <div className="relative lg:hidden">
-                          <button
-                            onClick={() => {/* Handle dropdown toggle */}}
-                            className="text-gray-600 hover:text-gray-900 p-1 rounded-full hover:bg-gray-100"
-                            title="More Actions"
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
-                            </svg>
-                          </button>
-                        </div>
                       </div>
                     </td>
                   </tr>
@@ -1063,15 +1065,15 @@ const UserManagement: React.FC = () => {
 
         {/* User Modal */}
         {showUserModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-auto max-h-[92vh] overflow-y-auto">
+              <div className="px-4 sm:px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
+                <h3 className="text-lg font-bold text-gray-900">
                   {editingUser ? 'Edit User' : 'Create New User'}
                 </h3>
               </div>
-              
-              <div className="px-6 py-4 space-y-4">
+
+              <div className="px-4 sm:px-6 py-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">First Name</label>
@@ -1193,17 +1195,17 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <div className="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 sm:space-x-0 sticky bottom-0 bg-white rounded-b-2xl">
                 <button
                   onClick={() => setShowUserModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveUser}
                   disabled={loading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-green-600 rounded-md hover:from-green-600 hover:to-green-700 disabled:opacity-50"
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 disabled:opacity-50 min-h-[44px]"
                 >
                   {loading ? 'Saving...' : (editingUser ? 'Update' : 'Create')}
                 </button>
@@ -1214,30 +1216,30 @@ const UserManagement: React.FC = () => {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-              <div className="px-6 py-4">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-auto max-h-[92vh] overflow-y-auto">
+              <div className="px-4 sm:px-6 py-4">
                 <div className="flex items-center">
-                  <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3" />
-                  <h3 className="text-lg font-medium text-gray-900">Delete User</h3>
+                  <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3 flex-shrink-0" />
+                  <h3 className="text-lg font-bold text-gray-900">Delete User</h3>
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
-                  Are you sure you want to delete {showDeleteModal.first_name} {showDeleteModal.last_name}? 
+                  Are you sure you want to delete {showDeleteModal.first_name} {showDeleteModal.last_name}?
                   This action cannot be undone.
                 </p>
               </div>
-              
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+
+              <div className="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
                 <button
                   onClick={() => setShowDeleteModal(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleDeleteUser(showDeleteModal)}
                   disabled={loading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
                 >
                   {loading ? 'Deleting...' : 'Delete'}
                 </button>

@@ -57,9 +57,9 @@
     font-size: 1.5rem;
   }
 
-  /* Filters Section */
+  /* Filters Section - 2 columns on tablet (phones stack, see small-screen block) */
   .user-filters-section {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 0.75rem;
   }
 
@@ -116,9 +116,9 @@
     height: 18px;
   }
 
-  /* Stats Cards - Auto layout for small screens */
+  /* Stats Cards - compact 2-column on phones */
   .user-stats-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 0.75rem;
     margin-bottom: 1rem;
   }
