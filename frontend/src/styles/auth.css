@@ -159,34 +159,35 @@ body:has(.auth-container) {
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
-/* Flat glass fields: translucent fill, light border, emerald focus glow. */
+/* Flat glass fields, green-theme tinted: deep emerald fill, mint text. */
 .auth-input {
   width: 100%;
   box-sizing: border-box;
   padding: 0.95rem 1.1rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.28);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.5), rgba(4, 47, 38, 0.55));
+  color: #ecfdf5;
+  caret-color: #6ee7b7;
   font-size: 16px; /* 16px blocks iOS focus zoom */
   font-family: inherit;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 .auth-input::placeholder {
-  color: rgba(243, 244, 246, 0.85);
+  color: rgba(167, 243, 208, 0.6);
   opacity: 1; /* browsers dim placeholders by default — override */
 }
 .auth-input:focus {
   outline: none;
-  border-color: rgba(110, 231, 183, 0.65);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(110, 231, 183, 0.7);
+  background: linear-gradient(135deg, rgba(6, 95, 70, 0.55), rgba(4, 60, 48, 0.6));
   box-shadow:
     0 0 0 4px rgba(52, 211, 153, 0.18),
-    0 6px 22px rgba(16, 185, 129, 0.28);
+    0 6px 22px rgba(16, 185, 129, 0.3);
 }
 .auth-input.error {
   border-color: rgba(248, 113, 113, 0.7);
-  background: rgba(127, 29, 29, 0.3);
+  background: linear-gradient(135deg, rgba(69, 26, 32, 0.5), rgba(42, 15, 20, 0.55));
   box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.15);
 }
 .auth-input:disabled {
