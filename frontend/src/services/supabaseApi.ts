@@ -39,7 +39,46 @@ async function logAudit(action: string, resource_type: string, resource_id = '',
 
 function mapMemberRow(m: any) {
   if (!m) return m;
-  return { ...m, picture: m.picture_url ? publicPictureUrl(m.picture_url) : null };
+  const { creator, ...rest } = m;
+  return {
+    ...rest,
+    picture: m.picture_url ? publicPictureUrl(m.picture_url) : null,
+    created_by_name: m.created_by_name ?? creator?.username ?? null,
+  };
+}
+
+// Resolve creator usernames for a batch of member rows.
+// 1) The FK join (creator:profiles) covers self + admin-visible rows.
+// 2) Anything still unknown (e.g. an apostle viewing another registrant's
+//    member — profiles RLS hides it) is filled via the usernames_for() RPC,
+//    which exposes usernames only, only for rows you can already see.
+async function withCreatorNames(rows: any[]): Promise<any[]> {
+  const names = new Map<string, string>();
+  const missing = new Set<string>();
+  (rows || []).forEach((r) => {
+    const u = r?.creator?.username;
+    if (u && r.created_by) names.set(String(r.created_by), u);
+    else if (r?.created_by) missing.add(String(r.created_by));
+  });
+  if (missing.size > 0) {
+    try {
+      const { data } = await supabase.rpc('usernames_for', { ids: Array.from(missing) });
+      (data || []).forEach((row: any) => {
+        if (row?.id && row?.username) names.set(String(row.id), row.username);
+      });
+    } catch {
+      // RPC not deployed yet — names stay null, UI falls back gracefully
+    }
+  }
+  return (rows || []).map((r) => ({ ...r, created_by_name: names.get(String(r.created_by)) ?? null }));
+}
+
+// Columns never sent back on write (read-model extras from joins/mapping)
+function stripReadOnly(payload: Record<string, any>) {
+  delete payload.creator;
+  delete payload.created_by_name;
+  delete payload.picture;
+  return payload;
 }
 
 async function uploadMemberPicture(file: File, userId: string): Promise<string> {
@@ -215,7 +254,7 @@ async function uploadAvatar(file: File, userId: string): Promise<string> {
 // ============================================================
 export const membersAPI = {
   getMembers: async (params: any = {}) => {
-    let q = supabase.from('members').select('*', { count: 'exact' }).eq('is_deleted', false).order('created_at', { ascending: false });
+    let q = supabase.from('members').select('*, creator:profiles!members_created_by_fkey(username)', { count: 'exact' }).eq('is_deleted', false).order('created_at', { ascending: false });
     if (params.search) {
       const s = `%${params.search}%`;
       q = q.or(`first_name.ilike.${s},last_name.ilike.${s},middle_name.ilike.${s},mobile_no.ilike.${s},email.ilike.${s}`);
@@ -232,15 +271,16 @@ export const membersAPI = {
     // RLS enforces registrant=own / apostle=kanda / admin=all automatically.
     const { data, error, count } = await q;
     if (error) throw { response: { data: { message: error.message } } };
-    const members = (data || []).map(mapMemberRow);
+    const members = (await withCreatorNames(data || [])).map(mapMemberRow);
     // Return a plain array (membersSlice normalizer + SearchMembers both accept arrays)
     return { data: members as any };
   },
 
   getMember: async (id: string | number) => {
-    const { data, error } = await supabase.from('members').select('*').eq('id', String(id)).single();
+    const { data, error } = await supabase.from('members').select('*, creator:profiles!members_created_by_fkey(username)').eq('id', String(id)).single();
     if (error) throw { response: { data: { message: error.message } } };
-    return { data: mapMemberRow(data) };
+    const [row] = await withCreatorNames([data]);
+    return { data: mapMemberRow(row) };
   },
 
   createMember: async (memberData: any) => {
@@ -258,6 +298,7 @@ export const membersAPI = {
     }
     delete payload.picture_url;
     delete payload.created_by;
+    stripReadOnly(payload);
     if (file) payload.picture_url = await uploadMemberPicture(file, user.id);
     const { data, error } = await supabase.from('members').insert({ ...payload, created_by: user.id }).select().single();
     if (error) throw { response: { data: { message: error.message } } };
@@ -280,6 +321,7 @@ export const membersAPI = {
     delete payload.id;
     delete payload.created_by;
     delete payload.created_at;
+    stripReadOnly(payload);
     if (file && user) payload.picture_url = await uploadMemberPicture(file, user.id);
     const { data, error } = await supabase.from('members').update(payload).eq('id', String(id)).select().single();
     if (error) throw { response: { data: { message: error.message } } };
@@ -300,12 +342,12 @@ export const membersAPI = {
     const s = `%${searchTerm.trim()}%`;
     const { data, error } = await supabase
       .from('members')
-      .select('id,first_name,middle_name,last_name,gender,region,center_area,picture_url')
+      .select('id,first_name,middle_name,last_name,gender,region,center_area,picture_url,created_by,creator:profiles!members_created_by_fkey(username)')
       .eq('is_deleted', false)
       .or(`first_name.ilike.${s},last_name.ilike.${s},middle_name.ilike.${s},mobile_no.ilike.${s},email.ilike.${s}`)
       .limit(50);
     if (error) throw { response: { data: { message: error.message } } };
-    return { data: (data || []).map(mapMemberRow) };
+    return { data: (await withCreatorNames(data || [])).map(mapMemberRow) };
   },
 
   exportMembers: (format: 'csv' | 'excel' | 'pdf' = 'csv', filters: any = {}) =>
@@ -685,7 +727,7 @@ function memberExportRows(members: any[]) {
     'Marital Status': m.marital_status || '',
     Saved: m.saved ? 'Yes' : 'No',
     'Date Registered': m.created_at ? new Date(m.created_at).toISOString().split('T')[0] : '',
-    'Registered By': typeof m.created_by === 'string' ? m.created_by : '',
+    'Registered By': m.created_by_name || '',
   }));
 }
 

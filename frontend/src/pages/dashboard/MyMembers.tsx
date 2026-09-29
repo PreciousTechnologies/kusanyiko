@@ -282,9 +282,9 @@ const MyMembers: React.FC = () => {
       <div className="member-card-footer-compact">
         <div className="member-since">
           <span>Since {new Date(member.attending_date).getFullYear()}</span>
-          {member.created_by && typeof member.created_by === 'string' && (
-            <span className="created-by">by {member.created_by.split(' ')[0]}</span>
-          )}
+          {member.created_by_name ? (
+            <span className="created-by">by {member.created_by_name}</span>
+          ) : null}
         </div>
         <div className="member-actions-compact">
           <button
@@ -473,15 +473,15 @@ const MyMembers: React.FC = () => {
               </span>
             </div>
           </div>
-          {member.created_by && typeof member.created_by === 'string' && (
+          {member.created_by_name ? (
             <div className="stat-item-mobile enhanced">
               <UserIcon className="stat-icon-mobile" />
               <div className="stat-content-mobile">
                 <span className="stat-label-mobile">Registered by</span>
-                <span className="stat-value-mobile">{member.created_by.split(' ')[0]}</span>
+                <span className="stat-value-mobile">{member.created_by_name}</span>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -535,11 +535,11 @@ const MyMembers: React.FC = () => {
           <span>{member.mobile_no}</span>
           <span>{member.region}, {member.country}</span>
         </div>
-        {member.created_by && typeof member.created_by === 'string' && (
+        {member.created_by_name ? (
           <div className="text-green-600 text-xs mt-1 font-medium">
-            Created by: {member.created_by}
+            Created by: {member.created_by_name}
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="member-list-actions-desktop">

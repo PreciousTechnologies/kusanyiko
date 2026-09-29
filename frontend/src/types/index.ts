@@ -65,7 +65,8 @@ export interface Member {
   attending_date: string;
   picture?: File | string;
   registered_by?: number;
-  created_by?: number | string; // Can be ID or username string from serializer
+  created_by?: number | string; // uuid (or legacy int/username) of the creator
+  created_by_name?: string | null; // resolved username for display
   created_at?: string;
   updated_at?: string;
   is_deleted?: boolean;

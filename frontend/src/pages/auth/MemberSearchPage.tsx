@@ -215,7 +215,7 @@ const MemberSearchPage: React.FC = () => {
                             {member.first_name} {member.middle_name} {member.last_name}
                           </h3>
                           <p className="member-registration-info">
-                            Registered by: {member.created_by.first_name} {member.created_by.last_name}
+                            Registered by: {(member as any).created_by_name || 'Unknown'}
                           </p>
                         </div>
                       </div>
@@ -310,7 +310,7 @@ const MemberSearchPage: React.FC = () => {
                       {selectedMember.age} years old • {selectedMember.gender} • {selectedMember.marital_status}
                     </p>
                     <p className="profile-registration-details">
-                      Registered by {selectedMember.created_by.first_name} {selectedMember.created_by.last_name} 
+                      Registered by {(selectedMember as any).created_by_name || 'Unknown'}
                       on {formatDate(selectedMember.created_at)}
                     </p>
                   </div>

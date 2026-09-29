@@ -207,7 +207,7 @@ const SearchMembers: React.FC = () => {
                     {member.first_name} {member.middle_name} {member.last_name}
                   </h3>
                   <p className="member-registered-by">
-                    Registered by: {member.created_by.first_name} {member.created_by.last_name}
+                    Registered by: {(member as any).created_by_name || 'Unknown'}
                   </p>
                 </div>
               </div>
@@ -278,7 +278,7 @@ const SearchMembers: React.FC = () => {
                   <p className="profile-meta">Age: {selectedMember.age} • {selectedMember.gender}</p>
                   <p className="profile-meta">Status: {selectedMember.marital_status}</p>
                   <p className="profile-registered">
-                    Registered by: {selectedMember.created_by.first_name} {selectedMember.created_by.last_name}
+                    Registered by: {(selectedMember as any).created_by_name || 'Unknown'}
                     on {formatDate(selectedMember.created_at)}
                   </p>
                 </div>
