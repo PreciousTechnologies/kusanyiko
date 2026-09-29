@@ -1068,8 +1068,9 @@ const UserManagement: React.FC = () => {
 
         {/* User Modal */}
         {showUserModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-auto max-h-[92vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 overflow-y-auto">
+            <div className="flex min-h-full p-4">
+              <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full m-auto max-h-[92vh] overflow-y-auto">
               <div className="px-4 sm:px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
                 <h3 className="text-lg font-bold text-gray-900">
                   {editingUser ? 'Edit User' : 'Create New User'}
@@ -1213,14 +1214,16 @@ const UserManagement: React.FC = () => {
                   {loading ? 'Saving...' : (editingUser ? 'Update' : 'Create')}
                 </button>
               </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-auto max-h-[92vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 overflow-y-auto">
+            <div className="flex min-h-full p-4">
+              <div className="bg-white rounded-2xl shadow-xl max-w-md w-full m-auto max-h-[92vh] overflow-y-auto">
               <div className="px-4 sm:px-6 py-4">
                 <div className="flex items-center">
                   <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3 flex-shrink-0" />
@@ -1246,6 +1249,7 @@ const UserManagement: React.FC = () => {
                 >
                   {loading ? 'Deleting...' : 'Delete'}
                 </button>
+              </div>
               </div>
             </div>
           </div>
