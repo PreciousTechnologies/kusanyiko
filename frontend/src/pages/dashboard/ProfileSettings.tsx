@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { updateUser, logout } from '../../store/slices/authSlice';
 import { authAPI, userManagementAPI } from '../../services/api';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
   UserCircleIcon,
   CameraIcon,
@@ -80,9 +79,6 @@ const ProfileSettings: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-
-  // Freeze background scroll while the delete confirmation is open
-  useBodyScrollLock(showDeleteConfirm);
 
   // Profile form
   const {
@@ -662,9 +658,8 @@ const ProfileSettings: React.FC = () => {
 
                   {/* Delete Confirmation Modal */}
                   {showDeleteConfirm && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-                      <div className="flex min-h-full p-4">
-                      <div className="bg-white rounded-2xl p-6 max-w-md w-full m-auto max-h-[90vh] overflow-y-auto">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                      <div className="bg-white rounded-2xl p-6 max-w-md w-full">
                         <div className="text-center">
                           <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
                           <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -695,7 +690,6 @@ const ProfileSettings: React.FC = () => {
                             </button>
                           </div>
                         </div>
-                      </div>
                       </div>
                     </div>
                   )}

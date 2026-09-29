@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { userManagementAPI } from '../../services/api';
 import { dialog } from '../../components/ui/Dialog';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import '../../styles/user-management.css';
 import {
   UsersIcon,
@@ -81,7 +80,8 @@ const UserManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState<User | null>(null);  const [userForm, setUserForm] = useState<UserFormData>({
+  const [showDeleteModal, setShowDeleteModal] = useState<User | null>(null);
+  const [userForm, setUserForm] = useState<UserFormData>({
     username: '',
     email: '',
     first_name: '',
@@ -92,9 +92,6 @@ const UserManagement: React.FC = () => {
     is_staff: false,
     is_superuser: false,
   });
-
-  // Freeze background scroll whenever a modal is open
-  useBodyScrollLock(showUserModal || showDeleteModal !== null);
 
   // Fetch users from database
   useEffect(() => {
@@ -1066,19 +1063,17 @@ const UserManagement: React.FC = () => {
           )}
         </div>
 
-        {/* User Modal — mirrors the Dialog shell: fixed header/footer,
-            only the body scrolls, so actions are always reachable */}
+        {/* User Modal */}
         {showUserModal && (
-          <div className="fixed inset-0 z-[100] overflow-y-auto bg-gray-900/60 backdrop-blur-sm">
-            <div className="flex min-h-full p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg m-auto max-h-[90vh] flex flex-col overflow-hidden">
-              <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white rounded-t-2xl flex-shrink-0">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-auto max-h-[92vh] overflow-y-auto">
+              <div className="px-4 sm:px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
                 <h3 className="text-lg font-bold text-gray-900">
                   {editingUser ? 'Edit User' : 'Create New User'}
                 </h3>
               </div>
 
-              <div className="modal-scroll px-4 sm:px-6 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+              <div className="px-4 sm:px-6 py-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">First Name</label>
@@ -1200,7 +1195,7 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-white rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 sm:space-x-0 flex-shrink-0">
+              <div className="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 sm:space-x-0 sticky bottom-0 bg-white rounded-b-2xl">
                 <button
                   onClick={() => setShowUserModal(false)}
                   className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 min-h-[44px]"
@@ -1215,17 +1210,15 @@ const UserManagement: React.FC = () => {
                   {loading ? 'Saving...' : (editingUser ? 'Update' : 'Create')}
                 </button>
               </div>
-              </div>
             </div>
           </div>
         )}
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 z-[100] overflow-y-auto bg-gray-900/60 backdrop-blur-sm">
-            <div className="flex min-h-full p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full m-auto max-h-[90vh] flex flex-col overflow-hidden">
-              <div className="modal-scroll px-4 sm:px-6 py-4 overflow-y-auto flex-1 min-h-0">
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-auto max-h-[92vh] overflow-y-auto">
+              <div className="px-4 sm:px-6 py-4">
                 <div className="flex items-center">
                   <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3 flex-shrink-0" />
                   <h3 className="text-lg font-bold text-gray-900">Delete User</h3>
@@ -1236,7 +1229,7 @@ const UserManagement: React.FC = () => {
                 </p>
               </div>
 
-              <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-white rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 flex-shrink-0">
+              <div className="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
                 <button
                   onClick={() => setShowDeleteModal(null)}
                   className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 min-h-[44px]"
@@ -1250,7 +1243,6 @@ const UserManagement: React.FC = () => {
                 >
                   {loading ? 'Deleting...' : 'Delete'}
                 </button>
-              </div>
               </div>
             </div>
           </div>

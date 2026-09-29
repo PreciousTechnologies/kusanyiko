@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, User, Phone, Mail, MapPin, Calendar, ArrowLeft } from 'lucide-react';
 import { membersAPI } from '../../services/api';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { toast } from 'react-toastify';
 import '../../styles/member-search-page.css';
 
@@ -46,9 +45,6 @@ const MemberSearchPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-
-  // Freeze background scroll while the details modal is open
-  useBodyScrollLock(selectedMember !== null);
 
   const getImageUrl = (picturePath: string) => {
     if (!picturePath) return '';

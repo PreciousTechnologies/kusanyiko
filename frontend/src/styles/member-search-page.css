@@ -437,8 +437,10 @@ body:has(.member-search-page) {
   background: rgba(2, 8, 6, 0.7);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 12px;
-  overflow-y: auto;
   animation: msp-fade 0.2s ease-out;
 }
 .member-modal-content {
@@ -447,7 +449,6 @@ body:has(.member-search-page) {
   width: 100%;
   max-width: 760px;
   max-height: 92dvh;
-  margin: 4dvh auto;
   display: flex;
   flex-direction: column;
   border-radius: 24px;
