@@ -7,13 +7,17 @@
 /* ---------- Backdrop ---------- */
 .landing-container {
   min-height: 100vh;
+  min-height: 100dvh; /* mobile URL-bar aware */
   background:
     radial-gradient(1200px 800px at 85% -10%, rgba(6, 182, 212, 0.16), transparent 60%),
     radial-gradient(1000px 700px at -10% 20%, rgba(16, 185, 129, 0.18), transparent 60%),
     radial-gradient(900px 900px at 50% 110%, rgba(59, 130, 246, 0.14), transparent 60%),
     linear-gradient(160deg, #04120d 0%, #06231a 35%, #07332a 65%, #0a3d2e 100%);
   position: relative;
-  overflow-x: clip;
+  /* NOTE: no overflow-x here. Setting it (hidden/clip) forces overflow-y to
+     compute as `auto`, turning this into a NESTED scroller = double
+     scrollbars — and it also disables the sticky header. Horizontal bleed
+     from the aurora blobs is already contained by html/body overflow-x. */
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -246,6 +250,13 @@
   margin: 0 auto;
   width: 100%;
   text-align: center;
+  /* Column flow so the bento grid can absorb leftover height (flex:1 below)
+     and push the CTA + footnote to the viewport bottom on tall screens.
+     align-self stretches this wrapper to the hero height. */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-self: stretch;
 }
 .hero-badge {
   display: inline-flex;
@@ -354,6 +365,11 @@
   gap: clamp(12px, 2.5vw, 20px);
   text-align: left;
   margin-bottom: clamp(20px, 4vw, 32px);
+  /* Absorb leftover hero height so tiles stretch to the viewport bottom
+     on tall screens (grid rows stretch by default; automatic minimum size
+     prevents any clipping when content overflows). */
+  flex: 1 0 auto;
+  align-content: stretch;
 }
 .bento-tile {
   padding: clamp(20px, 3vw, 30px);
