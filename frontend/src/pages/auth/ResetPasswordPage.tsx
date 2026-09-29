@@ -60,9 +60,9 @@ const ResetPasswordPage: React.FC = () => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mb-6 shadow-lg">
-              <CheckCircle className="w-10 h-10 text-green-600" />
-            </div>
+          <div className="auth-logo" aria-hidden="true">
+            <CheckCircle className="w-8 h-8 text-white" />
+          </div>
             <h1 className="auth-title">Password Reset Successful!</h1>
             <p className="auth-subtitle">
               Your password has been successfully reset. You will be redirected to the login page.
@@ -81,10 +81,13 @@ const ResetPasswordPage: React.FC = () => {
 
   return (
     <div className="auth-container">
+      <div className="auth-bg auth-bg-1" aria-hidden="true" />
+      <div className="auth-bg auth-bg-2" aria-hidden="true" />
+      <div className="auth-grain" aria-hidden="true" />
       <div className="auth-card">
         <div className="auth-header">
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mb-6 shadow-lg">
-            <Lock className="w-10 h-10 text-green-600" />
+          <div className="auth-logo" aria-hidden="true">
+            <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="auth-title">Reset Password</h1>
           <p className="auth-subtitle">

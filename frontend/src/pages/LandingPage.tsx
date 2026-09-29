@@ -16,16 +16,17 @@ import { useBranding } from '../context/BrandingContext';
 
 const LandingPage = () => {
   const { branding } = useBranding();
+  const year = new Date().getFullYear();
 
   return (
     <div className="landing-container">
-      {/* Aurora background */}
+      {/* Backdrop layers */}
+      <div className="landing-bg-grid" aria-hidden="true" />
       <div className="landing-bg-element landing-bg-element-1" aria-hidden="true" />
       <div className="landing-bg-element landing-bg-element-2" aria-hidden="true" />
-      <div className="landing-bg-element landing-bg-element-3" aria-hidden="true" />
       <div className="landing-grain" aria-hidden="true" />
 
-      {/* Floating glass header */}
+      {/* Header */}
       <header className="landing-header">
         <div className="landing-header-content">
           <div className="landing-logo">
@@ -54,9 +55,10 @@ const LandingPage = () => {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="landing-hero">
-        <div className="landing-hero-content">
+      {/* Main — distributed to fill the viewport */}
+      <main className="landing-main">
+        {/* Hero */}
+        <section className="landing-hero">
           <span className="hero-badge animate-fadeInUp">
             <span className="hero-live-dot" aria-hidden="true" />
             {branding.registration_status_label}
@@ -77,11 +79,14 @@ const LandingPage = () => {
               Search Members
             </Link>
           </div>
+        </section>
 
-          {/* Bento grid */}
+        {/* Bento */}
+        <section className="bento-section" aria-label="Camp highlights">
+          <p className="section-eyebrow animate-fadeInUp stagger-3">The Gathering</p>
           <div className="bento-grid animate-fadeInUp stagger-4">
-            {/* Feature tile — What to expect */}
             <article className="liquid-glass bento-tile bento-feature">
+              <span className="bento-index" aria-hidden="true">01</span>
               <div className="bento-icon-tile">
                 <Church size={22} />
               </div>
@@ -99,8 +104,8 @@ const LandingPage = () => {
               </div>
             </article>
 
-            {/* Dates tile */}
             <article className="liquid-glass bento-tile">
+              <span className="bento-index" aria-hidden="true">02</span>
               <div className="bento-icon-tile bento-icon-cyan">
                 <CalendarDays size={22} />
               </div>
@@ -109,8 +114,8 @@ const LandingPage = () => {
               <p className="bento-sub">to {branding.camp_end_date}</p>
             </article>
 
-            {/* Location tile */}
             <article className="liquid-glass bento-tile">
+              <span className="bento-index" aria-hidden="true">03</span>
               <div className="bento-icon-tile bento-icon-violet">
                 <MapPin size={22} />
               </div>
@@ -119,8 +124,8 @@ const LandingPage = () => {
               <p className="bento-sub">{branding.camp_location}</p>
             </article>
 
-            {/* Registration tile */}
             <article className="liquid-glass bento-tile bento-wide">
+              <span className="bento-index" aria-hidden="true">04</span>
               <div className="bento-icon-tile bento-icon-amber">
                 <ClipboardList size={22} />
               </div>
@@ -132,8 +137,8 @@ const LandingPage = () => {
               </p>
             </article>
 
-            {/* Leaders tile */}
             <article className="liquid-glass bento-tile">
+              <span className="bento-index" aria-hidden="true">05</span>
               <div className="bento-icon-tile bento-icon-emerald">
                 <Users size={22} />
               </div>
@@ -142,8 +147,8 @@ const LandingPage = () => {
               <p className="bento-sub">Church Leaders</p>
             </article>
 
-            {/* Status tile */}
             <article className="liquid-glass bento-tile">
+              <span className="bento-index" aria-hidden="true">06</span>
               <div className="bento-icon-tile bento-icon-rose">
                 <Sparkles size={22} />
               </div>
@@ -155,30 +160,45 @@ const LandingPage = () => {
               <p className="bento-sub">{branding.registration_status_label}</p>
             </article>
           </div>
+        </section>
 
-          {/* CTA banner */}
-          <div className="liquid-glass cta-banner animate-fadeInUp stagger-5">
-            <div className="cta-text">
-              <h2 className="cta-title">Ready to register your leaders?</h2>
-              <p className="cta-sub">Sign in to your account or look up an existing registration.</p>
+        {/* CTA */}
+        <section className="liquid-glass cta-banner animate-fadeInUp stagger-5" aria-label="Get started">
+          <div className="cta-text">
+            <h2 className="cta-title">Ready to register your leaders?</h2>
+            <p className="cta-sub">Sign in to your account or look up an existing registration.</p>
+          </div>
+          <div className="cta-actions">
+            <Link to="/login" className="hero-btn hero-btn-primary">
+              <LogIn size={18} />
+              Sign In
+            </Link>
+            <Link to="/member-search" className="hero-btn hero-btn-secondary">
+              <Search size={18} />
+              Search
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      {/* Anchored footer — the page always ends here, no void beneath */}
+      <footer className="landing-footer">
+        <div className="landing-footer-content">
+          <div className="landing-footer-brand">
+            <div className="landing-footer-logo">
+              <img src={`${process.env.PUBLIC_URL}/image.png`} alt="" aria-hidden="true" />
             </div>
-            <div className="cta-actions">
-              <Link to="/login" className="hero-btn hero-btn-primary">
-                <LogIn size={18} />
-                Sign In
-              </Link>
-              <Link to="/member-search" className="hero-btn hero-btn-secondary">
-                <Search size={18} />
-                Search
-              </Link>
+            <div>
+              <p className="landing-footer-title">{branding.app_name}</p>
+              <p className="landing-footer-sub">{branding.ministry_lead}</p>
             </div>
           </div>
-
-          <p className="landing-footnote">
-            {branding.ministry_lead} • {branding.camp_location}
+          <p className="landing-footer-meta">
+            {branding.camp_location} • {branding.camp_start_date} – {branding.camp_end_date}
           </p>
+          <p className="landing-footer-copy">© {year} {branding.app_name}. All rights reserved.</p>
         </div>
-      </section>
+      </footer>
     </div>
   );
 };
