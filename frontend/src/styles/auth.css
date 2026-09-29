@@ -159,43 +159,34 @@ body:has(.auth-container) {
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
-/* Neumorphic pressed fields: carved into the card with dual inset
-   shadows (dark depth + faint top light), bright text on top. */
+/* Flat glass fields: translucent fill, light border, emerald focus glow. */
 .auth-input {
   width: 100%;
   box-sizing: border-box;
   padding: 0.95rem 1.1rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 16px;
-  background: rgba(0, 0, 0, 0.38);
-  box-shadow:
-    inset 6px 6px 12px rgba(0, 0, 0, 0.55),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
   font-size: 16px; /* 16px blocks iOS focus zoom */
   font-family: inherit;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 .auth-input::placeholder {
-  color: rgba(209, 213, 219, 0.55);
+  color: rgba(209, 213, 219, 0.6);
 }
 .auth-input:focus {
   outline: none;
   border-color: rgba(110, 231, 183, 0.65);
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.12);
   box-shadow:
-    inset 4px 4px 10px rgba(0, 0, 0, 0.55),
-    inset -2px -2px 6px rgba(255, 255, 255, 0.06),
     0 0 0 4px rgba(52, 211, 153, 0.18),
     0 6px 22px rgba(16, 185, 129, 0.28);
 }
 .auth-input.error {
   border-color: rgba(248, 113, 113, 0.7);
-  background: rgba(0, 0, 0, 0.42);
-  box-shadow:
-    inset 6px 6px 12px rgba(0, 0, 0, 0.55),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.07),
-    0 0 0 4px rgba(248, 113, 113, 0.15);
+  background: rgba(127, 29, 29, 0.3);
+  box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.15);
 }
 .auth-input:disabled {
   opacity: 0.6;
