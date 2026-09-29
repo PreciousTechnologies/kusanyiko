@@ -325,6 +325,7 @@ const MemberSearchPage: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="detail-unified">
                 <div className="member-details-grid">
                   <div className="detail-group">
                     <h4 className="detail-group-title">Contact Information</h4>
@@ -405,6 +406,7 @@ const MemberSearchPage: React.FC = () => {
                       <span className="detail-value">{selectedMember.visitors_count}</span>
                     </div>
                   </div>
+                </div>
                 </div>
               </div>
             </div>

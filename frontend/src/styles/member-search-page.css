@@ -558,13 +558,13 @@ body:has(.member-search-page) {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 12px;
 }
-.detail-group {
+/* One liquid tile for ALL member information — sections inside are
+   plain divided blocks, not nested tiles. */
+.detail-unified {
   position: relative;
   overflow: hidden;
-  border-radius: 18px;
-  padding: 16px;
-  /* Frosted light tile: near-solid mint-white so dark text reads
-     perfectly in any light, while blur keeps the glass feel. */
+  border-radius: 20px;
+  padding: clamp(16px, 3.5vw, 24px);
   background: linear-gradient(135deg, rgba(236, 253, 245, 0.94), rgba(209, 250, 229, 0.88));
   -webkit-backdrop-filter: blur(14px) saturate(160%);
   backdrop-filter: blur(14px) saturate(160%);
@@ -573,13 +573,26 @@ body:has(.member-search-page) {
     inset 0 1px 1px rgba(255, 255, 255, 0.7),
     0 10px 26px rgba(0, 0, 0, 0.35);
 }
-.detail-group::before {
+.detail-unified::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
   background: radial-gradient(120% 90% at 18% 0%, rgba(255, 255, 255, 0.5), transparent 55%);
+}
+.detail-group {
+  position: relative;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-radius: 0;
+  padding: 4px 0;
+}
+.detail-group::before {
+  display: none;
 }
 .detail-group-title {
   position: relative;
