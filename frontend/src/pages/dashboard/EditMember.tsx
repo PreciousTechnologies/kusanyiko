@@ -73,8 +73,8 @@ const ALL_TANZANIA_REGIONS = [
 // other regions fall back to the region name itself)
 const REGION_CENTERS: Record<string, string[]> = {
   Mwenge: [
-    'yerusalemu', 'utukufu', 'amani', 'nazareth', 'shalom', 'sayuni',
-    'bethlehem', 'upendo', 'tumaini'
+    'Yerusalemu', 'Utukufu', 'Amani', 'Nazareth', 'Shalom', 'Sayuni',
+    'Bethlehem', 'Upendo', 'Tumaini'
   ],
   Imara: [
     'Kwembe', 'Gilgali', 'Makurunge', 'Mpigi Mheza', 'Sweet Corner',

@@ -77,8 +77,8 @@ const TANZANIA_REGION_CENTERS: Record<string, string[]> = {
   ],
   // Dar es Salaam zones — each is its own region with its own centers
   Mwenge: [
-    'yerusalemu', 'utukufu', 'amani', 'nazareth', 'shalom', 'sayuni',
-    'bethlehem', 'upendo', 'tumaini'
+    'Yerusalemu', 'Utukufu', 'Amani', 'Nazareth', 'Shalom', 'Sayuni',
+    'Bethlehem', 'Upendo', 'Tumaini'
   ],
   Imara: [
     'Kwembe', 'Gilgali', 'Makurunge', 'Mpigi Mheza', 'Sweet Corner',
