@@ -596,6 +596,24 @@ export const userManagementAPI = {
     return { data: { status: 'success', message: 'Account unlocked' } };
   },
 
+  setUserPassword: async (id: string | number, newPassword: string) => {
+    // Admin-only Edge Function (Auth Admin API). Takes effect immediately —
+    // the previous password stops working on the next login attempt.
+    const { data, error } = await supabase.functions.invoke('set-password', {
+      body: { id: String(id), password: newPassword },
+    });
+    if (error) {
+      if (isFunctionMissingError(error)) {
+        throw { response: { data: { message: 'Password service is not deployed yet — deploy the set-password function first.' } } };
+      }
+      throw error;
+    }
+    const fnErr = (data as any)?.error;
+    if (fnErr) throw { response: { data: { message: String(fnErr) } } };
+    await logAudit('reset_password', 'user', String(id), { via: 'admin_set' });
+    return { data: { success: true } };
+  },
+
   getUserActivity: async (id: string | number) => {
     const { data, error } = await supabase.from('audit_logs').select('*').eq('user_id', String(id)).order('timestamp', { ascending: false }).limit(50);
     if (error) throw { response: { data: { message: error.message } } };

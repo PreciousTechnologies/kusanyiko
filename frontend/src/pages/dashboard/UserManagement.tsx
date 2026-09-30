@@ -11,6 +11,7 @@ import {
   EyeIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
+  EyeSlashIcon,
   UserCircleIcon,
   ShieldCheckIcon,
   ClockIcon,
@@ -81,6 +82,7 @@ const UserManagement: React.FC = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<User | null>(null);
+  const [showModalPassword, setShowModalPassword] = useState(false);
   const [userForm, setUserForm] = useState<UserFormData>({
     username: '',
     email: '',
@@ -159,6 +161,7 @@ const UserManagement: React.FC = () => {
 
   const handleCreateUser = () => {
     setEditingUser(null);
+    setShowModalPassword(false);
     setUserForm({
       username: '',
       email: '',
@@ -175,6 +178,7 @@ const UserManagement: React.FC = () => {
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
+    setShowModalPassword(false);
     setUserForm({
       username: user.username,
       email: user.email,
@@ -182,6 +186,7 @@ const UserManagement: React.FC = () => {
       last_name: user.last_name,
       role: user.role,
       kanda: user.kanda || '',
+      password: '',
       is_staff: user.is_staff,
       is_superuser: user.is_superuser,
     });
@@ -215,6 +220,11 @@ const UserManagement: React.FC = () => {
       return;
     }
 
+    if (editingUser && userForm.password && userForm.password.length < 6) {
+      await dialog.error('Weak password', 'The new password must be at least 6 characters long (or leave it blank).');
+      return;
+    }
+
     if (userForm.role === 'apostle' && !userForm.kanda) {
       await dialog.error('Kanda required', 'Please select a kanda for apostle users.');
       return;
@@ -234,14 +244,19 @@ const UserManagement: React.FC = () => {
         // Update existing user - exclude password from updates
         const updateData = { ...userForm };
         delete updateData.password;
-        
+
         const response = await userManagementAPI.updateUser(editingUser.id, updateData);
-        setUsers(prev => prev.map(user => 
-          user.id === editingUser.id 
-            ? { ...user, ...response.data } 
+        let passwordNote = '';
+        if (userForm.password) {
+          await userManagementAPI.setUserPassword(editingUser.id, userForm.password);
+          passwordNote = ' Their password was changed — only the new password works now.';
+        }
+        setUsers(prev => prev.map(user =>
+          user.id === editingUser.id
+            ? { ...user, ...response.data }
             : user
         ));
-        await dialog.success('User updated', `${editingUser.username} was updated successfully.`);
+        await dialog.success('User updated', `${editingUser.username} was updated successfully.${passwordNote}`);
       } else {
         // Create new user
         const response = await userManagementAPI.createUser(userForm);
@@ -1115,17 +1130,37 @@ const UserManagement: React.FC = () => {
                   />
                 </div>
 
-                {!editingUser && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Password</label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {editingUser ? 'New password' : 'Password'}
+                  </label>
+                  <div className="relative">
                     <input
-                      type="password"
+                      type={showModalPassword ? 'text' : 'password'}
                       value={userForm.password}
                       onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                      placeholder={editingUser ? 'Leave blank to keep current password' : 'Min. 6 characters'}
+                      className="mt-1 w-full px-3 py-2 pr-11 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowModalPassword(v => !v)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 mt-0.5 p-1.5 rounded-md text-gray-500 hover:text-green-700 hover:bg-green-50"
+                      title={showModalPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showModalPassword ? (
+                        <EyeSlashIcon className="h-5 w-5" />
+                      ) : (
+                        <EyeIcon className="h-5 w-5" />
+                      )}
+                    </button>
                   </div>
-                )}
+                  {editingUser && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Setting a new password takes effect immediately — the old one stops working.
+                    </p>
+                  )}
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Role</label>
