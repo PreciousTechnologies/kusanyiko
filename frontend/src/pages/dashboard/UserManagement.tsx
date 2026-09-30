@@ -241,16 +241,18 @@ const UserManagement: React.FC = () => {
     
     try {
       if (editingUser) {
-        // Update existing user - exclude password from updates
-        const updateData = { ...userForm };
-        delete updateData.password;
-
-        const response = await userManagementAPI.updateUser(editingUser.id, updateData);
+        // Password first: it's the riskier call — if it fails, nothing
+        // is half-saved and the error is clean.
         let passwordNote = '';
         if (userForm.password) {
           await userManagementAPI.setUserPassword(editingUser.id, userForm.password);
           passwordNote = ' Their password was changed — only the new password works now.';
         }
+        // Update existing user - exclude password from updates
+        const updateData = { ...userForm };
+        delete updateData.password;
+
+        const response = await userManagementAPI.updateUser(editingUser.id, updateData);
         setUsers(prev => prev.map(user =>
           user.id === editingUser.id
             ? { ...user, ...response.data }

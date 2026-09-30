@@ -365,7 +365,11 @@ export const membersAPI = {
 function isFunctionMissingError(e: any): boolean {
   const status = e?.status ?? e?.context?.status;
   if (status === 404) return true;
-  return /Failed to fetch|Load failed|NetworkError|not found/i.test(String(e?.message ?? ''));
+  // supabase-js throws FunctionsFetchError("Failed to send a request to the
+  // Edge Function") when the function doesn't exist / isn't reachable.
+  return /Failed to send a request|Failed to fetch|Load failed|NetworkError|not found/i.test(
+    String(e?.message ?? '')
+  );
 }
 
 // Poll for a profile row instead of a fixed sleep — the
