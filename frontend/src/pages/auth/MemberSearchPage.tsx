@@ -120,9 +120,6 @@ const MemberSearchPage: React.FC = () => {
 
   return (
     <div className="member-search-page">
-      <div className="msp-bg msp-bg-1" aria-hidden="true" />
-      <div className="msp-bg msp-bg-2" aria-hidden="true" />
-      <div className="msp-grain" aria-hidden="true" />
       <div className="search-container">
 
         {/* Search Card - Similar to Login Form */}
