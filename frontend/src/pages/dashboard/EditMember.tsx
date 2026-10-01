@@ -20,6 +20,7 @@ import {
   BriefcaseIcon,
   PencilIcon,
   ChevronRightIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { Member } from '../../types';
 import ProfilePicture from '../../components/ui/ProfilePicture';
@@ -198,6 +199,7 @@ const EditMember: React.FC = () => {
   const [member, setMember] = useState<Member | null>(null);
   const [loadingMember, setLoadingMember] = useState(true);
   const [memberNotFound, setMemberNotFound] = useState(false);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -255,6 +257,12 @@ const EditMember: React.FC = () => {
       setMember(foundMember);
       setMemberNotFound(false);
       setLoadingMember(false);
+      // Fresh photo state per member — never leak a preview/file/flag across members
+      setProfileFile(null);
+      setProfileImage(
+        foundMember.picture && typeof foundMember.picture === 'string' ? foundMember.picture : null
+      );
+      setRemovePhoto(false);
       reset({
           first_name: foundMember.first_name,
           middle_name: foundMember.middle_name || '',
@@ -279,10 +287,6 @@ const EditMember: React.FC = () => {
           career: foundMember.career || '',
           attending_date: foundMember.attending_date || new Date().toISOString().split('T')[0]
         });
-        
-        if (foundMember.picture && typeof foundMember.picture === 'string') {
-          setProfileImage(foundMember.picture);
-        }
     };
     // IDs are uuid strings now (Django used ints) — compare as strings.
     const listed = members.find(m => String(m.id) === String(id));
@@ -308,6 +312,7 @@ const EditMember: React.FC = () => {
 
   const handleCameraCapture = (imageFile: File) => {
     setProfileFile(imageFile);
+    setRemovePhoto(false);
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result;
@@ -323,6 +328,7 @@ const EditMember: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       setProfileFile(file);
+      setRemovePhoto(false);
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result;
@@ -332,6 +338,21 @@ const EditMember: React.FC = () => {
       };
       reader.readAsDataURL(file);
     }
+    // Reset the input so the same file can be picked again
+    event.target.value = '';
+  };
+
+  // Remove the current photo (takes effect on Save)
+  const handleRemovePhoto = async () => {
+    const ok = await dialog.danger({
+      title: 'Remove photo?',
+      message: 'The member photo will be deleted when you save. You can upload a new one anytime.',
+      confirmText: 'Remove photo',
+    });
+    if (!ok) return;
+    setProfileFile(null);
+    setProfileImage(null);
+    setRemovePhoto(true);
   };
 
   const nextStep = async () => {
@@ -409,18 +430,25 @@ const EditMember: React.FC = () => {
         if (cleanedData.church_registration_number === '') {
           delete cleanedData.church_registration_number;
         }
+        if (removePhoto) {
+          (cleanedData as any).picture_url = null;
+        }
         submitData = cleanedData;
       }
 
-      const result = await dispatch(updateMember({ 
-        id: member.id, 
-        data: submitData 
+      const result = await dispatch(updateMember({
+        id: member.id,
+        data: submitData
       }));
 
       if (updateMember.fulfilled.match(result)) {
+        setMember(result.payload as Member);
+        setProfileFile(null);
+        setRemovePhoto(false);
+        await dialog.success('Member updated', 'Member information (and photo, if changed) was saved successfully.');
         setTimeout(() => {
           handleBack();
-        }, 2000);
+        }, 800);
       } else {
         console.error('Failed to update member:', result.payload);
         await dialog.error('Update failed', 'Failed to update member. Please try again.');
@@ -543,7 +571,7 @@ const EditMember: React.FC = () => {
                   />
                 ) : (
                   <ProfilePicture
-                    src={member.picture}
+                    src={removePhoto ? null : member.picture}
                     firstName={member.first_name}
                     lastName={member.last_name}
                     size="md"
@@ -559,6 +587,21 @@ const EditMember: React.FC = () => {
               >
                 <CameraIcon className="h-3 w-3 text-white" />
               </button>
+              {(profileImage || member.picture) && !profileFile && !removePhoto && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="absolute -bottom-1 -left-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg"
+                  title="Remove photo"
+                >
+                  <TrashIcon className="h-3 w-3 text-white" />
+                </button>
+              )}
+              {removePhoto && (
+                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+                  Removed on save
+                </span>
+              )}
             </div>
             
             <div className="text-white flex-1">
@@ -1214,7 +1257,7 @@ const EditMember: React.FC = () => {
                         />
                       ) : (
                         <ProfilePicture
-                          src={member.picture}
+                          src={removePhoto ? null : member.picture}
                           firstName={member.first_name}
                           lastName={member.last_name}
                           size="lg"
@@ -1243,6 +1286,18 @@ const EditMember: React.FC = () => {
                     >
                       <CameraIcon className="h-4 w-4 text-white" />
                     </button>
+
+                    {/* Remove photo button */}
+                    {(profileImage || member.picture) && !profileFile && !removePhoto && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg"
+                        title="Remove photo"
+                      >
+                        <TrashIcon className="h-4 w-4 text-white" />
+                      </button>
+                    )}
                   </div>
                   
                   <div className="text-center">

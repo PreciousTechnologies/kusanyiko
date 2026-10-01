@@ -21,6 +21,7 @@ import {
   BriefcaseIcon,
 } from '@heroicons/react/24/outline';
 import Camera from '../../components/ui/Camera';
+import { dialog } from '../../components/ui/Dialog';
 
 // All Tanzania regions (mainland and Zanzibar)
 const ALL_TANZANIA_REGIONS = [
@@ -391,25 +392,20 @@ const AddMember: React.FC = () => {
 
       await dispatch(createMember(formData)).unwrap();
       setIsSubmitted(true);
-      // Navigate back after 3 seconds
+      await dialog.success('Member registered', 'The member (and photo, if added) was saved successfully.');
+      // Navigate back after a beat so the confirmation reads
       setTimeout(() => {
         navigate(`${getBasePath()}/dashboard`);
-      }, 3000);
+      }, 1200);
     } catch (error: any) {
       console.error('Error creating member:', error);
-
-      // Log more detailed error information
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-      }
 
       // Display user-friendly error message
       const errorMessage = error.response?.data?.message ||
                           error.response?.data?.error ||
                           error.message ||
                           'Failed to create member';
-      console.error('Detailed error:', errorMessage);
+      await dialog.error('Registration failed', `${errorMessage}\n\nNo member was saved — check the highlighted fields and try again.`);
     }
   };
 
