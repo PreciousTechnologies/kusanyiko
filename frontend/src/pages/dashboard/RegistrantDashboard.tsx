@@ -283,7 +283,7 @@ const RegistrantDashboard: React.FC = () => {
             </h1>
             <p className="text-gray-600 text-base sm:text-lg">
               {user?.role === 'apostle'
-                ? 'EFATHA Leaders\' Camp  Kanda oversight dashboard'
+                ? `${branding.app_name} — Kanda oversight dashboard`
                 : branding.registrant_dashboard_subtitle}
             </p>
           </div>
@@ -294,11 +294,11 @@ const RegistrantDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Leaders' Camp Information with Green Accent */}
+      {/* Camp Information with Green Accent */}
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl shadow-lg border border-green-100 p-6 hover:shadow-xl transition-all duration-300">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-green-800 mb-2">Leaders' Camp Information</h2>
+            <h2 className="text-xl font-bold text-green-800 mb-2">{branding.app_name} Information</h2>
             <p className="text-green-700 font-medium">{campaignInfo.startDate} - {campaignInfo.endDate}</p>
             <p className="text-green-600 text-sm mt-1 flex items-center">
               <span className="text-lg mr-1">📍</span> {campaignInfo.location}

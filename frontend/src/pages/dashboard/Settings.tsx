@@ -153,8 +153,8 @@ const Settings: React.FC = () => {
 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() =>
     loadStoredSection('system', {
-      siteName: 'Efatha Leaders\' Camp Registration',
-      siteDescription: 'Church leaders\' camp registration and coordination system for Kibaha',
+      siteName: 'Kusanyiko Member Registration',
+      siteDescription: 'Church member registration and coordination system',
       adminEmail: 'admin@church.com',
       allowRegistration: true,
       requireEmailVerification: false,

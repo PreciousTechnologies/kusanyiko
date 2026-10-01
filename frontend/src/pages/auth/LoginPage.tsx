@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { loginUser } from '../../store/slices/authSlice';
+import { useBranding } from '../../context/BrandingContext';
 import { LoginCredentials } from '../../types';
 import { toast } from 'react-toastify';
 
@@ -14,6 +15,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { loading, error } = useAppSelector((state) => state.auth);
+  const { branding } = useBranding();
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
 
@@ -79,7 +81,7 @@ const LoginPage: React.FC = () => {
           </div>
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">
-            Sign in to your EFATHA account
+            Sign in to your {branding.app_name} account
           </p>
         </div>
 

@@ -1125,7 +1125,7 @@ const EditMember: React.FC = () => {
                 Edit Member: {member.first_name} {member.last_name}
               </h1>
               <p className="text-gray-600 mt-2 text-center lg:text-left">
-                Update member information in the EFATHA system
+                Update member information
               </p>
             </div>
             

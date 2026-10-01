@@ -32,7 +32,7 @@ const LandingPage = () => {
             <div className="landing-logo-icon">
               <img
                 src={`${process.env.PUBLIC_URL}/image.png`}
-                alt="Efatha Members logo"
+                alt={`${branding.app_name} logo`}
                 className="landing-logo-image"
               />
             </div>
@@ -111,8 +111,7 @@ const LandingPage = () => {
                 <MapPin size={22} />
               </div>
               <p className="bento-kicker">Location</p>
-              <p className="bento-big">Kibaha</p>
-              <p className="bento-sub">{branding.camp_location}</p>
+              <p className="bento-big">{branding.camp_location}</p>
             </article>
 
             <article className="liquid-glass bento-tile bento-wide">
@@ -122,8 +121,8 @@ const LandingPage = () => {
               </div>
               <h3 className="bento-title">Registration Info</h3>
               <p className="bento-text">
-                Register church leaders from different regions and branches for this special
-                Kibaha camp. Ensure each leader&apos;s details are complete to support smooth
+                Register church leaders from different regions and branches.
+                Ensure each leader&apos;s details are complete to support smooth
                 coordination, ministry planning, and event participation.
               </p>
             </article>

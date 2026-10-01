@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       ],
     },
     {
-      section: 'LEADERS CAMP REGISTRATION',
+      section: branding.app_name ? branding.app_name.toUpperCase() : 'MEMBER REGISTRATION',
       items: [
         { name: 'All Members', href: '/admin/members', icon: UsersIcon, description: 'View all registrations' },
         { name: 'My Members', href: '/admin/my-members', icon: UserGroupIcon, description: 'Members I registered' },
@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       ],
     },
     {
-      section: 'LEADERS CAMP REGISTRATION',
+      section: branding.app_name ? branding.app_name.toUpperCase() : 'MEMBER REGISTRATION',
       items: [
         { name: 'My Members', href: '/registrant/members', icon: UserGroupIcon, description: 'Members you registered' },
         { name: 'Add Member', href: '/registrant/members/add', icon: UserPlusIcon, description: 'Register new member' },

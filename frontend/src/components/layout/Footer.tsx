@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useBranding } from '../../context/BrandingContext';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
+  const { branding } = useBranding();
 
   return (
     <footer className="bg-white/95 backdrop-blur-md border-t border-green-100 mt-8 shadow-sm">
@@ -11,10 +13,10 @@ const Footer: React.FC = () => {
           {/* Left Section - Enhanced Copyright */}
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/25">
-              <span className="text-white font-bold text-sm">E</span>
+              <span className="text-white font-bold text-sm">{(branding.app_name?.[0] || 'K').toUpperCase()}</span>
             </div>
             <div className="text-sm text-gray-700 font-medium">
-              © {currentYear} EFATHA Church. All rights reserved.
+              © {currentYear} {branding.app_name}. All rights reserved.
             </div>
           </div>
 

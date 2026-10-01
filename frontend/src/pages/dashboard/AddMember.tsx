@@ -533,7 +533,7 @@ const AddMember: React.FC = () => {
                 Add New Member
               </h1>
               <p className="add-member-subtitle text-gray-600 mt-2 text-center lg:text-left">
-                Register a new church member to the EFATHA system
+                Register a new church member
               </p>
             </div>
             

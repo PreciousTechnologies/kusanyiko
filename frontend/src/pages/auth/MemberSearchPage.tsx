@@ -133,7 +133,7 @@ const MemberSearchPage: React.FC = () => {
               Member Search
             </h1>
             <p className="search-card-subtitle">
-              Search for registered members in the EFATHA system
+              Search for registered members
             </p>
           </div>
 
