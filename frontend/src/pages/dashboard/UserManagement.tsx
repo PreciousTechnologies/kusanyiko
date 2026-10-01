@@ -26,13 +26,13 @@ const getInitials = (firstName?: string, lastName?: string, username?: string): 
   return initials || (username?.[0] || 'U').toUpperCase();
 };
 
-interface User {
+  interface User {
   id: number;
   username: string;
   email: string;
   first_name: string;
   last_name: string;
-  role: 'admin' | 'registrant' | 'apostle' | 'member';
+  role: 'admin' | 'registrant' | 'apostle' | 'member' | 'security';
   kanda?: string;
   status: 'active' | 'inactive' | 'suspended';
   date_joined: string;
@@ -47,7 +47,7 @@ interface UserFormData {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'admin' | 'registrant' | 'apostle' | 'member';
+  role: 'admin' | 'registrant' | 'apostle' | 'member' | 'security';
   kanda?: string;
   password?: string;
   is_staff: boolean;
@@ -355,7 +355,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleRoleChange = async (user: User, newRole: 'admin' | 'registrant' | 'apostle' | 'member') => {
+  const handleRoleChange = async (user: User, newRole: 'admin' | 'registrant' | 'apostle' | 'member' | 'security') => {
     setLoading(true);
     
     try {
@@ -529,6 +529,8 @@ const UserManagement: React.FC = () => {
         return <ShieldCheckIcon className="h-5 w-5 text-orange-500" />;
       case 'registrant':
         return <UserCircleIcon className="h-5 w-5 text-blue-500" />;
+      case 'security':
+        return <ShieldCheckIcon className="h-5 w-5 text-teal-500" />;
       default:
         return <UsersIcon className="h-5 w-5 text-gray-500" />;
     }
@@ -668,6 +670,7 @@ const UserManagement: React.FC = () => {
             <option value="apostle">Apostle</option>
             <option value="registrant">Registrant</option>
             <option value="member">Member</option>
+            <option value="security">Security</option>
           </select>
 
           <select
@@ -792,6 +795,7 @@ const UserManagement: React.FC = () => {
                           <option value="apostle">Apostle</option>
                           <option value="registrant">Registrant</option>
                           <option value="member">Member</option>
+                          <option value="security">Security</option>
                         </select>
                       </div>
                       
@@ -962,6 +966,7 @@ const UserManagement: React.FC = () => {
                           <option value="apostle">Apostle</option>
                           <option value="registrant">Registrant</option>
                           <option value="member">Member</option>
+                          <option value="security">Security</option>
                         </select>
                       </div>
                       <div className="flex flex-col items-start gap-1">
@@ -1184,11 +1189,13 @@ const UserManagement: React.FC = () => {
                     <option value="apostle">Apostle</option>
                     <option value="registrant">Registrant</option>
                     <option value="member">Member</option>
+                    <option value="security">Security</option>
                   </select>
                   <p className="mt-1 text-xs text-gray-500">
                     {userForm.role === 'admin' && 'Admin users automatically get staff status'}
                     {userForm.role === 'apostle' && 'Can monitor members in assigned kanda'}
                     {userForm.role === 'registrant' && 'Can register new members'}
+                    {userForm.role === 'security' && 'Can only search registered members'}
                     {userForm.role === 'member' && 'Basic user permissions'}
                   </p>
                 </div>

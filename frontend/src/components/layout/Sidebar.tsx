@@ -11,6 +11,7 @@ import {
   CloudArrowDownIcon,
   ShieldCheckIcon,
   Cog6ToothIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { useAppSelector } from '../../hooks/redux';
 import { useBranding } from '../../context/BrandingContext';
@@ -90,10 +91,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     },
   ];
 
+  const securityNavItems = [
+    {
+      section: 'SECURITY',
+      items: [
+        { name: 'Member Search', href: '/security/search', icon: MagnifyingGlassIcon, description: 'Search registered members' },
+      ],
+    },
+  ];
+
   const navItems = user?.role === 'admin'
     ? adminNavItems
     : user?.role === 'apostle'
     ? apostleNavItems
+    : user?.role === 'security'
+    ? securityNavItems
     : registrantNavItems;
 
   const isActiveLink = (href: string) => {

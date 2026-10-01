@@ -141,16 +141,6 @@ const LoginPage: React.FC = () => {
             </Link>
           </div>
 
-          {/* Member Search Link */}
-          <div className="text-center">
-            <Link 
-              to="/member-search" 
-              className="auth-link text-sm"
-            >
-              🔍 Search Members
-            </Link>
-          </div>
-
           {/* Error Message */}
           {error && (
             <div className="auth-error text-center">
@@ -177,16 +167,6 @@ const LoginPage: React.FC = () => {
             )}
           </button>
         </form>
-
-        <div className="auth-divider">
-          <span>Need to find someone?</span>
-        </div>
-
-        <div className="text-center">
-          <Link to="/member-search" className="auth-link">
-            🔍 Search Members
-          </Link>
-        </div>
       </div>
     </div>
   );

@@ -132,9 +132,15 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isSidebarOpen }) => {
                 </div>
                 
                 <div className="py-2">
-                  <button 
+                  <button
                     onClick={() => {
-                      const profilePath = user?.role === 'admin' ? '/admin/profile-settings' : '/registrant/profile-settings';
+                      const profilePath = user?.role === 'admin'
+                        ? '/admin/profile-settings'
+                        : user?.role === 'apostle'
+                        ? '/apostle/profile-settings'
+                        : user?.role === 'security'
+                        ? '/security/profile-settings'
+                        : '/registrant/profile-settings';
                       navigate(profilePath);
                       setShowUserDropdown(false);
                     }}

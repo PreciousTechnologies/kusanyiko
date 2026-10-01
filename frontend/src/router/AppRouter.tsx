@@ -23,7 +23,6 @@ import UserManagement from '../pages/dashboard/UserManagement';
 import Settings from '../pages/dashboard/Settings';
 import SearchMembers from '../pages/dashboard/SearchMembers';
 import MemberSearchPage from '../pages/auth/MemberSearchPage';
-
 // Components
 import DashboardLayout from '../components/layout/DashboardLayout';
 
@@ -39,6 +38,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   const getDashboardPath = (role: string) => {
     if (role === 'admin') return '/admin/dashboard';
     if (role === 'apostle') return '/apostle/dashboard';
+    if (role === 'security') return '/security/search';
     return '/registrant/dashboard';
   };
 
@@ -83,6 +83,7 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const getDashboardPath = (role: string) => {
     if (role === 'admin') return '/admin/dashboard';
     if (role === 'apostle') return '/apostle/dashboard';
+    if (role === 'security') return '/security/search';
     return '/registrant/dashboard';
   };
 
@@ -123,10 +124,21 @@ const AppRouter: React.FC = () => {
           </PublicRoute>
         } />
         
-        <Route path="/member-search" element={<MemberSearchPage />} />
-        
         <Route path="/admin/search-members" element={<SearchMembers />} />
-        
+
+        {/* Protected Security Routes — search-only role (no public search) */}
+        <Route path="/security/*" element={
+          <ProtectedRoute allowedRoles={['security']}>
+            <DashboardLayout>
+              <Routes>
+                <Route path="search" element={<MemberSearchPage />} />
+                <Route path="profile-settings" element={<ProfileSettings />} />
+                <Route path="" element={<Navigate to="search" replace />} />
+              </Routes>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
         {/* Protected Admin Routes */}
         <Route path="/admin/*" element={
           <ProtectedRoute allowedRoles={['admin']}>

@@ -3,7 +3,7 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  role: 'admin' | 'registrant' | 'apostle' | 'member';
+  role: 'admin' | 'registrant' | 'apostle' | 'member' | 'security';
   kanda?: string;
   country: string;
   region: string;
@@ -25,7 +25,7 @@ export interface SignupData {
   confirm_password: string;
   first_name: string;
   last_name: string;
-  role?: 'admin' | 'registrant' | 'apostle'; // Optional role field
+  role?: 'admin' | 'registrant' | 'apostle' | 'security'; // Optional role field
 }
 
 export interface ForgotPasswordData {

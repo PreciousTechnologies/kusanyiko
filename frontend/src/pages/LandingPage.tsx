@@ -7,7 +7,6 @@ import {
   ClipboardList,
   LogIn,
   MapPin,
-  Search,
   Sparkles,
   Users,
 } from 'lucide-react';
@@ -43,10 +42,6 @@ const LandingPage = () => {
             </div>
           </div>
           <nav className="landing-nav" aria-label="Primary">
-            <Link to="/member-search" className="nav-btn nav-btn-ghost">
-              <Search size={16} />
-              Search
-            </Link>
             <Link to="/login" className="nav-btn nav-btn-primary">
               <LogIn size={16} />
               Sign In
@@ -73,10 +68,6 @@ const LandingPage = () => {
             <Link to="/login" className="hero-btn hero-btn-primary">
               Sign In to Register
               <ArrowRight size={18} />
-            </Link>
-            <Link to="/member-search" className="hero-btn hero-btn-secondary">
-              <Search size={18} />
-              Search Members
             </Link>
           </div>
         </section>
@@ -168,16 +159,12 @@ const LandingPage = () => {
             <h2 className="cta-title">Ready to register your leaders?</h2>
             <p className="cta-sub">Sign in to your account or look up an existing registration.</p>
           </div>
-          <div className="cta-actions">
-            <Link to="/login" className="hero-btn hero-btn-primary">
-              <LogIn size={18} />
-              Sign In
-            </Link>
-            <Link to="/member-search" className="hero-btn hero-btn-secondary">
-              <Search size={18} />
-              Search
-            </Link>
-          </div>
+            <div className="cta-actions">
+              <Link to="/login" className="hero-btn hero-btn-primary">
+                <LogIn size={18} />
+                Sign In
+              </Link>
+            </div>
         </section>
       </main>
 

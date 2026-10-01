@@ -10,7 +10,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { handleOptions, json, requireAdmin } from '../_shared/auth.ts';
 
-const VALID_ROLES = ['admin', 'registrant', 'apostle', 'member'];
+const VALID_ROLES = ['admin', 'registrant', 'apostle', 'member', 'security'];
 
 serve(async (req: Request) => {
   const opt = handleOptions(req);

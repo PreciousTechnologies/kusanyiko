@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, User, Phone, Mail, MapPin, Calendar, ArrowLeft } from 'lucide-react';
+import { Search, User, Phone, Mail, MapPin, Calendar } from 'lucide-react';
 import { membersAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import '../../styles/member-search-page.css';
@@ -125,11 +124,6 @@ const MemberSearchPage: React.FC = () => {
       <div className="msp-bg msp-bg-2" aria-hidden="true" />
       <div className="msp-grain" aria-hidden="true" />
       <div className="search-container">
-        {/* Back to Login Link */}
-        <Link to="/login" className="back-to-login">
-          <ArrowLeft size={20} />
-          Back to Login
-        </Link>
 
         {/* Search Card - Similar to Login Form */}
         <div className="search-card">
