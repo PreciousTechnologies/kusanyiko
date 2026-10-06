@@ -629,7 +629,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
         {/* Main Content Viewport */}
         <main className="efatha-scope flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          <AnimatePresence mode="popLayout">
+          {/* NOTE: default sync mode (not popLayout) — popLayout measures and
+              absolutely-positions exiting pages, which on some mobile browsers
+              interferes with document scroll height. Fade/slide retained. */}
+          <AnimatePresence mode="sync">
             <motion.div
               key={location.pathname}
               initial={{ opacity: 0, y: 16 }}
