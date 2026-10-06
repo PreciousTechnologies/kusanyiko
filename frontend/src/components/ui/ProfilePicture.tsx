@@ -30,11 +30,11 @@ const ProfilePicture: React.FC<ProfilePictureProps> = ({
   };
 
   const clickableClasses = clickable 
-    ? `cursor-pointer hover:ring-2 hover:ring-green-300 transition-all duration-200 hover:scale-105 active:scale-95 ${
-        isClicked ? 'ring-4 ring-green-400' : ''
+    ? `cursor-pointer hover:ring-2 hover:ring-[var(--primary)] transition-all duration-200 hover:scale-105 active:scale-95 ${
+        isClicked ? 'ring-4 ring-[var(--primary)]' : ''
       }` 
     : '';
-  const baseClasses = `relative bg-white border-2 border-green-200 rounded-full flex items-center justify-center text-green-600 font-bold shadow-lg ring-4 ring-green-100 overflow-hidden ${sizeClasses[size]} ${className} ${clickableClasses}`;
+  const baseClasses = `relative bg-[var(--secondary)] border-2 border-[color-mix(in_srgb,var(--primary)_30%,transparent)] rounded-full flex items-center justify-center text-[var(--primary)] font-bold shadow-lg ring-4 ring-[color-mix(in_srgb,var(--primary)_15%,transparent)] overflow-hidden ${sizeClasses[size]} ${className} ${clickableClasses}`;
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (clickable) {

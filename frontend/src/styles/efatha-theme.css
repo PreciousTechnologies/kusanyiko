@@ -1,0 +1,315 @@
+/* ============================================================
+   Efatha Connect — UI/UX Design System Tokens & Utilities
+   Supports Mint (Light), Brown (Earthy Dark), and Dark (Navy)
+   ============================================================ */
+
+:root,
+.theme-mint {
+  --background: #f0faf5;
+  --foreground: #1c2b24;
+  --card: #ffffff;
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --border: #e0f2e9;
+  --muted: #e0f2e9;
+  --secondary: #e0f2e9;
+  --accent: #e0f2e9;
+  --muted-foreground: #6b7280;
+  --sidebar: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7fdfb;
+  --radius: 0.9rem;
+
+  /* Semantic */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #14b8a6;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+
+  /* Charts */
+  --chart-1: #10b981;
+  --chart-2: #14b8a6;
+  --chart-3: #6ee7b7;
+  --chart-4: #f59e0b;
+  --chart-5: #b7bec9;
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-strong-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(16, 185, 129, 0.12);
+  --glass-strong-border: rgba(16, 185, 129, 0.18);
+
+  /* Shadows */
+  --shadow-ambient: 0 8px 24px rgba(16, 185, 129, 0.08);
+  --shadow-lift-def: 0 16px 36px rgba(16, 185, 129, 0.16);
+  --shadow-clay-def: 4px 4px 12px rgba(16, 185, 129, 0.12), inset 1px 1px 2px rgba(255, 255, 255, 0.8);
+  --shadow-elev-def: 0 8px 32px rgba(16, 185, 129, 0.18);
+}
+
+.theme-brown {
+  --background: #1c1712;
+  --foreground: #f3ede3;
+  --card: #241e17;
+  --primary: #d98a3d;
+  --primary-hover: #c47a32;
+  --border: #332a20;
+  --muted: #332a20;
+  --secondary: #332a20;
+  --accent: #332a20;
+  --muted-foreground: #b8a992;
+  --sidebar: #1c1712;
+  --surface: #241e17;
+  --surface-2: #2b241b;
+  --radius: 0.9rem;
+
+  /* Semantic */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #14b8a6;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+
+  /* Charts */
+  --chart-1: #d98a3d;
+  --chart-2: #e5a867;
+  --chart-3: #b56d25;
+  --chart-4: #f59e0b;
+  --chart-5: #7a6652;
+
+  /* Glass */
+  --glass-bg: rgba(28, 23, 18, 0.72);
+  --glass-strong-bg: rgba(36, 30, 23, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-strong-border: rgba(255, 255, 255, 0.12);
+
+  /* Shadows */
+  --shadow-ambient: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lift-def: 0 16px 36px rgba(0, 0, 0, 0.45);
+  --shadow-clay-def: 6px 6px 16px rgba(217, 138, 61, 0.12), inset 1px 1px 2px rgba(255, 255, 255, 0.1);
+  --shadow-elev-def: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.theme-dark {
+  --background: #14121f;
+  --foreground: #f5f4fc;
+  --card: #1e1b2e;
+  --primary: #8c7cf0;
+  --primary-hover: #7a6ae0;
+  --border: rgba(255, 255, 255, 0.08);
+  --muted: #2a2740;
+  --secondary: #2a2740;
+  --accent: #2a2740;
+  --muted-foreground: #a6a3bb;
+  --sidebar: #14121f;
+  --surface: #1e1b2e;
+  --surface-2: #252239;
+  --radius: 0.9rem;
+
+  /* Semantic */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #14b8a6;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+
+  /* Charts */
+  --chart-1: #8c7cf0;
+  --chart-2: #14b8a6;
+  --chart-3: #a799f5;
+  --chart-4: #f59e0b;
+  --chart-5: #5e5875;
+
+  /* Glass */
+  --glass-bg: rgba(20, 18, 31, 0.72);
+  --glass-strong-bg: rgba(30, 27, 46, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-strong-border: rgba(255, 255, 255, 0.14);
+
+  /* Shadows */
+  --shadow-ambient: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lift-def: 0 16px 36px rgba(0, 0, 0, 0.55);
+  --shadow-clay-def: 6px 6px 16px rgba(140, 124, 240, 0.12), inset 1px 1px 2px rgba(255, 255, 255, 0.1);
+  --shadow-elev-def: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   Typography & Global Defaults
+   ============================================================ */
+:root {
+  --font-display: 'Poppins', 'Sora', sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  font-family: var(--font-sans);
+  transition: background-color 250ms ease, color 250ms ease;
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Design Utilities (Bento, Glass, Clay, Surface)
+   ============================================================ */
+
+.surface {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-ambient);
+  border-radius: 1.25rem;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.surface:hover {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+}
+
+.bento {
+  border-radius: 20px;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-ambient);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.bento:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift-def);
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+}
+
+.glass {
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-strong {
+  background-color: var(--glass-strong-bg);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--glass-strong-border);
+}
+
+.clay {
+  box-shadow: var(--shadow-clay-def);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.clay-press {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.clay-press:active {
+  transform: scale(0.97);
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.hover-lift {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift-def);
+}
+
+.row-hover {
+  transition: background-color 150ms ease;
+}
+
+.row-hover:hover {
+  background-color: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--primary);
+}
+
+/* Custom themed scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 25%, transparent);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+}
+
+/* Animations */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.15); }
+}
+
+.pulse-dot {
+  animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================================
+   Native control theming — without this, select dropdowns,
+   date pickers and scrollbars render white in brown/dark themes
+   because browsers follow color-scheme, not our tokens.
+   ============================================================ */
+:root,
+.theme-mint {
+  color-scheme: light;
+}
+
+.theme-brown,
+.theme-dark {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
+input[type='date'] {
+  color: var(--foreground);
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+}

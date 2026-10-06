@@ -1,19 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchRegistrantStats } from '../../store/slices/statsSlice';
 import { fetchMembers } from '../../store/slices/membersSlice';
+import { PageHeader } from '../../components/app-shell';
+import { KpiCard, SectionCard, ClayButton, StatusPill, EmptyState } from '../../components/ui-bits';
+import { DataTable } from '../../components/data-table';
+import { DashboardSkeleton } from '../../components/skeleton-loaders';
+import { formatDelta } from '../../lib/utils';
+import ProfilePicture from '../../components/ui/ProfilePicture';
 import {
-  ChartBarIcon,
-  UsersIcon,
-  CalendarDaysIcon,
-  MapPinIcon,
-  ChartPieIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-} from '@heroicons/react/24/outline';
+  Users,
+  CalendarDays,
+  MapPin,
+  CheckCircle2,
+  RefreshCw,
+  Clock,
+  Trophy,
+} from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -21,14 +25,14 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
+  Legend,
 } from 'recharts';
+
+const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 
 const MyStatistics: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -37,8 +41,9 @@ const MyStatistics: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const [timeFilter, setTimeFilter] = useState('all');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
   const scopeLabel = user?.role === 'apostle' ? 'Kanda' : 'My';
+  const basePath = user?.role === 'apostle' ? '/apostle' : '/registrant';
 
   useEffect(() => {
     dispatch(fetchRegistrantStats({}));
@@ -46,505 +51,283 @@ const MyStatistics: React.FC = () => {
     setLastUpdated(new Date());
   }, [dispatch]);
 
-  // Auto-refresh data every 5 minutes (silent — no UI flashing)
+  // Auto-refresh every 5 minutes when enabled (silent — no UI flashing)
   useEffect(() => {
+    if (!isAutoRefresh) return;
     const interval = setInterval(() => {
       dispatch(fetchRegistrantStats({ silent: true }));
       dispatch(fetchMembers({ silent: true }));
       setLastUpdated(new Date());
-    }, 5 * 60 * 1000); // 5 minutes
-
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [dispatch]);
+  }, [dispatch, isAutoRefresh]);
 
-  // Calculate real-time statistics
-  const calculateWeeklyRegistrations = () => {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    return members.filter(member => {
-      if (!member.created_at) return false;
-      const createdDate = new Date(member.created_at);
-      return createdDate >= oneWeekAgo;
+  const handleManualRefresh = () => {
+    dispatch(fetchRegistrantStats({}));
+    dispatch(fetchMembers({}));
+    setLastUpdated(new Date());
+  };
+
+  // Members inside the selected window — drives activity + insights.
+  const scopedMembers = useMemo(() => {
+    const now = Date.now();
+    if (timeFilter === 'week') return members.filter((m) => m.created_at && new Date(m.created_at).getTime() >= now - 7 * 864e5);
+    if (timeFilter === 'month') return members.filter((m) => m.created_at && new Date(m.created_at).getTime() >= now - 30 * 864e5);
+    if (timeFilter === 'year') return members.filter((m) => m.created_at && new Date(m.created_at).getFullYear() === new Date().getFullYear());
+    return members;
+  }, [members, timeFilter]);
+
+  const kpi = useMemo(() => {
+    const now = Date.now();
+    const week = members.filter((m) => m.created_at && new Date(m.created_at).getTime() >= now - 7 * 864e5).length;
+    const prevWeek = members.filter((m) => {
+      if (!m.created_at) return false;
+      const t = new Date(m.created_at).getTime();
+      return t >= now - 14 * 864e5 && t < now - 7 * 864e5;
     }).length;
-  };
+    const month = members.filter((m) => m.created_at && new Date(m.created_at).getTime() >= now - 30 * 864e5).length;
+    const regions = new Set(members.map((m) => m.region).filter(Boolean)).size;
+    const kept = members.filter((m) => !m.is_deleted).length;
+    const wow = formatDelta(week, prevWeek, 'week');
+    return { week, month, regions, kept, wowText: wow.text, wowDown: wow.down };
+  }, [members]);
 
-  const calculateMonthlyRegistrations = () => {
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    
-    return members.filter(member => {
-      if (!member.created_at) return false;
-      const createdDate = new Date(member.created_at);
-      return createdDate >= oneMonthAgo;
-    }).length;
-  };
+  const totalRegistered = registrantStats?.total_registered ?? members.length;
+  const successPct = members.length > 0 ? Math.round((kpi.kept / members.length) * 100) : 0;
 
-  const calculateRegionsCovered = () => {
-    const uniqueRegions = new Set(
-      members
-        .filter(member => member.region)
-        .map(member => member.region)
-    );
-    return uniqueRegions.size;
-  };
+  const monthlySeries = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const year = new Date().getFullYear();
+    const counts = Array(12).fill(0);
+    members.forEach((m) => {
+      if (!m.created_at) return;
+      const d = new Date(m.created_at);
+      if (d.getFullYear() === year) counts[d.getMonth()] += 1;
+    });
+    return months.map((label, i) => ({ label, value: counts[i] }));
+  }, [members]);
 
-  const calculateSuccessRate = () => {
-    if (members.length === 0) return '0%';
-    const successfulRegistrations = members.filter(member => !member.is_deleted).length;
-    return `${Math.round((successfulRegistrations / members.length) * 100)}%`;
-  };
+  const genderSeries = useMemo(() => {
+    let male = 0;
+    let female = 0;
+    members.forEach((m) => {
+      const g = String(m.gender || '').toLowerCase();
+      if (g.startsWith('m')) male += 1;
+      else if (g.startsWith('f')) female += 1;
+    });
+    return [
+      { name: 'Male', value: male },
+      { name: 'Female', value: female },
+    ];
+  }, [members]);
 
-  const getRecentActivity = () => {
-    return members
-      .filter(member => member.created_at)
-      .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
-      .slice(0, 4)
-      .map(member => ({
-        action: `Registered ${member.first_name} ${member.last_name}`,
-        region: member.region || 'Unknown',
-        time: formatTimeAgo(member.created_at!),
-        status: member.is_deleted ? 'error' : 'success',
-      }));
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays > 0) {
-      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    } else if (diffHours > 0) {
-      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    } else {
-      return 'Less than an hour ago';
-    }
-  };
-
-  const getBestPerformanceDay = () => {
-    const dayCount: { [key: string]: number } = {};
+  const insights = useMemo(() => {
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
-    members.forEach(member => {
-      if (member.created_at) {
-        const day = new Date(member.created_at).getDay();
-        const dayName = dayNames[day];
-        dayCount[dayName] = (dayCount[dayName] || 0) + 1;
+    const dayCount = new Map<string, number>();
+    const regionCount = new Map<string, number>();
+    scopedMembers.forEach((m) => {
+      if (!m.created_at) return;
+      const day = dayNames[new Date(m.created_at).getDay()];
+      dayCount.set(day, (dayCount.get(day) || 0) + 1);
+      if (m.region) regionCount.set(m.region, (regionCount.get(m.region) || 0) + 1);
+    });
+    let bestDay = 'No data yet';
+    let bestDayCount = 0;
+    Array.from(dayCount.entries()).forEach(([day, count]) => {
+      if (count > bestDayCount) {
+        bestDay = `${day} (${count})`;
+        bestDayCount = count;
       }
     });
-
-    if (Object.keys(dayCount).length === 0) return 'No data available';
-
-    const bestDay = Object.entries(dayCount).reduce((a, b) => a[1] > b[1] ? a : b);
-    return `${bestDay[0]} (${bestDay[1]} registrations)`;
-  };
-
-  const getTopRegion = () => {
-    const regionCount: { [key: string]: number } = {};
-    
-    members.forEach(member => {
-      if (member.region) {
-        regionCount[member.region] = (regionCount[member.region] || 0) + 1;
+    let topRegion = 'No data yet';
+    let topCount = 0;
+    const scopedTotal = scopedMembers.length || 1;
+    Array.from(regionCount.entries()).forEach(([region, count]) => {
+      if (count > topCount) {
+        topRegion = `${region} (${Math.round((count / scopedTotal) * 100)}%)`;
+        topCount = count;
       }
     });
+    return { bestDay, topRegion };
+  }, [scopedMembers]);
 
-    if (Object.keys(regionCount).length === 0) return 'No data available';
+  const recentRows = useMemo(
+    () =>
+      scopedMembers
+        .filter((m) => m.created_at)
+        .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
+        .slice(0, 8)
+        .map((m) => ({
+          id: m.id,
+          action: `Registered ${m.first_name} ${m.last_name}`,
+          first_name: m.first_name,
+          last_name: m.last_name,
+          picture: m.picture,
+          region: m.region || 'Unknown',
+          at: m.created_at!,
+        })),
+    [scopedMembers]
+  );
 
-    const totalMembers = members.length;
-    const topRegion = Object.entries(regionCount).reduce((a, b) => a[1] > b[1] ? a : b);
-    const percentage = Math.round((topRegion[1] / totalMembers) * 100);
-    return `${topRegion[0]} (${percentage}%)`;
+  const formatAgo = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
   };
 
-  const getSuccessRate = () => {
-    if (members.length === 0) return 0;
-    const successfulRegistrations = members.filter(member => !member.is_deleted).length;
-    return Math.round((successfulRegistrations / members.length) * 100);
-  };
-
-  const getWeeklyData = () => {
-    const weeklyData = [];
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dayName = days[date.getDay()];
-      
-      const registrations = members.filter(member => {
-        if (!member.created_at) return false;
-        const memberDate = new Date(member.created_at);
-        return memberDate.toDateString() === date.toDateString();
-      }).length;
-      
-      weeklyData.push({ day: dayName, registrations });
-    }
-    
-    return weeklyData;
-  };
-
-  // Chart data preparation functions
-  const getGenderChartData = () => {
-    const genderCount: { [key: string]: number } = {};
-    members.forEach(member => {
-      if (member.gender) {
-        genderCount[member.gender] = (genderCount[member.gender] || 0) + 1;
-      }
-    });
-
-    return Object.entries(genderCount).map(([gender, count]) => ({
-      name: gender === 'male' ? 'Male' : 'Female',
-      value: count,
-      fill: gender === 'male' ? '#3B82F6' : '#EC4899'
-    }));
-  };
-
-  const getRegionChartData = () => {
-    const regionCount: { [key: string]: number } = {};
-    members.forEach(member => {
-      if (member.region) {
-        regionCount[member.region] = (regionCount[member.region] || 0) + 1;
-      }
-    });
-
-    return Object.entries(regionCount)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 8)
-      .map(([region, count]) => ({
-        region,
-        members: count
-      }));
-  };
-
-  const getWeeklyChartData = () => {
-    return getWeeklyData();
-  };
-
-  const getPerformanceData = () => {
-    const dayCount: { [key: string]: number } = {};
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-    members.forEach(member => {
-      if (member.created_at) {
-        const day = new Date(member.created_at).getDay();
-        const dayName = dayNames[day];
-        dayCount[dayName] = (dayCount[dayName] || 0) + 1;
-      }
-    });
-
-    return Object.entries(dayCount).map(([day, count]) => ({
-      day: day.substring(0, 3), // Short day name
-      registrations: count
-    }));
-  };
-
-  // Real-time statistics data
-  const statisticsData = [
-    {
-      title: `${scopeLabel} Registrations`,
-      value: registrantStats?.total_registered || 0,
-      change: '+12%',
-      trend: 'up',
-      icon: UsersIcon,
-      color: 'green',
-      description: user?.role === 'apostle' ? 'Members in your kanda' : 'Members you have registered',
-    },
-    {
-      title: 'This Week',
-      value: calculateWeeklyRegistrations(),
-      change: `+${Math.round(((calculateWeeklyRegistrations() / (registrantStats?.total_registered || 1)) * 100))}%`,
-      trend: 'up',
-      icon: CalendarDaysIcon,
-      color: 'blue',
-      description: 'Registrations this week',
-    },
-    {
-      title: 'Regions Covered',
-      value: calculateRegionsCovered(),
-      change: 'Active',
-      trend: 'neutral',
-      icon: MapPinIcon,
-      color: 'purple',
-      description: 'Different regions',
-    },
-    {
-      title: 'Success Rate',
-      value: calculateSuccessRate(),
-      change: '+2%',
-      trend: 'up',
-      icon: CheckCircleIcon,
-      color: 'emerald',
-      description: 'Successful registrations',
-    },
-  ];
-
-  const recentActivity = getRecentActivity();
-  const weeklyData = getWeeklyData();
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await Promise.all([
-        dispatch(fetchRegistrantStats({})),
-        dispatch(fetchMembers({}))
-      ]);
-      setLastUpdated(new Date());
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const formatLastUpdated = () => {
-    return lastUpdated.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
-  const getTrendIcon = (trend: string) => {
-    if (trend === 'up') return <ArrowUpIcon className="h-4 w-4 text-green-500" />;
-    if (trend === 'down') return <ArrowDownIcon className="h-4 w-4 text-red-500" />;
-    return null;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-      case 'pending':
-        return <ClockIcon className="h-5 w-5 text-yellow-500" />;
-      case 'error':
-        return <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />;
-      default:
-        return <ClockIcon className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your statistics...</p>
-        </div>
-      </div>
-    );
+  if (loading && members.length === 0 && !registrantStats) {
+    return <DashboardSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Error loading statistics: {error}</p>
+      <SectionCard title="Statistics unavailable" subtitle="Could not load your statistics">
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <div className="mt-4">
+          <ClayButton tone="primary" onClick={handleManualRefresh}>Retry</ClayButton>
         </div>
-      </div>
+      </SectionCard>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section with Mobile-Optimized Layout */}
-        <div className="mb-8">
-          <div className="stats-header flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="mb-4 lg:mb-0">
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center">
-                <ChartBarIcon className="h-8 w-8 text-green-500 mr-3" />
-                My Statistics
-                <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Real-time
-                </span>
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Track your registration performance and member statistics • Last updated: {formatLastUpdated()}
-              </p>
-            </div>
-            
-            {/* Controls with Mobile-First Design */}
-            <div className="stats-controls flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0">
-              {/* Refresh Button */}
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className={`refresh-button inline-flex items-center px-4 py-2 border border-green-300 rounded-xl text-sm font-medium text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 ${
-                  isRefreshing ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                }`}
-              >
-                <ArrowUpIcon className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </button>
-
-              {/* Time Filter */}
-              <select
-                value={timeFilter}
-                onChange={(e) => setTimeFilter(e.target.value)}
-                className="time-filter bg-white border border-green-200 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              >
-                <option value="all">All Time</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="year">This Year</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statisticsData.map((stat, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 hover:scale-105 relative"
+    <div className="space-y-6">
+      <PageHeader
+        title={`${scopeLabel} Statistics`}
+        subtitle={`Registration performance • Updated ${lastUpdated.toLocaleTimeString()}`}
+        cta={
+          <>
+            <select
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value)}
+              className="h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-xs font-semibold text-[var(--foreground)] focus-ring"
             >
-              {/* Live indicator */}
-              <div className="absolute top-3 right-3">
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-600 font-medium">LIVE</span>
-                </div>
-              </div>
+              <option value="all">All Time</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+            <ClayButton tone="neutral" icon={<RefreshCw className="w-4 h-4" />} onClick={handleManualRefresh}>
+              Refresh
+            </ClayButton>
+            <ClayButton tone={isAutoRefresh ? 'success' : 'neutral'} onClick={() => setIsAutoRefresh((v) => !v)}>
+              {isAutoRefresh ? 'Auto ON' : 'Auto OFF'}
+            </ClayButton>
+          </>
+        }
+      />
 
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-r ${
-                  stat.color === 'green' ? 'from-green-500 to-emerald-600' :
-                  stat.color === 'blue' ? 'from-blue-500 to-cyan-600' :
-                  stat.color === 'purple' ? 'from-purple-500 to-violet-600' :
-                  'from-emerald-500 to-green-600'
-                } shadow-lg`}>
-                  <stat.icon className="h-6 w-6 text-white" />
-                </div>
-                <div className="flex items-center space-x-1">
-                  {getTrendIcon(stat.trend)}
-                  <span className={`text-sm font-semibold ${
-                    stat.trend === 'up' ? 'text-green-600' :
-                    stat.trend === 'down' ? 'text-red-600' :
-                    'text-gray-600'
-                  }`}>
-                    {stat.change}
-                  </span>
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-xs text-gray-500 mt-1">{stat.description}</p>
-              </div>
+      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <KpiCard label={`${scopeLabel} Registrations`} value={totalRegistered} trend={`+${kpi.month} in 30d`} tint="primary" icon={<Users className="w-4 h-4" />} index={0} />
+        <KpiCard label="This Week" value={kpi.week} trend={kpi.wowText} down={kpi.wowDown} tint="info" icon={<CalendarDays className="w-4 h-4" />} index={1} />
+        <KpiCard label="Regions Covered" value={kpi.regions} tint="purple" icon={<MapPin className="w-4 h-4" />} index={2} />
+        <KpiCard label="Success Rate" value={`${successPct}%`} trend={`${kpi.kept} of ${members.length} kept`} tint="success" icon={<CheckCircle2 className="w-4 h-4" />} index={3} />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <SectionCard
+          title="Monthly Performance"
+          subtitle={`Registrations in ${new Date().getFullYear()}`}
+          action={<StatusPill stage="Live" tone="success" />}
+        >
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%" debounce={100}>
+              <BarChart data={monthlySeries} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <CartesianGrid stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                <Bar dataKey="value" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Gender Split" subtitle="Across your register">
+          {genderSeries.every((g) => g.value === 0) ? (
+            <EmptyState title="No data yet" message="Gender distribution will appear here." />
+          ) : (
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                <PieChart>
+                  <Pie data={genderSeries} dataKey="value" nameKey="name" innerRadius={54} outerRadius={82} paddingAngle={3} stroke="none">
+                    {genderSeries.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </SectionCard>
+      </div>
+
+      <SectionCard
+        title="Recent Activity"
+        subtitle={timeFilter === 'all' ? 'Latest registrations in scope' : `Latest registrations (${timeFilter})`}
+        action={
+          <Link to={`${basePath}/members`}>
+            <ClayButton tone="neutral" icon={<Clock className="w-4 h-4" />}>
+              View All
+            </ClayButton>
+          </Link>
+        }
+      >
+        <DataTable
+          columns={[
+            { key: 'action', label: 'Activity', render: (_v, row: any) => (
+              <span className="flex items-center gap-2.5 min-w-0">
+                <span className="w-8 h-8 rounded-lg overflow-hidden bg-[var(--secondary)] flex-shrink-0 block">
+                  <ProfilePicture
+                    src={row.picture}
+                    firstName={row.first_name}
+                    lastName={row.last_name}
+                    size="sm"
+                    className="!w-full !h-full !ring-0 !border-0"
+                  />
+                </span>
+                <span className="font-semibold truncate">{row.action}</span>
+              </span>
+            ) },
+            { key: 'region', label: 'Region' },
+            {
+              key: 'at',
+              label: 'Date',
+              align: 'right',
+              render: (v) => <span className="tnum text-xs text-muted-foreground" title={new Date(v).toLocaleDateString()}>{formatAgo(v)}</span>,
+            },
+          ]}
+          data={recentRows}
+          defaultPageSize={8}
+          searchPlaceholder="Filter activity..."
+          emptyTitle="No activity"
+          emptyMessage="Registrations in the selected window will appear here."
+        />
+      </SectionCard>
+
+      <SectionCard title="Performance Insights" subtitle={timeFilter === 'all' ? 'Patterns across your register' : `Patterns in scope (${timeFilter})`}>
+        <div className="grid sm:grid-cols-3 gap-4">
+          {[
+            { label: 'Best Day', value: insights.bestDay, icon: <Trophy className="w-4 h-4" />, tint: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
+            { label: 'Top Region', value: insights.topRegion, icon: <MapPin className="w-4 h-4" />, tint: 'bg-cyan-500/12 text-cyan-600 dark:text-cyan-400' },
+            { label: 'Success Rate', value: `${successPct}% completion`, icon: <CheckCircle2 className="w-4 h-4" />, tint: 'bg-purple-500/12 text-purple-600 dark:text-purple-400' },
+          ].map((t) => (
+            <div key={t.label} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 flex items-center gap-3">
+              <span className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${t.tint}`}>{t.icon}</span>
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold text-muted-foreground">{t.label}</span>
+                <span className="tnum block text-sm font-bold text-[var(--foreground)] truncate">{t.value}</span>
+              </span>
             </div>
           ))}
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Weekly Chart */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Weekly Performance</h3>
-              <ChartPieIcon className="h-5 w-5 text-green-500" />
-            </div>
-            
-            <div className="space-y-4">
-              {weeklyData.map((day, index) => (
-                <div key={index} className="flex items-center space-x-4">
-                  <div className="w-12 text-sm font-medium text-gray-600">{day.day}</div>
-                  <div className="flex-1 bg-gray-100 rounded-full h-3 relative overflow-hidden">
-                    <div 
-                      className="bg-gradient-to-r from-green-500 to-emerald-600 h-full rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${(day.registrations / 7) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="w-8 text-sm font-semibold text-gray-900">{day.registrations}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-              <ClockIcon className="h-5 w-5 text-green-500" />
-            </div>
-            
-            <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 rounded-xl hover:bg-green-50 transition-colors duration-200">
-                  <div className="flex-shrink-0 mt-1">
-                    {getStatusIcon(activity.status)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                    <p className="text-xs text-gray-500">Region: {activity.region}</p>
-                  </div>
-                  <div className="text-xs text-gray-400">{activity.time}</div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <button className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 px-4 rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-300">
-                View All Activity
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Performance Insights */}
-        <div className="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <ChartPieIcon className="h-5 w-5 text-green-500 mr-2" />
-              Performance Insights
-            </h3>
-            <div className="flex items-center gap-2 text-green-600">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs font-medium">LIVE</span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <ArrowUpIcon className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Best Day</p>
-                  <p className="text-xs text-gray-600">{getBestPerformanceDay()}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <MapPinIcon className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Top Region</p>
-                  <p className="text-xs text-gray-600">{getTopRegion()}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <CheckCircleIcon className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Success Rate</p>
-                  <p className="text-xs text-gray-600">{getSuccessRate()}% completion</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </SectionCard>
     </div>
   );
 };

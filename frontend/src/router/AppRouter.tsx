@@ -24,7 +24,7 @@ import Settings from '../pages/dashboard/Settings';
 import SearchMembers from '../pages/dashboard/SearchMembers';
 import MemberSearchPage from '../pages/auth/MemberSearchPage';
 // Components
-import DashboardLayout from '../components/layout/DashboardLayout';
+import { AppShell } from '../components/app-shell';
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -126,23 +126,23 @@ const AppRouter: React.FC = () => {
         
         <Route path="/admin/search-members" element={<SearchMembers />} />
 
-        {/* Protected Security Routes — search-only role (no public search) */}
+        {/* Protected Security Routes — Efatha Connect AppShell (search-only role) */}
         <Route path="/security/*" element={
           <ProtectedRoute allowedRoles={['security']}>
-            <DashboardLayout>
+            <AppShell>
               <Routes>
                 <Route path="search" element={<MemberSearchPage />} />
                 <Route path="profile-settings" element={<ProfileSettings />} />
                 <Route path="" element={<Navigate to="search" replace />} />
               </Routes>
-            </DashboardLayout>
+            </AppShell>
           </ProtectedRoute>
         } />
 
-        {/* Protected Admin Routes */}
+        {/* Protected Admin Routes — Efatha Connect AppShell */}
         <Route path="/admin/*" element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <DashboardLayout>
+            <AppShell>
               <Routes>
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="stats" element={<AdminStatistics />} />
@@ -157,14 +157,14 @@ const AppRouter: React.FC = () => {
                 <Route path="profile-settings" element={<ProfileSettings />} />
                 <Route path="" element={<Navigate to="dashboard" replace />} />
               </Routes>
-            </DashboardLayout>
+            </AppShell>
           </ProtectedRoute>
         } />
 
-        {/* Protected Registrant Routes */}
+        {/* Protected Registrant Routes — Efatha Connect AppShell */}
         <Route path="/registrant/*" element={
           <ProtectedRoute allowedRoles={['registrant']}>
-            <DashboardLayout>
+            <AppShell>
               <Routes>
                 <Route path="dashboard" element={<RegistrantDashboard />} />
                 <Route path="stats" element={<MyStatistics />} />
@@ -175,14 +175,14 @@ const AppRouter: React.FC = () => {
                 <Route path="profile-settings" element={<ProfileSettings />} />
                 <Route path="" element={<Navigate to="dashboard" replace />} />
               </Routes>
-            </DashboardLayout>
+            </AppShell>
           </ProtectedRoute>
         } />
 
-        {/* Protected Apostle Routes */}
+        {/* Protected Apostle Routes — Efatha Connect AppShell */}
         <Route path="/apostle/*" element={
           <ProtectedRoute allowedRoles={['apostle']}>
-            <DashboardLayout>
+            <AppShell>
               <Routes>
                 <Route path="dashboard" element={<RegistrantDashboard />} />
                 <Route path="stats" element={<MyStatistics />} />
@@ -193,7 +193,7 @@ const AppRouter: React.FC = () => {
                 <Route path="profile-settings" element={<ProfileSettings />} />
                 <Route path="" element={<Navigate to="dashboard" replace />} />
               </Routes>
-            </DashboardLayout>
+            </AppShell>
           </ProtectedRoute>
         } />
 

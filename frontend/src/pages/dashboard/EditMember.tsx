@@ -18,7 +18,6 @@ import {
   HomeIcon,
   CalendarDaysIcon,
   BriefcaseIcon,
-  PencilIcon,
   ChevronRightIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
@@ -26,6 +25,10 @@ import { Member } from '../../types';
 import ProfilePicture from '../../components/ui/ProfilePicture';
 import Camera from '../../components/ui/Camera';
 import { dialog } from '../../components/ui/Dialog';
+import { PageHeader } from '../../components/app-shell';
+import { SectionCard, ClayButton, StatusPill, Stepper } from '../../components/ui-bits';
+import { motion } from 'motion/react';
+import { variants } from '../../lib/motion-tokens';
 import '../../styles/forms.css';
 import '../../styles/mobile-members.css';
 
@@ -207,6 +210,7 @@ const EditMember: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showFullForm, setShowFullForm] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
 
   const {
     register,
@@ -380,6 +384,8 @@ const EditMember: React.FC = () => {
     const isStepValid = await trigger(fieldsToValidate);
     if (isStepValid) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    } else {
+      setShakeKey(k => k + 1);
     }
   };
 
@@ -467,32 +473,33 @@ const EditMember: React.FC = () => {
     if (isFormValid) {
       const formData = getValues();
       await onSubmit(formData);
+    } else {
+      setShakeKey(k => k + 1);
     }
   };
 
   if (loadingMember) {
     return (
-      <div className={`min-h-screen bg-gray-50 flex items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)]"></div>
       </div>
     );
   }
 
   if (memberNotFound || !member) {
     return (
-      <div className={`min-h-screen bg-gray-50 flex items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
-        <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-md'}`}>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
-            <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-4`}>Member Not Found</h2>
-            <p className={`text-gray-600 mb-6 ${isMobile ? 'text-sm' : ''}`}>The member you're trying to edit doesn't exist or has been removed.</p>
-            <button
-              onClick={handleBack}
-              className={`${isMobile ? 'w-full' : 'inline-flex items-center'} px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors ${isMobile ? 'justify-center' : ''}`}
-            >
-              <ArrowLeftIcon className="h-5 w-5 mr-2" />
-              Back to Members
-            </button>
-          </div>
+      <div className="space-y-6">
+        <PageHeader title="Edit Member" subtitle="Record lookup" />
+        <div className="surface max-w-md w-full mx-auto p-6 text-center">
+          <h2 className="font-display text-xl font-bold">Member Not Found</h2>
+          <p className="text-sm text-muted-foreground mt-1 mb-6">The member you're trying to edit doesn't exist or has been removed.</p>
+          <ClayButton
+            tone="primary"
+            className="w-full"
+            onClick={handleBack}
+          >
+            Back to Members
+          </ClayButton>
         </div>
       </div>
     );
@@ -500,29 +507,27 @@ const EditMember: React.FC = () => {
 
   if (isSubmitted) {
     return (
-      <div className={`min-h-screen bg-gray-50 flex items-center justify-center ${isMobile ? 'p-4' : 'p-6'}`}>
-        <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-md'}`}>
-          <div className={`bg-white rounded-2xl ${isMobile ? 'p-6' : 'p-8'} shadow-sm border border-gray-100 text-center`}>
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircleIcon className="h-8 w-8 text-white" />
-            </div>
-            <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-2`}>Member Updated Successfully!</h2>
-            <p className={`text-gray-600 mb-4 ${isMobile ? 'text-sm' : ''}`}>
-              The member information has been updated in the system.
-            </p>
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-              <p className="text-green-700 text-sm">
-                You will be redirected to the members page shortly...
-              </p>
-            </div>
-            <button
-              onClick={handleBack}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
-            >
-              Return to Members
-            </button>
+      <div className="space-y-6">
+        <PageHeader title="Edit Member" subtitle="Update member information" />
+        <motion.div variants={variants.fadeScaleIn} initial="initial" animate="animate" className="surface max-w-md w-full mx-auto p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
+            <CheckCircleIcon className="h-8 w-8 text-emerald-500" />
           </div>
-        </div>
+          <h2 className="font-display text-2xl font-bold tracking-tight">Member Updated Successfully!</h2>
+          <p className="text-sm text-muted-foreground mt-1 mb-4">
+            The member information has been updated in the system.
+          </p>
+          <div className="mb-6 flex justify-center">
+            <StatusPill stage="Redirecting to members…" tone="success" />
+          </div>
+          <ClayButton
+            tone="primary"
+            className="w-full"
+            onClick={handleBack}
+          >
+            Return to Members
+          </ClayButton>
+        </motion.div>
       </div>
     );
   }
@@ -530,25 +535,25 @@ const EditMember: React.FC = () => {
   // Mobile rendering
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="space-y-4">
         {/* Mobile Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
+        <div className="sticky top-0 z-10 bg-[color-mix(in_srgb,var(--card)_90%,transparent)] backdrop-blur-md border-b border-[var(--border)] px-4 py-3 rounded-2xl">
           <div className="flex items-center justify-between">
             <button
               onClick={handleBack}
-              className="flex items-center text-green-600 hover:text-green-700 transition-colors"
+              className="flex items-center text-[var(--primary)] hover:opacity-80 transition-opacity"
             >
               <ArrowLeftIcon className="h-5 w-5 mr-1" />
               <span className="text-sm font-medium">Back</span>
             </button>
             
-            <h1 className="text-lg font-semibold text-gray-900 text-center flex-1 mx-4">
+            <h1 className="font-display text-base font-bold text-center flex-1 mx-4">
               Edit Member
             </h1>
             
             <button
               onClick={() => setShowFullForm(!showFullForm)}
-              className="flex items-center text-green-600 hover:text-green-700 transition-colors"
+              className="flex items-center text-[var(--primary)] hover:opacity-80 transition-opacity"
             >
               <span className="text-sm font-medium mr-1">
                 {showFullForm ? 'Simple' : 'Full'}
@@ -559,10 +564,9 @@ const EditMember: React.FC = () => {
         </div>
 
         {/* Profile Header */}
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-6">
-          <div className="flex items-center space-x-4">
+        <div className="surface p-4 flex items-center gap-4">
             <div className="relative">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg bg-[var(--secondary)]">
                 {profileImage ? (
                   <img
                     src={profileImage}
@@ -575,7 +579,7 @@ const EditMember: React.FC = () => {
                     firstName={member.first_name}
                     lastName={member.last_name}
                     size="md"
-                    className="w-14 h-14 text-green-600"
+                    className="w-14 h-14 text-[var(--primary)]"
                   />
                 )}
               </div>
@@ -604,32 +608,31 @@ const EditMember: React.FC = () => {
               )}
             </div>
             
-            <div className="text-white flex-1">
-              <h2 className="text-xl font-bold">
+            <div className="flex-1 min-w-0">
+              <h2 className="font-display text-lg font-bold truncate">
                 {member.first_name} {member.last_name}
               </h2>
-              <p className="text-green-100 text-sm">
+              <p className="text-xs text-muted-foreground">
                 Update member information
               </p>
             </div>
-          </div>
         </div>
 
         {/* Mobile Form */}
-        <div className="p-4">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="surface p-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="efatha-form space-y-4">
             {!showFullForm ? (
               /* Quick Edit Section */
               <div className="space-y-4">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <UserIcon className="h-5 w-5 text-green-600 mr-2" />
+                <div className="surface p-4">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center">
+                    <UserIcon className="h-5 w-5 text-[var(--primary)] mr-2" />
                     Personal Information
                   </h3>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         First Name *
                       </label>
                       <input
@@ -643,7 +646,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Last Name *
                       </label>
                       <input
@@ -657,7 +660,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Mobile Number *
                       </label>
                       <input
@@ -673,44 +676,32 @@ const EditMember: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-4">
-                  <button
+                <div className="sticky bottom-0 bg-[color-mix(in_srgb,var(--card)_95%,transparent)] backdrop-blur border-t border-[var(--border)] p-4 -mx-4 rounded-b-2xl">
+                  <ClayButton
+                    tone="primary"
                     type="submit"
-                    disabled={loading || !isValid}
-                    className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
-                      loading || !isValid
-                        ? 'bg-gray-300 text-gray-500'
-                        : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg hover:shadow-xl'
-                    }`}
+                    loading={loading}
+                    disabled={!isValid}
+                    className="w-full !py-4 !text-base"
                   >
-                    {loading ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        Updating...
-                      </div>
-                    ) : (
-                      <>
-                        <CheckCircleIcon className="h-5 w-5 inline mr-2" />
-                        Update Member
-                      </>
-                    )}
-                  </button>
+                    Update Member
+                  </ClayButton>
                 </div>
               </div>
             ) : (
               /* Full Mobile Form */
               <div className="space-y-4">
                 {/* Personal Information Section */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <UserIcon className="h-5 w-5 text-green-600 mr-2" />
+                <div className="surface p-4">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center">
+                    <UserIcon className="h-5 w-5 text-[var(--primary)] mr-2" />
                     Personal Information
                   </h3>
                   
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           First Name *
                         </label>
                         <input
@@ -724,7 +715,7 @@ const EditMember: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Last Name *
                         </label>
                         <input
@@ -739,7 +730,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Middle Name
                       </label>
                       <input
@@ -751,7 +742,7 @@ const EditMember: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Gender *
                         </label>
                         <select
@@ -768,7 +759,7 @@ const EditMember: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Age *
                         </label>
                         <input
@@ -786,7 +777,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Marital Status *
                       </label>
                       <select
@@ -805,7 +796,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-3">
                         Salvation Status *
                       </label>
                       <div className="flex space-x-6">
@@ -814,7 +805,7 @@ const EditMember: React.FC = () => {
                             type="radio"
                             {...register('saved')}
                             value="true"
-                            className="w-4 h-4 text-green-600"
+                            className="w-4 h-4 text-[var(--primary)]"
                           />
                           <span className="text-sm">Saved</span>
                         </label>
@@ -823,7 +814,7 @@ const EditMember: React.FC = () => {
                             type="radio"
                             {...register('saved')}
                             value="false"
-                            className="w-4 h-4 text-green-600"
+                            className="w-4 h-4 text-[var(--primary)]"
                           />
                           <span className="text-sm">Not Saved</span>
                         </label>
@@ -836,15 +827,15 @@ const EditMember: React.FC = () => {
                 </div>
 
                 {/* Contact Information */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <PhoneIcon className="h-5 w-5 text-green-600 mr-2" />
+                <div className="surface p-4">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center">
+                    <PhoneIcon className="h-5 w-5 text-[var(--primary)] mr-2" />
                     Contact Details
                   </h3>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Mobile Number *
                       </label>
                       <input
@@ -859,7 +850,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Email Address
                       </label>
                       <input
@@ -874,7 +865,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Postal Address
                       </label>
                       <textarea
@@ -888,15 +879,15 @@ const EditMember: React.FC = () => {
                 </div>
 
                 {/* Location Information */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <MapPinIcon className="h-5 w-5 text-green-600 mr-2" />
+                <div className="surface p-4">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center">
+                    <MapPinIcon className="h-5 w-5 text-[var(--primary)] mr-2" />
                     Location Details
                   </h3>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Country *
                       </label>
                       <select
@@ -924,7 +915,7 @@ const EditMember: React.FC = () => {
 
                     {watchedCountry === 'Tanzania' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Region *
                         </label>
                         <select
@@ -946,7 +937,7 @@ const EditMember: React.FC = () => {
 
                     {watchedRegion && REGION_CENTERS[watchedRegion] && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Center/Area
                         </label>
                         <select
@@ -964,7 +955,7 @@ const EditMember: React.FC = () => {
                     )}
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Residence *
                       </label>
                       <input
@@ -980,7 +971,7 @@ const EditMember: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Zone *
                         </label>
                         <input
@@ -994,7 +985,7 @@ const EditMember: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Cell *
                         </label>
                         <input
@@ -1011,15 +1002,15 @@ const EditMember: React.FC = () => {
                 </div>
 
                 {/* Church Information */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <HomeIcon className="h-5 w-5 text-green-600 mr-2" />
+                <div className="surface p-4">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center">
+                    <HomeIcon className="h-5 w-5 text-[var(--primary)] mr-2" />
                     Church Details
                   </h3>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Church Registration Number
                       </label>
                       <input
@@ -1030,7 +1021,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Church Position
                       </label>
                       <select
@@ -1047,7 +1038,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Career/Profession
                       </label>
                       <input
@@ -1059,7 +1050,7 @@ const EditMember: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Origin *
                         </label>
                         <select
@@ -1076,7 +1067,7 @@ const EditMember: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                           Visitors Count
                         </label>
                         <input
@@ -1090,7 +1081,7 @@ const EditMember: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Attending Date *
                       </label>
                       <input
@@ -1106,28 +1097,16 @@ const EditMember: React.FC = () => {
                 </div>
 
                 {/* Submit Button */}
-                <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-4">
-                  <button
+                <div className="sticky bottom-0 bg-[color-mix(in_srgb,var(--card)_95%,transparent)] backdrop-blur border-t border-[var(--border)] p-4 -mx-4 rounded-b-2xl">
+                  <ClayButton
+                    tone="primary"
                     type="submit"
-                    disabled={loading || !isValid}
-                    className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
-                      loading || !isValid
-                        ? 'bg-gray-300 text-gray-500'
-                        : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg hover:shadow-xl'
-                    }`}
+                    loading={loading}
+                    disabled={!isValid}
+                    className="w-full !py-4 !text-base"
                   >
-                    {loading ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        Updating...
-                      </div>
-                    ) : (
-                      <>
-                        <CheckCircleIcon className="h-5 w-5 inline mr-2" />
-                        Update Member
-                      </>
-                    )}
-                  </button>
+                    Update Member
+                  </ClayButton>
                 </div>
 
                 {/* Bottom padding for mobile */}
@@ -1149,106 +1128,38 @@ const EditMember: React.FC = () => {
 
   // Desktop rendering
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={handleBack}
-            className="flex items-center text-gray-600 hover:text-green-600 transition-colors duration-200 mb-4"
-          >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
-            Back to Members
-          </button>
-          
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="mb-4 lg:mb-0">
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center justify-center lg:justify-start">
-                <PencilIcon className="h-8 w-8 text-green-500 mr-3" />
-                Edit Member: {member.first_name} {member.last_name}
-              </h1>
-              <p className="text-gray-600 mt-2 text-center lg:text-left">
-                Update member information
-              </p>
-            </div>
-            
-            {/* Progress Indicator */}
-            <div className="hidden md:flex items-center space-x-4">
-              {Array.from({ length: totalSteps }, (_, index) => {
-                const stepNumber = index + 1;
-                const isActive = stepNumber === currentStep;
-                const isCompleted = stepNumber < currentStep;
-                
-                return (
-                  <div key={stepNumber} className="flex items-center">
-                    <div className={`
-                      w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
-                      ${isActive 
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg' 
-                        : isCompleted
-                        ? 'bg-green-100 text-green-600 border-2 border-green-200'
-                        : 'bg-gray-100 text-gray-400'
-                      }
-                    `}>
-                      {isCompleted ? (
-                        <CheckCircleIcon className="h-5 w-5" />
-                      ) : (
-                        stepNumber
-                      )}
-                    </div>
-                    {stepNumber < totalSteps && (
-                      <div className={`w-12 h-1 rounded-full ml-2 ${
-                        stepNumber < currentStep ? 'bg-green-200' : 'bg-gray-200'
-                      }`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <PageHeader
+          title={`Edit Member: ${member.first_name} ${member.last_name}`}
+          subtitle="Update member information"
+          cta={
+            <ClayButton tone="neutral" onClick={handleBack}>
+              Back to Members
+            </ClayButton>
+          }
+        />
 
-        {/* Mobile Progress Bar */}
-        <div className="md:hidden mb-6">
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">
-              Step {currentStep} of {totalSteps}
-            </span>
-            <span className="text-sm font-medium text-green-600">
-              {Math.round((currentStep / totalSteps) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
-          <p className="text-sm text-gray-600 mt-2 font-medium">
-            {stepTitles[currentStep - 1]}
-          </p>
-        </div>
+        <Stepper stages={stepTitles} current={stepTitles[currentStep - 1]} />
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <span className="w-2 h-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mr-3"></span>
-              {stepTitles[currentStep - 1]}
-            </h2>
-            <p className="text-gray-600 mt-1 text-sm">
-              Update the required information for this section
-            </p>
-          </div>
-
-          <form className="p-6">
+        <SectionCard
+          title={stepTitles[currentStep - 1]}
+          subtitle={`Step ${currentStep} of ${totalSteps} — update the required information for this section`}
+        >
+          <motion.form
+            key={shakeKey}
+            animate={shakeKey > 0 ? { x: [0, -6, 6, -6, 6, -3, 0] } : undefined}
+            transition={{ duration: 0.5 }}
+            className="efatha-form"
+          >
             {/* Step 1: Personal Information */}
             {currentStep === 1 && (
               <div className="space-y-6">
                 {/* Profile Image Upload */}
                 <div className="flex flex-col items-center mb-8 space-y-4">
                   <div className="relative">
-                    <div className="w-24 h-24 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                    <div className="w-24 h-24 rounded-full flex items-center justify-center border-4 border-[var(--card)] shadow-lg bg-[var(--secondary)]">
                       {profileImage ? (
                         <img
                           src={profileImage}
@@ -1267,7 +1178,7 @@ const EditMember: React.FC = () => {
                     </div>
                     
                     {/* Upload from files button */}
-                    <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg">
+                    <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-[var(--primary)] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg">
                       <CameraIcon className="h-4 w-4 text-white" />
                       <input
                         type="file"
@@ -1281,7 +1192,7 @@ const EditMember: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsCameraOpen(true)}
-                      className="absolute -bottom-2 -left-2 w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg"
+                      className="absolute -bottom-2 -left-2 w-8 h-8 bg-cyan-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg"
                       title="Take Photo"
                     >
                       <CameraIcon className="h-4 w-4 text-white" />
@@ -1292,7 +1203,7 @@ const EditMember: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleRemovePhoto}
-                        className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg"
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-rose-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg"
                         title="Remove photo"
                       >
                         <TrashIcon className="h-4 w-4 text-white" />
@@ -1301,7 +1212,7 @@ const EditMember: React.FC = () => {
                   </div>
                   
                   <div className="text-center">
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       Click 📷 to upload from files or 📸 to take photo
                     </p>
                   </div>
@@ -1310,7 +1221,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* First Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       First Name *
                     </label>
                     <input
@@ -1325,7 +1236,7 @@ const EditMember: React.FC = () => {
 
                   {/* Middle Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Middle Name
                     </label>
                     <input
@@ -1337,7 +1248,7 @@ const EditMember: React.FC = () => {
 
                   {/* Last Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Last Name *
                     </label>
                     <input
@@ -1354,7 +1265,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Gender */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Gender *
                     </label>
                     <select
@@ -1372,7 +1283,7 @@ const EditMember: React.FC = () => {
 
                   {/* Age */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Age *
                     </label>
                     <input
@@ -1390,7 +1301,7 @@ const EditMember: React.FC = () => {
 
                   {/* Marital Status */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Marital Status *
                     </label>
                     <select
@@ -1411,7 +1322,7 @@ const EditMember: React.FC = () => {
 
                 {/* Salvation Status */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
                     Salvation Status *
                   </label>
                   <div className="flex space-x-4">
@@ -1420,18 +1331,18 @@ const EditMember: React.FC = () => {
                         type="radio"
                         {...register('saved')}
                         value="true"
-                        className="form-radio w-4 h-4 text-green-600 border-2 border-gray-300 focus:ring-green-500"
+                        className="form-radio w-4 h-4 text-[var(--primary)] border-2 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="text-gray-700 font-medium text-sm">Saved</span>
+                      <span className="text-[var(--foreground)] font-medium text-sm">Saved</span>
                     </label>
                     <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-green-50 transition-colors">
                       <input
                         type="radio"
                         {...register('saved')}
                         value="false"
-                        className="form-radio w-4 h-4 text-green-600 border-2 border-gray-300 focus:ring-green-500"
+                        className="form-radio w-4 h-4 text-[var(--primary)] border-2 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="text-gray-700 font-medium text-sm">Not Saved</span>
+                      <span className="text-[var(--foreground)] font-medium text-sm">Not Saved</span>
                     </label>
                   </div>
                   {errors.saved && (
@@ -1447,7 +1358,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Mobile Number */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
                       <PhoneIcon className="h-4 w-4 text-green-500 mr-2" />
                       Mobile Number *
                     </label>
@@ -1464,7 +1375,7 @@ const EditMember: React.FC = () => {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
                       <EnvelopeIcon className="h-4 w-4 text-green-500 mr-2" />
                       Email Address
                     </label>
@@ -1482,7 +1393,7 @@ const EditMember: React.FC = () => {
 
                 {/* Postal Address */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                  <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
                     <MapPinIcon className="h-4 w-4 text-green-500 mr-2" />
                     Postal Address
                   </label>
@@ -1497,7 +1408,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Country */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
                       <GlobeAltIcon className="h-4 w-4 text-green-500 mr-2" />
                       Country *
                     </label>
@@ -1527,7 +1438,7 @@ const EditMember: React.FC = () => {
                   {/* Region - Only show when Tanzania is selected */}
                   {watchedCountry === 'Tanzania' && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                         Region *
                       </label>
                       <select
@@ -1551,7 +1462,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Center/Area */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Center/Area
                     </label>
                     <select
@@ -1575,7 +1486,7 @@ const EditMember: React.FC = () => {
 
                   {/* Residence */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
                       <HomeIcon className="h-4 w-4 text-green-500 mr-2" />
                       Residence *
                     </label>
@@ -1594,7 +1505,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Zone */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Zone *
                     </label>
                     <input
@@ -1609,7 +1520,7 @@ const EditMember: React.FC = () => {
 
                   {/* Cell */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Cell *
                     </label>
                     <input
@@ -1631,7 +1542,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Church Registration Number */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
                       <DocumentCheckIcon className="h-4 w-4 text-green-500 mr-2" />
                       Church Registration Number
                     </label>
@@ -1644,7 +1555,7 @@ const EditMember: React.FC = () => {
 
                   {/* Church Position */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Church Position
                     </label>
                     <select
@@ -1664,7 +1575,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Career */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
                       <BriefcaseIcon className="h-4 w-4 text-green-500 mr-2" />
                       Career/Profession
                     </label>
@@ -1677,7 +1588,7 @@ const EditMember: React.FC = () => {
 
                   {/* Visitors Count */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Visitors Count
                     </label>
                     <input
@@ -1693,7 +1604,7 @@ const EditMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Origin */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Origin *
                     </label>
                     <select
@@ -1711,7 +1622,7 @@ const EditMember: React.FC = () => {
 
                   {/* Attending Date */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
                       <CalendarDaysIcon className="h-4 w-4 text-green-500 mr-2" />
                       Attending Date *
                     </label>
@@ -1731,69 +1642,69 @@ const EditMember: React.FC = () => {
             {/* Step 4: Review & Submit */}
             {currentStep === 4 && (
               <div className="space-y-6">
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <DocumentCheckIcon className="h-5 w-5 text-green-500 mr-2" />
+                <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--secondary)_40%,transparent)] p-6">
+                  <h3 className="font-display text-base font-bold mb-1 flex items-center gap-2">
+                    <DocumentCheckIcon className="h-5 w-5 text-[var(--primary)]" />
                     Review Member Information
                   </h3>
-                  <p className="text-gray-600 text-sm mb-4">
+                  <p className="text-xs text-muted-foreground mb-4">
                     Please review all the information before updating the member.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                     <div className="space-y-3">
                       <div>
-                        <span className="font-medium text-gray-700">Full Name:</span>
-                        <span className="ml-2 text-gray-900">
+                        <span className="font-medium text-[var(--foreground)]">Full Name:</span>
+                        <span className="ml-2 text-[var(--foreground)]">
                           {watch('first_name')} {watch('middle_name')} {watch('last_name')}
                         </span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Gender:</span>
-                        <span className="ml-2 text-gray-900 capitalize">{watch('gender')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Gender:</span>
+                        <span className="ml-2 text-[var(--foreground)] capitalize">{watch('gender')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Age:</span>
-                        <span className="ml-2 text-gray-900">{watch('age')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Age:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('age')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Marital Status:</span>
-                        <span className="ml-2 text-gray-900 capitalize">{watch('marital_status')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Marital Status:</span>
+                        <span className="ml-2 text-[var(--foreground)] capitalize">{watch('marital_status')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Mobile:</span>
-                        <span className="ml-2 text-gray-900">{watch('mobile_no')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Mobile:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('mobile_no')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Email:</span>
-                        <span className="ml-2 text-gray-900">{watch('email') || 'Not provided'}</span>
+                        <span className="font-medium text-[var(--foreground)]">Email:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('email') || 'Not provided'}</span>
                       </div>
                     </div>
                     
                     <div className="space-y-3">
                       <div>
-                        <span className="font-medium text-gray-700">Region:</span>
-                        <span className="ml-2 text-gray-900">{watch('region')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Region:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('region')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Center/Area:</span>
-                        <span className="ml-2 text-gray-900">{watch('center_area')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Center/Area:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('center_area')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Church Reg. No:</span>
-                        <span className="ml-2 text-gray-900">{watch('church_registration_number')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Church Reg. No:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('church_registration_number')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Origin:</span>
-                        <span className="ml-2 text-gray-900 capitalize">{watch('origin')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Origin:</span>
+                        <span className="ml-2 text-[var(--foreground)] capitalize">{watch('origin')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Attending Date:</span>
-                        <span className="ml-2 text-gray-900">{watch('attending_date')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Attending Date:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('attending_date')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Salvation Status:</span>
-                        <span className="ml-2 text-gray-900">
+                        <span className="font-medium text-[var(--foreground)]">Salvation Status:</span>
+                        <span className="ml-2 text-[var(--foreground)]">
                           {watch('saved') === true ? 'Saved' : watch('saved') === false ? 'Not Saved' : 'Not specified'}
                         </span>
                       </div>
@@ -1801,9 +1712,9 @@ const EditMember: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                  <p className="text-yellow-800 text-sm">
-                    <strong>Note:</strong> Once submitted, the member information will be updated in the church database. 
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                  <p className="text-amber-600 text-xs font-medium">
+                    <strong>Note:</strong> Once submitted, the member information will be updated in the church database.
                     Make sure all information is correct before proceeding.
                   </p>
                 </div>
@@ -1811,52 +1722,23 @@ const EditMember: React.FC = () => {
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between pt-8 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={prevStep}
-                disabled={currentStep === 1}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                  currentStep === 1
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:scale-105'
-                }`}
-              >
+            <div className="flex justify-between pt-8 border-t border-[var(--border)]">
+              <ClayButton tone="neutral" type="button" onClick={prevStep} disabled={currentStep === 1}>
                 Previous
-              </button>
+              </ClayButton>
 
               {currentStep < totalSteps ? (
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
-                >
+                <ClayButton tone="primary" type="button" onClick={nextStep}>
                   Next Step
-                </button>
+                </ClayButton>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleFinalSubmit}
-                  disabled={loading || !isValid}
-                  className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                    loading || !isValid
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:scale-105'
-                  }`}
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Updating...
-                    </div>
-                  ) : (
-                    'Update Member'
-                  )}
-                </button>
+                <ClayButton tone="primary" type="button" loading={loading} disabled={!isValid} onClick={handleFinalSubmit}>
+                  Update Member
+                </ClayButton>
               )}
             </div>
-          </form>
-        </div>
+          </motion.form>
+        </SectionCard>
       </div>
 
       {/* Camera Component */}

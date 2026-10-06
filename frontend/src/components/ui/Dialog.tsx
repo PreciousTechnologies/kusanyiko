@@ -154,30 +154,30 @@ export const DialogProvider: React.FC<{ children?: React.ReactNode }> = ({ child
           className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm animate-fade-in"
           onClick={() => settle(current.cancelText === null)}
         />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
+        <div className="relative rounded-2xl shadow-2xl w-full max-w-md mx-auto max-h-[90vh] flex flex-col overflow-hidden animate-scale-in bg-[var(--card)] border border-[var(--border)]">
           <div className="flex items-start gap-4 p-6 pb-4">
             <div className={`${style.ring} rounded-full p-2.5 flex-shrink-0`}>
               <Icon className={`h-6 w-6 ${style.text}`} />
             </div>
             <div className="min-w-0 flex-1 pt-0.5">
-              <h3 className="text-lg font-bold text-gray-900 leading-snug">{current.title}</h3>
+              <h3 className="text-lg font-bold leading-snug text-[var(--foreground)]">{current.title}</h3>
             </div>
             <button
               onClick={() => settle(current.cancelText === null)}
-              className="p-1.5 -m-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+              className="p-1.5 -m-1 rounded-full text-muted-foreground hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors flex-shrink-0"
               aria-label="Close dialog"
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
           <div className="px-6 pb-2 overflow-y-auto">
-            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line break-words">{current.message}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-line break-words text-muted-foreground">{current.message}</p>
           </div>
           <div className={`flex gap-3 p-6 pt-4 ${current.cancelText ? 'flex-row' : 'flex-col'}`}>
             {current.cancelText && (
               <button
                 onClick={() => settle(false)}
-                className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all text-sm sm:text-base min-h-[44px]"
+                className="flex-1 px-4 py-2.5 border border-[var(--border)] rounded-xl font-semibold transition-all text-sm sm:text-base min-h-[44px] text-[var(--foreground)] bg-[var(--card)] hover:bg-[var(--secondary)]"
               >
                 {current.cancelText}
               </button>

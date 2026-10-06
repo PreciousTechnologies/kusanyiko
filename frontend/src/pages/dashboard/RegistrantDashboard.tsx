@@ -1,33 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchRegistrantStats } from '../../store/slices/statsSlice';
 import { fetchMembers } from '../../store/slices/membersSlice';
 import { useBranding } from '../../context/BrandingContext';
+import { PageHeader } from '../../components/app-shell';
+import { KpiCard, SectionCard, ClayButton, StatusPill, EmptyState } from '../../components/ui-bits';
+import { DashboardSkeleton } from '../../components/skeleton-loaders';
+import { formatDelta } from '../../lib/utils';
+import ProfilePicture from '../../components/ui/ProfilePicture';
 import {
-  UsersIcon,
-  UserPlusIcon,
-  ChartBarIcon,
-  CalendarIcon,
-  SparklesIcon,
-  ArrowTrendingUpIcon,
-} from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
-import { Line, Bar, Pie } from 'react-chartjs-2';
+  Users,
+  UserPlus,
+  Activity,
+  MapPin,
+  ChartBar,
+  RefreshCw,
+  CalendarDays,
+} from 'lucide-react';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Tooltip,
-  Legend,
-  ArcElement,
-  Filler,
-} from 'chart.js';
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+} from 'recharts';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, ArcElement, Filler);
+const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
+const DAILY_GOAL = 25;
 
 const RegistrantDashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -36,7 +43,10 @@ const RegistrantDashboard: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { branding } = useBranding();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
   const basePath = user?.role === 'apostle' ? '/apostle' : '/registrant';
+  const isApostle = user?.role === 'apostle';
+
   const formatKanda = (kanda?: string) => {
     if (!kanda) return '';
     return kanda
@@ -51,435 +61,327 @@ const RegistrantDashboard: React.FC = () => {
     setLastUpdated(new Date());
   }, [dispatch]);
 
-  // Auto-refresh data every 3 minutes for dashboard (silent — no UI flashing)
+  // Auto-refresh every 3 minutes when enabled (silent — no UI flashing)
   useEffect(() => {
+    if (!isAutoRefresh) return;
     const interval = setInterval(() => {
       dispatch(fetchRegistrantStats({ silent: true }));
       dispatch(fetchMembers({ silent: true }));
       setLastUpdated(new Date());
-    }, 3 * 60 * 1000); // 3 minutes
-
+    }, 3 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [dispatch]);
+  }, [dispatch, isAutoRefresh]);
 
-  // Calculate real-time statistics
-  const calculateWeeklyRegistrations = () => {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    return members.filter(member => {
-      if (!member.created_at) return false;
-      const createdDate = new Date(member.created_at);
-      return createdDate >= oneWeekAgo;
+  const handleManualRefresh = () => {
+    dispatch(fetchRegistrantStats({}));
+    dispatch(fetchMembers({}));
+    setLastUpdated(new Date());
+  };
+
+  const inWindow = (iso: string | undefined, fromMs: number, toMs = Date.now()) => {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    return t >= fromMs && t <= toMs;
+  };
+
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const week = members.filter((m) => inWindow(m.created_at, now - 7 * 864e5)).length;
+    const prevWeek = members.filter((m) => {
+      if (!m.created_at) return false;
+      const t = new Date(m.created_at).getTime();
+      return t >= now - 14 * 864e5 && t < now - 7 * 864e5;
     }).length;
-  };
-
-  const calculateRecentRegistrations = () => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    return members.filter(member => {
-      if (!member.created_at) return false;
-      const createdDate = new Date(member.created_at);
-      return createdDate >= thirtyDaysAgo;
+    const month = members.filter((m) => inWindow(m.created_at, now - 30 * 864e5)).length;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayCount = members.filter((m) => {
+      if (!m.created_at) return false;
+      const d = new Date(m.created_at);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime() === today.getTime();
     }).length;
-  };
+    const regions = new Set(members.map((m) => m.region).filter(Boolean)).size;
+    const wow = formatDelta(week, prevWeek, 'week');
+    return { week, prevWeek, month, todayCount, regions, wowText: wow.text, wowDown: wow.down };
+  }, [members]);
 
-  const getRecentRegistrationsList = () => {
-    return members
-      .filter(member => member.created_at)
-      .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
-      .slice(0, 3)
-      .map(member => ({
-        name: `${member.first_name} ${member.last_name}`,
-        region: member.region || 'Unknown',
-        time: formatTimeAgo(member.created_at!),
-        profilePicture: typeof member.picture === 'string' ? member.picture : member.picture ? URL.createObjectURL(member.picture) : null,
-        initials: `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`,
-      }));
-  };
+  const totalRegistered = registrantStats?.total_registered ?? members.length;
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays > 0) {
-      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    } else if (diffHours > 0) {
-      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    } else {
-      return 'Less than an hour ago';
+  const dailySeries = useMemo(() => {
+    const days: { day: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      days.push({
+        day: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        count: members.filter((m) => {
+          if (!m.created_at) return false;
+          const md = new Date(m.created_at);
+          md.setHours(0, 0, 0, 0);
+          return md.getTime() === d.getTime();
+        }).length,
+      });
     }
-  };
+    return days;
+  }, [members]);
 
-  const statCards = [
-    {
-      title: 'My Registrations',
-      value: registrantStats?.total_registered || 0,
-      icon: UsersIcon,
-      color: 'primary',
-      change: 'Total members registered',
-      description: 'All members you have registered',
-    },
-    {
-      title: 'This Week',
-      value: calculateWeeklyRegistrations(),
-      icon: UserPlusIcon,
-      color: 'success',
-      change: 'New registrations',
-      description: 'Members registered this week',
-    },
-    {
-      title: 'Recent Activity',
-      value: calculateRecentRegistrations(),
-      icon: ArrowTrendingUpIcon,
-      color: 'secondary',
-      change: 'Last 30 days',
-      description: 'Recent registrations',
-    },
-    {
-      title: 'Campaign Progress',
-      value: Math.round(((registrantStats?.total_registered || 0) / 25) * 100),
-      icon: SparklesIcon,
-      color: 'primary',
-      change: 'Progress to goal',
-      description: 'Campaign completion',
-    },
-  ];
-
-  const quickActions = [
-    {
-      title: 'Register New Member',
-      description: 'Add a new church member to the database',
-      href: `${basePath}/members/add`,
-      icon: UserPlusIcon,
-      color: 'primary',
-    },
-    {
-      title: user?.role === 'apostle' ? 'View Kanda Members' : 'View My Members',
-      description: user?.role === 'apostle' ? 'See all members in your kanda' : 'See all members you have registered',
-      href: `${basePath}/members`,
-      icon: UsersIcon,
-      color: 'secondary',
-    },
-    {
-      title: user?.role === 'apostle' ? 'Kanda Statistics' : 'My Statistics',
-      description: user?.role === 'apostle' ? 'View kanda analytics and trends' : 'View detailed registration statistics',
-      href: `${basePath}/stats`,
-      icon: ChartBarIcon,
-      color: 'success',
-    },
-  ];
-
-  const recentRegistrations = getRecentRegistrationsList();
-
-  // Chart data calculations
-  const getWeeklyChartData = () => {
-    const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-    const weeklyCounts = Array(4).fill(0);
-    const now = new Date();
-    const month = now.getMonth();
-    const year = now.getFullYear();
-
-    members.forEach(member => {
-      if (member.created_at) {
-        const date = new Date(member.created_at);
-        if (date.getMonth() === month && date.getFullYear() === year) {
-          const week = Math.floor(date.getDate() / 7);
-          if (week < 4) weeklyCounts[week]++;
-        }
-      }
+  const regionSeries = useMemo(() => {
+    const counts = new Map<string, number>();
+    members.forEach((m) => {
+      const r = (m.region || 'Unknown').trim() || 'Unknown';
+      counts.set(r, (counts.get(r) || 0) + 1);
     });
-
-    return {
-      labels: weeks,
-      datasets: [{
-        label: 'Weekly Registrations',
-        data: weeklyCounts,
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        tension: 0.1,
-      }],
-    };
-  };
-
-  const getRegionChartData = () => {
-    const regionCount: { [key: string]: number } = {};
-    members.forEach(member => {
-      const region = member.region || 'Unknown';
-      regionCount[region] = (regionCount[region] || 0) + 1;
-    });
-
-    const topRegions = Object.entries(regionCount)
-      .sort(([,a], [,b]) => b - a)
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
       .slice(0, 5);
+  }, [members]);
 
-    return {
-      labels: topRegions.map(([region]) => region),
-      datasets: [{
-        label: 'Members by Region',
-        data: topRegions.map(([, count]) => count),
-        backgroundColor: [
-          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
-        ],
-      }],
-    };
-  };
-
-  const getMonthlyProgressData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const monthlyCounts = Array(6).fill(0);
-    const now = new Date();
-    const year = now.getFullYear();
-
-    members.forEach(member => {
-      if (member.created_at) {
-        const date = new Date(member.created_at);
-        if (date.getFullYear() === year) {
-          const month = date.getMonth();
-          if (month < 6) monthlyCounts[month]++;
-        }
-      }
+  const monthlySeries = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const year = new Date().getFullYear();
+    const counts = Array(12).fill(0);
+    members.forEach((m) => {
+      if (!m.created_at) return;
+      const d = new Date(m.created_at);
+      if (d.getFullYear() === year) counts[d.getMonth()] += 1;
     });
+    return months.map((month, i) => ({ month, members: counts[i] }));
+  }, [members]);
 
-    return {
-      labels: months,
-      datasets: [{
-        label: 'Monthly Registrations',
-        data: monthlyCounts,
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-      }],
-    };
+  const recentRegistrations = useMemo(
+    () =>
+      members
+        .filter((m) => m.created_at)
+        .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
+        .slice(0, 5)
+        .map((m) => ({
+          id: m.id,
+          name: `${m.first_name} ${m.last_name}`,
+          region: m.region || 'Unknown',
+          at: m.created_at!,
+          picture: m.picture,
+          first_name: m.first_name,
+          last_name: m.last_name,
+        })),
+    [members]
+  );
+
+  const formatAgo = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
   };
 
-  const campaignInfo = {
-    startDate: branding.camp_start_date,
-    endDate: branding.camp_end_date,
-    location: branding.camp_location,
-    daysRemaining: 7,
-  };
+  const daysRemaining = useMemo(() => {
+    const end = new Date(branding.camp_end_date);
+    if (Number.isNaN(end.getTime())) return null;
+    return Math.max(0, Math.ceil((end.getTime() - Date.now()) / 864e5));
+  }, [branding.camp_end_date]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
+  const goalPct = Math.min(100, Math.round((stats.todayCount / DAILY_GOAL) * 100));
+
+  if (loading && members.length === 0 && !registrantStats) {
+    return <DashboardSkeleton />;
   }
 
+  const displayName =
+    user?.first_name || user?.last_name
+      ? `${user?.first_name || ''} ${user?.last_name || ''}`.trim()
+      : user?.username || 'Registrar';
+
   return (
-    <div className="space-y-8">
-      {/* Welcome Header with Enhanced Green Theme */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2 break-words">
-              {user?.role === 'apostle'
-                ? `Welcome Apostle ${user?.username}${user?.kanda ? `, ${formatKanda(user.kanda)}` : ''}!`
-                : `Welcome, ${user?.username}!`}
-            </h1>
-            <p className="text-gray-600 text-base sm:text-lg">
-              {user?.role === 'apostle'
-                ? `${branding.app_name} — Kanda oversight dashboard`
-                : branding.registrant_dashboard_subtitle}
-            </p>
-          </div>
-          <div className="flex items-center space-x-3 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-3 rounded-xl border border-green-200 self-start sm:self-auto flex-shrink-0">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
-            <span className="text-green-700 font-semibold text-sm">{branding.registration_status_label}</span>
-          </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={isApostle ? `Kanda Dashboard${user?.kanda ? ` — ${formatKanda(user.kanda)}` : ''}` : 'My Dashboard'}
+        subtitle={isApostle ? `${branding.app_name} — Kanda oversight scope` : branding.registrant_dashboard_subtitle}
+        cta={
+          <>
+            <ClayButton tone="neutral" icon={<RefreshCw className="w-4 h-4" />} onClick={handleManualRefresh}>
+              Refresh
+            </ClayButton>
+            <ClayButton tone={isAutoRefresh ? 'success' : 'neutral'} onClick={() => setIsAutoRefresh((v) => !v)}>
+              {isAutoRefresh ? 'Auto ON' : 'Auto OFF'}
+            </ClayButton>
+            <Link to={`${basePath}/members/add`}>
+              <ClayButton tone="primary" icon={<UserPlus className="w-4 h-4" />}>
+                New Record
+              </ClayButton>
+            </Link>
+          </>
+        }
+      />
+
+      <SectionCard
+        title={`Welcome back, ${displayName}!`}
+        subtitle={`${branding.camp_start_date} – ${branding.camp_end_date} • ${branding.camp_location}`}
+        action={
+          <span className="flex items-center gap-2">
+            <StatusPill stage={branding.registration_status_label} tone="success" />
+            {daysRemaining !== null && (
+              <span className="tnum text-xs font-bold text-[var(--foreground)]">
+                {daysRemaining} day{daysRemaining === 1 ? '' : 's'} left
+              </span>
+            )}
+          </span>
+        }
+      >
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <KpiCard label={isApostle ? 'Kanda Members' : 'My Registrations'} value={totalRegistered} trend={`+${stats.month} in 30d`} tint="primary" icon={<Users className="w-4 h-4" />} index={0} />
+          <KpiCard label="This Week" value={stats.week} trend={stats.wowText} down={stats.wowDown} tint="success" icon={<UserPlus className="w-4 h-4" />} index={1} />
+          <KpiCard label="Last 30 Days" value={stats.month} trend={`${(stats.month / 30).toFixed(1)}/day pace`} tint="info" icon={<Activity className="w-4 h-4" />} index={2} />
+          <KpiCard label="Regions Covered" value={stats.regions} tint="purple" icon={<MapPin className="w-4 h-4" />} index={3} />
         </div>
-      </div>
+      </SectionCard>
 
-      {/* Camp Information with Green Accent */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl shadow-lg border border-green-100 p-6 hover:shadow-xl transition-all duration-300">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-green-800 mb-2">{branding.app_name} Information</h2>
-            <p className="text-green-700 font-medium">{campaignInfo.startDate} - {campaignInfo.endDate}</p>
-            <p className="text-green-600 text-sm mt-1 flex items-center">
-              <span className="text-lg mr-1">📍</span> {campaignInfo.location}
-            </p>
+      <div className="grid lg:grid-cols-3 gap-6">
+        <SectionCard title="Daily Registrations" subtitle="Last 7 days in scope" className="lg:col-span-2" action={<StatusPill stage="Live" tone="success" />}>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%" debounce={100}>
+              <AreaChart data={dailySeries} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gRegGrowth" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                <Area type="monotone" dataKey="count" stroke="var(--chart-1)" strokeWidth={2.5} fill="url(#gRegGrowth)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-          <div className="text-center bg-white rounded-xl p-4 shadow-md border border-green-200">
-            <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{campaignInfo.daysRemaining}</div>
-            <div className="text-sm text-green-700 font-medium">Days Remaining</div>
-          </div>
-        </div>
-      </div>
+        </SectionCard>
 
-      {/* Statistics Cards with Enhanced Green Theme */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-        {statCards.map((stat, index) => (
-          <div key={stat.title} className="bg-white rounded-lg sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-lg sm:hover:shadow-xl transition-all duration-300 group relative">
-            {/* Live indicator */}
-            <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
-              <div className="flex items-center gap-0.5 sm:gap-1">
-                <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs text-green-600 font-medium">LIVE</span>
+        <SectionCard title="Members by Region" subtitle="Top areas in scope">
+          {regionSeries.length === 0 ? (
+            <EmptyState title="No regional data" message="Registered members will appear here." />
+          ) : (
+            <div className="h-72 w-full flex flex-col">
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                  <PieChart>
+                    <Pie data={regionSeries} dataKey="value" nameKey="name" innerRadius={54} outerRadius={82} paddingAngle={3} stroke="none">
+                      {regionSeries.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
+              <ul className="mt-2 space-y-1.5">
+                {regionSeries.map((g, i) => (
+                  <li key={g.name} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      {g.name}
+                    </span>
+                    <span className="tnum font-bold text-[var(--foreground)]">{g.value.toLocaleString()}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-
-            <div className="flex items-center justify-between gap-2 sm:gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1 truncate">{stat.title}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{stat.value}</p>
-                <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">{stat.change}</p>
-              </div>
-              <div className="p-2 sm:p-4 rounded-lg sm:rounded-xl bg-white border-2 border-green-200 shadow-lg group-hover:scale-105 sm:group-hover:scale-110 transition-transform duration-200 ring-2 sm:ring-4 ring-green-100 flex-shrink-0">
-                <stat.icon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600 drop-shadow-sm" strokeWidth={2} />
-              </div>
-            </div>
-          </div>
-        ))}
+          )}
+        </SectionCard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-        {/* Quick Actions with Enhanced Green Theme */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-lg sm:hover:shadow-xl transition-all duration-300">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-6 sm:h-8 rounded-full"></span>
-              Quick Actions
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {quickActions.map((action) => (
-                <Link
-                  key={action.title}
-                  to={action.href}
-                  className="group p-3 sm:p-5 border-2 border-gray-100 rounded-lg sm:rounded-xl hover:border-green-200 hover:bg-green-50/50 transition-all duration-300 hover:shadow-lg"
-                  title={action.title}
-                >
-                  <div className="flex items-start gap-3 sm:gap-4">
-                    <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-white border-2 border-green-200 group-hover:scale-105 sm:group-hover:scale-110 transition-transform duration-200 shadow-lg ring-2 sm:ring-4 ring-green-100 flex-shrink-0">
-                      <action.icon className="h-5 sm:h-6 lg:h-8 w-5 sm:w-6 lg:w-8 text-green-600 drop-shadow-sm" strokeWidth={2} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors duration-200 text-base sm:text-lg">
-                        {action.title}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 line-clamp-2">{action.description}</p>
-                    </div>
-                  </div>
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <SectionCard title="Quick Actions" subtitle="Intake shortcuts">
+            <div className="grid sm:grid-cols-3 gap-3">
+              {[
+                { to: `${basePath}/members/add`, label: 'Register Member', desc: 'New intake', icon: <UserPlus className="w-4 h-4" /> },
+                { to: `${basePath}/members`, label: isApostle ? 'Kanda Members' : 'My Members', desc: 'Browse register', icon: <Users className="w-4 h-4" /> },
+                { to: `${basePath}/stats`, label: isApostle ? 'Kanda Analytics' : 'My Statistics', desc: 'Trends & insights', icon: <ChartBar className="w-4 h-4" /> },
+              ].map((a) => (
+                <Link key={a.to + a.label} to={a.to} className="surface hover-lift p-4 flex items-start gap-3 focus-ring rounded-2xl min-w-0">
+                  <span className="icon-badge flex-shrink-0">{a.icon}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-display text-sm font-semibold text-[var(--foreground)] break-words">{a.label}</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5 break-words">{a.desc}</span>
+                  </span>
                 </Link>
               ))}
             </div>
+          </SectionCard>
 
-            {/* Registration Goal Progress with Green Theme */}
-            <div className="mt-6 sm:mt-8 p-4 sm:p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg sm:rounded-xl border border-green-200">
-              <div className="flex justify-between items-center mb-2 sm:mb-3 gap-2">
-                <span className="text-base sm:text-lg font-bold text-green-800 truncate">Daily Registration Goal</span>
-                <span className="text-base sm:text-lg font-semibold text-green-700 bg-white px-2 sm:px-3 py-1 rounded-full text-sm sm:text-base flex-shrink-0">12 / 25</span>
-              </div>
-              <div className="w-full bg-green-100 rounded-full h-2 sm:h-3 shadow-inner">
-                <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 sm:h-3 rounded-full shadow-lg" style={{width: '48%'}}></div>
-              </div>
-              <p className="text-xs sm:text-sm text-green-700 mt-1 sm:mt-2 font-medium">13 more registrations to reach daily goal 🎯</p>
+          <SectionCard
+            title="Daily Registration Goal"
+            subtitle={`Today: ${stats.todayCount} of ${DAILY_GOAL} • Updated ${lastUpdated.toLocaleTimeString()}`}
+            action={<StatusPill stage={`${goalPct}%`} tone={goalPct >= 100 ? 'success' : 'info'} />}
+          >
+            <div className="h-2.5 rounded-full bg-[var(--secondary)] overflow-hidden">
+              <div className="h-full rounded-full bg-[var(--primary)] transition-all" style={{ width: `${goalPct}%` }} />
             </div>
-          </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {stats.todayCount >= DAILY_GOAL
+                ? 'Daily goal reached — excellent work.'
+                : `${DAILY_GOAL - stats.todayCount} more to reach today's goal.`}
+            </p>
+          </SectionCard>
+
+          <SectionCard title="Monthly Progress" subtitle={`Registrations in ${new Date().getFullYear()}`}>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                <BarChart data={monthlySeries} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                  <CartesianGrid stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                  <Bar dataKey="members" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionCard>
         </div>
 
-        {/* Recent Activity with Enhanced Green Theme */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg sm:rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-lg sm:hover:shadow-xl transition-all duration-300">
-            <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-6 sm:h-8 rounded-full"></span>
-              Recent Registrations
-            </h2>
-            <div className="space-y-3 sm:space-y-4">
-              {recentRegistrations.map((registration, index) => (
-                <div key={index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-green-50 hover:border-green-200 transition-all duration-200">
-                  <div className="relative w-12 h-12 rounded-full overflow-hidden shadow-lg hover:ring-2 hover:ring-green-300 transition-all duration-200 hover:scale-105">
-                    {registration.profilePicture ? (
-                      <img
-                        src={registration.profilePicture}
-                        alt={registration.name}
-                        className="w-full h-full object-cover bg-white border-2 border-green-200 rounded-full ring-4 ring-green-100"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const fallback = target.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div 
-                      className={`absolute inset-0 bg-white border-2 border-green-200 rounded-full flex items-center justify-center text-green-600 font-bold text-sm shadow-lg ring-4 ring-green-100 ${registration.profilePicture ? 'hidden' : 'flex'}`}
-                    >
-                      {registration.initials}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 truncate">{registration.name}</p>
-                    <p className="text-sm text-gray-600">{registration.region}</p>
-                  </div>
-                  <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">{registration.time}</div>
-                </div>
+        <SectionCard
+          title="Recent Registrations"
+          subtitle="Latest intake in scope"
+          action={
+            <Link to={`${basePath}/members`}>
+              <ClayButton tone="neutral" icon={<CalendarDays className="w-4 h-4" />}>
+                View All
+              </ClayButton>
+            </Link>
+          }
+        >
+          {recentRegistrations.length === 0 ? (
+            <EmptyState
+              title="No registrations yet"
+              message="Members you register will appear here."
+              action={
+                <Link to={`${basePath}/members/add`}>
+                  <ClayButton tone="primary">Register Member</ClayButton>
+                </Link>
+              }
+            />
+          ) : (
+            <ul className="space-y-3">
+              {recentRegistrations.map((r) => (
+                <li key={String(r.id)} className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border)] bg-[var(--card)] row-hover">
+                  <span className="w-9 h-9 rounded-xl overflow-hidden bg-[var(--secondary)] flex-shrink-0 block">
+                    <ProfilePicture src={r.picture} firstName={r.first_name} lastName={r.last_name} size="sm" className="!w-full !h-full !ring-0 !border-0" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[13px] font-semibold text-[var(--foreground)] truncate">{r.name}</span>
+                    <span className="block text-xs text-muted-foreground truncate">{r.region}</span>
+                  </span>
+                  <span className="tnum text-[11px] text-muted-foreground flex-shrink-0">{formatAgo(r.at)}</span>
+                </li>
               ))}
-            </div>
-            <div className="mt-6">
-              <Link
-                to="/registrant/members"
-                className="block w-full text-center py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 hover:scale-105 shadow-lg"
-              >
-                View All My Members →
-              </Link>
-            </div>
-          </div>
-
-          {/* Registration Tips with Enhanced Green Theme */}
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg border border-green-200 p-6 mt-6 hover:shadow-xl transition-all duration-300">
-            <h3 className="text-xl font-bold text-green-800 mb-4 flex items-center">
-              💡 Registration Tips
-            </h3>
-            <ul className="space-y-3 text-sm text-green-700">
-              <li className="flex items-start">
-                <span className="text-green-500 mr-2">•</span>
-                <span className="font-medium">Ensure all required fields are completed</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-500 mr-2">•</span>
-                <span className="font-medium">Double-check church registration numbers</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-500 mr-2">•</span>
-                <span className="font-medium">Take clear photos for member profiles</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-500 mr-2">•</span>
-                <span className="font-medium">Verify contact information accuracy</span>
-              </li>
             </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* --- GRAPHS SECTION --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-6 rounded-full mr-3"></span>
-            Weekly Registrations
-          </h3>
-          <Line data={getWeeklyChartData()} options={{ responsive: true, plugins: { legend: { display: false } } }} />
-        </div>
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-6 rounded-full mr-3"></span>
-            Members by Region
-          </h3>
-          <Pie data={getRegionChartData()} options={{ responsive: true }} />
-        </div>
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <span className="bg-gradient-to-r from-green-500 to-emerald-500 w-1 h-6 rounded-full mr-3"></span>
-            Monthly Progress
-          </h3>
-          <Bar data={getMonthlyProgressData()} options={{ responsive: true, plugins: { legend: { display: false } } }} />
-        </div>
+          )}
+        </SectionCard>
       </div>
     </div>
   );

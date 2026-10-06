@@ -9,7 +9,7 @@ import { RootState, AppDispatch } from '../../store';
 import { Member } from '../../types';
 import { Button, Input, Select, Card, Modal } from '../../components/ui';
 import { TANZANIA_REGIONS, DAR_ES_SALAAM_AREAS } from '../../services/api';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 interface MemberFormData {
   first_name: string;

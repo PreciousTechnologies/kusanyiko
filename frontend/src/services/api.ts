@@ -254,24 +254,37 @@ async function uploadAvatar(file: File, userId: string): Promise<string> {
 // ============================================================
 export const membersAPI = {
   getMembers: async (params: any = {}) => {
-    let q = supabase.from('members').select('*, creator:profiles!members_created_by_fkey(username)', { count: 'exact' }).eq('is_deleted', false).order('created_at', { ascending: false });
-    if (params.search) {
-      const s = `%${params.search}%`;
-      q = q.or(`first_name.ilike.${s},last_name.ilike.${s},middle_name.ilike.${s},mobile_no.ilike.${s},email.ilike.${s}`);
-    }
-    if (params.gender) q = q.eq('gender', params.gender);
-    if (params.region) q = q.ilike('region', `%${params.region}%`);
-    if (params.center_area) q = q.ilike('center_area', `%${params.center_area}%`);
-    if (params.country) q = q.ilike('country', `%${params.country}%`);
-    if (params.saved !== undefined && params.saved !== null && params.saved !== '') {
-      const b = params.saved === true || params.saved === 'true' || params.saved === '1';
-      q = q.eq('saved', b);
-    }
-    if (params.created_by) q = q.eq('created_by', params.created_by);
+    // PostgREST caps a single response at 1000 rows — page through the
+    // whole (RLS-scoped, filtered) set so counts and stats are real.
+    const build = (from: number, to: number) => {
+      let q = supabase.from('members').select('*, creator:profiles!members_created_by_fkey(username)', { count: 'exact' }).eq('is_deleted', false).order('created_at', { ascending: false }).range(from, to);
+      if (params.search) {
+        const s = `%${params.search}%`;
+        q = q.or(`first_name.ilike.${s},last_name.ilike.${s},middle_name.ilike.${s},mobile_no.ilike.${s},email.ilike.${s}`);
+      }
+      if (params.gender) q = q.eq('gender', params.gender);
+      if (params.region) q = q.ilike('region', `%${params.region}%`);
+      if (params.center_area) q = q.ilike('center_area', `%${params.center_area}%`);
+      if (params.country) q = q.ilike('country', `%${params.country}%`);
+      if (params.saved !== undefined && params.saved !== null && params.saved !== '') {
+        const b = params.saved === true || params.saved === 'true' || params.saved === '1';
+        q = q.eq('saved', b);
+      }
+      if (params.created_by) q = q.eq('created_by', params.created_by);
+      return q;
+    };
     // RLS enforces registrant=own / apostle=kanda / admin=all automatically.
-    const { data, error, count } = await q;
-    if (error) throw { response: { data: { message: error.message } } };
-    const members = (await withCreatorNames(data || [])).map(mapMemberRow);
+    const pageSize = 1000;
+    let from = 0;
+    const all: any[] = [];
+    for (;;) {
+      const { data, error } = await build(from, from + pageSize - 1);
+      if (error) throw { response: { data: { message: error.message } } };
+      all.push(...(data || []));
+      if (!data || data.length < pageSize) break;
+      from += pageSize;
+    }
+    const members = (await withCreatorNames(all)).map(mapMemberRow);
     // Return a plain array (membersSlice normalizer + SearchMembers both accept arrays)
     return { data: members as any };
   },
@@ -438,18 +451,31 @@ async function legacyCreateUser(userData: any) {
 // ============================================================
 export const userManagementAPI = {
   getUsers: async (params: any = {}) => {
-    let q = supabase.from('profiles').select('*').order('date_joined', { ascending: false });
-    if (params.search) {
-      const s = `%${params.search}%`;
-      q = q.or(`username.ilike.${s},email.ilike.${s},first_name.ilike.${s},last_name.ilike.${s}`);
+    // Same 1000-row PostgREST cap as members — page fully so admin
+    // counts never saturate.
+    const build = (from: number, to: number) => {
+      let q = supabase.from('profiles').select('*').order('date_joined', { ascending: false }).range(from, to);
+      if (params.search) {
+        const s = `%${params.search}%`;
+        q = q.or(`username.ilike.${s},email.ilike.${s},first_name.ilike.${s},last_name.ilike.${s}`);
+      }
+      if (params.role && params.role !== 'all') q = q.eq('role', params.role);
+      if (params.status && params.status !== 'all') q = q.eq('status', params.status);
+      return q;
+    };
+    const pageSize = 1000;
+    let from = 0;
+    const all: any[] = [];
+    for (;;) {
+      const { data, error } = await build(from, from + pageSize - 1);
+      if (error) throw { response: { data: { message: error.message } } };
+      all.push(...(data || []));
+      if (!data || data.length < pageSize) break;
+      from += pageSize;
     }
-    if (params.role && params.role !== 'all') q = q.eq('role', params.role);
-    if (params.status && params.status !== 'all') q = q.eq('status', params.status);
-    const { data, error } = await q;
-    if (error) throw { response: { data: { message: error.message } } };
     // Attach members_registered counts (Django annotated this)
     const withCounts = await Promise.all(
-      (data || []).map(async (u: any) => {
+      all.map(async (u: any) => {
         const { count } = await supabase.from('members').select('id', { count: 'exact', head: true }).eq('created_by', u.id).eq('is_deleted', false);
         return { ...toFrontendUser(u), members_registered: count ?? 0 };
       })

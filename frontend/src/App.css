@@ -2,8 +2,6 @@
 @import './styles/glassmorphism.css';
 @import './styles/forms.css';
 @import './styles/dashboard.css';
-@import './styles/auth.css';
-@import './styles/landing.css';
 
 * {
   margin: 0;

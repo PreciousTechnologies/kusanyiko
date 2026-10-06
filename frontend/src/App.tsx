@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
-import { ToastContainer } from 'react-toastify';
+import { Toaster } from './components/ui/sonner';
 import { store } from './store';
 import { useAppDispatch } from './hooks/redux';
 import { initializeAuth } from './store/slices/authSlice';
@@ -8,9 +8,11 @@ import AppRouter from './router/AppRouter';
 import ErrorBoundary from './components/ErrorBoundary';
 import { DialogProvider } from './components/ui/Dialog';
 import { BrandingProvider } from './context/BrandingContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { initializeConsoleOverrides } from './utils/consoleOverrides';
-import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+import './styles/efatha-theme.css';
+import './styles/efatha-forms.css';
 
 // Initialize console overrides to suppress development noise
 initializeConsoleOverrides();
@@ -32,23 +34,14 @@ function App() {
       <ErrorBoundary>
         <DialogProvider>
         <div className="App">
+          <ThemeProvider>
           <BrandingProvider>
             <AuthInitializer>
               <AppRouter />
             </AuthInitializer>
+            <Toaster />
           </BrandingProvider>
-          <ToastContainer
-            position="top-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="light"
-          />
+          </ThemeProvider>
         </div>
         </DialogProvider>
       </ErrorBoundary>

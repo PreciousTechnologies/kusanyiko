@@ -50,6 +50,11 @@ code {
     monospace;
 }
 
+/* NOTE (cascade fix): the hand-written Tailwind duplicates below live in the
+   components layer on purpose. Unlayered, they outrank Tailwind's responsive
+   variants (e.g. plain .hidden beats md:flex, .grid-cols-1 beats
+   sm:grid-cols-2), which froze desktop layouts. Values stay identical. */
+@layer components {
 /* Layout Utilities */
 .min-h-screen { min-height: 100vh; }
 .flex { display: flex; }
@@ -274,6 +279,7 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+} /* end components layer: Tailwind utilities layer governs ties above */
 
 /* Glassmorphism base styles */
 .glass {
@@ -504,6 +510,8 @@ code {
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
 
+/* NOTE (cascade fix): same as above — duplicates yield to real utilities. */
+@layer components {
 /* Utility classes */
 .text-center { text-align: center; }
 .text-left { text-align: left; }
@@ -540,6 +548,7 @@ code {
 .relative { position: relative; }
 .absolute { position: absolute; }
 .fixed { position: fixed; }
+} /* end components layer */
 
 /* ===== MOBILE VIEWPORT OPTIMIZATIONS ===== */
 /* Enhanced mobile support for all components */

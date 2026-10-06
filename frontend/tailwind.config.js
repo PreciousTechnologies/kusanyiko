@@ -1,12 +1,32 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
     extend: {
       colors: {
+        // Design-system tokens (CSS vars) — bare utilities like
+        // text-muted-foreground, bg-muted, border-border, bg-card.
+        border: 'var(--border)',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--foreground)',
+        },
+        popover: 'var(--card)',
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--foreground)',
+        },
         primary: {
+          DEFAULT: 'var(--primary)',
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
@@ -19,6 +39,7 @@ module.exports = {
           900: '#1e3a8a',
         },
         secondary: {
+          DEFAULT: 'var(--secondary)',
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',

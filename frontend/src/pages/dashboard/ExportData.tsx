@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchMembers } from '../../store/slices/membersSlice';
 import { fetchAdminStats } from '../../store/slices/statsSlice';
 import { exportAPI } from '../../services/api';
+import { PageHeader } from '../../components/app-shell';
+import { SectionCard, ClayButton, StatusPill, EmptyState, KpiCard } from '../../components/ui-bits';
+import { DashboardSkeleton } from '../../components/skeleton-loaders';
+import { springs } from '../../lib/motion-tokens';
 import {
-  DocumentArrowDownIcon,
-  TableCellsIcon,
-  DocumentTextIcon,
-  ChartBarIcon,
-  UsersIcon,
-  CalendarIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-} from '@heroicons/react/24/outline';
+  FileDown,
+  Table2,
+  FileText,
+  ChartBar,
+  Users,
+  CalendarDays,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
 import { dialog } from '../../components/ui/Dialog';
 
 interface ExportOption {
@@ -32,623 +37,268 @@ const ExportData: React.FC = () => {
   const { members, loading: membersLoading } = useAppSelector((state) => state.members);
   const { adminStats, loading: statsLoading } = useAppSelector((state) => state.stats);
   const { user } = useAppSelector((state) => state.auth);
-  
+
   const [selectedExports, setSelectedExports] = useState<string[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<'csv' | 'pdf' | 'excel'>('csv');
-  const [dateRange, setDateRange] = useState({
-    start: '',
-    end: new Date().toISOString().split('T')[0]
-  });
+  const [dateRange, setDateRange] = useState({ start: '', end: new Date().toISOString().split('T')[0] });
   const [exportProgress, setExportProgress] = useState<{ [key: string]: number }>({});
   const [exportStatus, setExportStatus] = useState<{ [key: string]: 'idle' | 'exporting' | 'completed' | 'error' }>({});
-
-  // Calculate summary statistics
-  const calculateSummaryStats = () => {
-    const stats = {
-      totalMembers: members.length,
-      males: members.filter(m => m.gender === 'male').length,
-      females: members.filter(m => m.gender === 'female').length,
-      saved: members.filter(m => m.saved).length,
-      unsaved: members.filter(m => !m.saved).length,
-      countries: {} as { [key: string]: number },
-      tanzaniaRegions: {} as { [key: string]: number },
-      darEsSalaamAreas: {} as { [key: string]: number }
-    };
-
-    // Count members by country
-    members.forEach(member => {
-      stats.countries[member.country] = (stats.countries[member.country] || 0) + 1;
-    });
-
-    // Count members by region (only for Tanzania)
-    members.filter(m => m.country === 'Tanzania' && m.region).forEach(member => {
-      stats.tanzaniaRegions[member.region!] = (stats.tanzaniaRegions[member.region!] || 0) + 1;
-    });
-
-    // Count members by center/area (only for Dar es Salaam)
-    members.filter(m => m.country === 'Tanzania' && m.region === 'Dar es Salaam' && m.center_area).forEach(member => {
-      stats.darEsSalaamAreas[member.center_area!] = (stats.darEsSalaamAreas[member.center_area!] || 0) + 1;
-    });
-
-    return stats;
-  };
-
-  const summaryStats = calculateSummaryStats();
-
-  // Calculate real data for export options
-  const myMembersCount = members.filter(member => 
-    member.created_by === user?.id || member.registered_by === user?.id
-  ).length;
-
-  const totalAnalyticsSize = adminStats ? 
-    Math.round((adminStats.total_members * 0.05 + adminStats.recent_registrations * 0.02) * 100) / 100 : 0;
-
-  const exportOptions: ExportOption[] = [
-    {
-      id: 'summary-report',
-      name: 'Summary Report',
-      description: `Comprehensive summary report with ${summaryStats.totalMembers} total members, gender breakdown, salvation status, and geographical distribution`,
-      icon: ChartBarIcon,
-      dataType: 'analytics',
-      formats: ['excel', 'pdf'], // CSV not supported for analytics
-      estimatedSize: '0.5 MB',
-      category: 'reports'
-    },
-    {
-      id: 'demographics-report',
-      name: 'Demographics Report',
-      description: `Detailed demographics analysis including gender distribution (${summaryStats.males} males, ${summaryStats.females} females) and salvation status (${summaryStats.saved} saved, ${summaryStats.unsaved} unsaved)`,
-      icon: UsersIcon,
-      dataType: 'analytics',
-      formats: ['excel', 'pdf'], // CSV not supported for analytics
-      estimatedSize: '0.3 MB',
-      category: 'reports'
-    },
-    {
-      id: 'geographical-report',
-      name: 'Geographical Report',
-      description: `Geographical distribution of members by country, regions (Tanzania), and areas (Dar es Salaam)`,
-      icon: ChartBarIcon,
-      dataType: 'analytics',
-      formats: ['excel', 'pdf'], // CSV not supported for analytics
-      estimatedSize: '0.4 MB',
-      category: 'reports'
-    },
-    {
-      id: 'members-all',
-      name: 'All Members (Detailed)',
-      description: `Complete member database with ${members.length} members including personal details, contact information, and registration data`,
-      icon: UsersIcon,
-      dataType: 'members',
-      formats: ['csv', 'excel', 'pdf'],
-      estimatedSize: `${Math.max(0.1, members.length * 0.015).toFixed(1)} MB`,
-      category: 'member-data'
-    },
-    {
-      id: 'members-my',
-      name: 'My Registered Members',
-      description: `${myMembersCount} members that you have personally registered`,
-      icon: UsersIcon,
-      dataType: 'members',
-      formats: ['csv', 'excel', 'pdf'],
-      estimatedSize: `${Math.max(0.1, myMembersCount * 0.015).toFixed(1)} MB`,
-      category: 'member-data'
-    },
-    {
-      id: 'analytics-overview',
-      name: 'Analytics Overview',
-      description: `Comprehensive analytics report with charts, trends, and statistical insights for ${adminStats?.total_members || 0} members`,
-      icon: ChartBarIcon,
-      dataType: 'analytics',
-      formats: ['pdf', 'excel'],
-      estimatedSize: `${Math.max(1.0, totalAnalyticsSize).toFixed(1)} MB`,
-      category: 'analytics'
-    },
-    {
-      id: 'analytics-monthly',
-      name: 'Monthly Reports',
-      description: `Month-by-month breakdown of ${adminStats?.recent_registrations || 0} registrations and member activities`,
-      icon: CalendarIcon,
-      dataType: 'analytics',
-      formats: ['csv', 'excel', 'pdf'],
-      estimatedSize: `${Math.max(0.5, (adminStats?.recent_registrations || 0) * 0.01).toFixed(1)} MB`,
-      category: 'analytics'
-    },
-    {
-      id: 'user-activity',
-      name: 'User Activity Log',
-      description: 'System user activity, login history, and administrative actions',
-      icon: ClockIcon,
-      dataType: 'users',
-      formats: ['csv', 'excel'],
-      estimatedSize: '1.8 MB',
-      category: 'system'
-    },
-    {
-      id: 'financial-summary',
-      name: 'Financial Summary',
-      description: 'Donation tracking, tithe records, and financial contribution analysis',
-      icon: DocumentTextIcon,
-      dataType: 'financial',
-      formats: ['excel', 'pdf'],
-      estimatedSize: '4.2 MB',
-      category: 'system'
-    }
-  ];
 
   useEffect(() => {
     dispatch(fetchMembers({}));
     dispatch(fetchAdminStats({}));
   }, [dispatch]);
 
-  const handleExportToggle = (exportId: string) => {
-    setSelectedExports(prev => 
-      prev.includes(exportId) 
-        ? prev.filter(id => id !== exportId)
-        : [...prev, exportId]
-    );
+  const summary = {
+    total: members.length,
+    males: members.filter((m) => m.gender === 'male').length,
+    females: members.filter((m) => m.gender === 'female').length,
+    saved: members.filter((m) => m.saved).length,
   };
+  const myCount = members.filter((m) => (m as any).created_by === (user as any)?.id || (m as any).registered_by === (user as any)?.id).length;
+
+  const exportOptions: ExportOption[] = [
+    { id: 'summary-report', name: 'Summary Report', description: `Comprehensive summary with ${summary.total} members, gender and salvation breakdown`, icon: ChartBar, dataType: 'analytics', formats: ['excel', 'pdf'], estimatedSize: '0.5 MB', category: 'reports' },
+    { id: 'demographics-report', name: 'Demographics Report', description: `${summary.males} males, ${summary.females} females • ${summary.saved} saved`, icon: Users, dataType: 'analytics', formats: ['excel', 'pdf'], estimatedSize: '0.3 MB', category: 'reports' },
+    { id: 'geographical-report', name: 'Geographical Report', description: 'Distribution by country, region and center/area', icon: ChartBar, dataType: 'analytics', formats: ['excel', 'pdf'], estimatedSize: '0.4 MB', category: 'reports' },
+    { id: 'members-all', name: 'All Members (Detailed)', description: `Complete database with ${members.length} members`, icon: Users, dataType: 'members', formats: ['csv', 'excel', 'pdf'], estimatedSize: `${Math.max(0.1, members.length * 0.015).toFixed(1)} MB`, category: 'member-data' },
+    { id: 'members-my', name: 'My Registered Members', description: `${myCount} members you personally registered`, icon: Users, dataType: 'members', formats: ['csv', 'excel', 'pdf'], estimatedSize: `${Math.max(0.1, myCount * 0.015).toFixed(1)} MB`, category: 'member-data' },
+    { id: 'analytics-overview', name: 'Analytics Overview', description: `Charts and trends for ${adminStats?.total_members || 0} members`, icon: ChartBar, dataType: 'analytics', formats: ['pdf', 'excel'], estimatedSize: '1.0 MB', category: 'analytics' },
+    { id: 'analytics-monthly', name: 'Monthly Reports', description: `Month-by-month breakdown of registrations`, icon: CalendarDays, dataType: 'analytics', formats: ['csv', 'excel', 'pdf'], estimatedSize: '0.5 MB', category: 'analytics' },
+    { id: 'user-activity', name: 'User Activity Log', description: 'Login history and administrative actions', icon: Clock, dataType: 'users', formats: ['csv', 'excel'], estimatedSize: '1.8 MB', category: 'system' },
+    { id: 'financial-summary', name: 'Financial Summary', description: 'Donations, tithes and contributions (sample)', icon: FileText, dataType: 'financial', formats: ['excel', 'pdf'], estimatedSize: '4.2 MB', category: 'system' },
+  ];
 
   const performRealExport = async (exportId: string) => {
-    setExportStatus(prev => ({ ...prev, [exportId]: 'exporting' }));
-    setExportProgress(prev => ({ ...prev, [exportId]: 0 }));
-
+    setExportStatus((prev) => ({ ...prev, [exportId]: 'exporting' }));
+    setExportProgress((prev) => ({ ...prev, [exportId]: 0 }));
     try {
-      let response;
-      const option = exportOptions.find(opt => opt.id === exportId);
-      
-      // Update progress incrementally
-      const updateProgress = (progress: number) => {
-        setExportProgress(prev => ({ ...prev, [exportId]: progress }));
-      };
-
-      updateProgress(20);
-
-      // Perform actual API calls based on export type
+      const option = exportOptions.find((o) => o.id === exportId);
+      const update = (p: number) => setExportProgress((prev) => ({ ...prev, [exportId]: p }));
+      update(20);
+      let response: any;
+      const nonCsv = (selectedFormat === 'csv' ? 'excel' : selectedFormat) as 'excel' | 'pdf';
       switch (exportId) {
         case 'summary-report':
-          updateProgress(40);
-          // Analytics exports don't support CSV, use Excel instead
-          const analyticsFormat = selectedFormat === 'csv' ? 'excel' : selectedFormat;
-          response = await exportAPI.exportAnalytics(analyticsFormat as 'excel' | 'pdf', {
-            type: 'summary',
-            date_range: {
-              start_date: dateRange.start,
-              end_date: dateRange.end
-            }
-          });
+          response = await exportAPI.exportAnalytics(nonCsv, { type: 'summary', date_range: { start_date: dateRange.start, end_date: dateRange.end } });
           break;
-          
         case 'demographics-report':
-          updateProgress(40);
-          const demographicsFormat = selectedFormat === 'csv' ? 'excel' : selectedFormat;
-          response = await exportAPI.exportAnalytics(demographicsFormat as 'excel' | 'pdf', {
-            type: 'demographics',
-            date_range: {
-              start_date: dateRange.start,
-              end_date: dateRange.end
-            }
-          });
+          response = await exportAPI.exportAnalytics(nonCsv, { type: 'demographics', date_range: { start_date: dateRange.start, end_date: dateRange.end } });
           break;
-          
         case 'geographical-report':
-          updateProgress(40);
-          const geographicalFormat = selectedFormat === 'csv' ? 'excel' : selectedFormat;
-          response = await exportAPI.exportAnalytics(geographicalFormat as 'excel' | 'pdf', {
-            type: 'geographical',
-            date_range: {
-              start_date: dateRange.start,
-              end_date: dateRange.end
-            }
-          });
+          response = await exportAPI.exportAnalytics(nonCsv, { type: 'geographical', date_range: { start_date: dateRange.start, end_date: dateRange.end } });
           break;
-          
         case 'members-all':
-          updateProgress(40);
-          response = await exportAPI.exportMembers(selectedFormat as 'csv' | 'excel' | 'pdf', {});
+          response = await exportAPI.exportMembers(selectedFormat as any, {});
           break;
-          
         case 'members-my':
-          updateProgress(40);
-          response = await exportAPI.exportMembers(selectedFormat as 'csv' | 'excel' | 'pdf', { 
-            created_by: user?.id 
-          });
+          response = await exportAPI.exportMembers(selectedFormat as any, { created_by: (user as any)?.id });
           break;
-          
         case 'analytics-overview':
-          updateProgress(40);
-          response = await exportAPI.exportAnalytics(selectedFormat as 'pdf' | 'excel', {
-            type: 'overview',
-            date_range: {
-              start_date: dateRange.start,
-              end_date: dateRange.end
-            }
-          });
+          response = await exportAPI.exportAnalytics(selectedFormat as any, { type: 'overview', date_range: { start_date: dateRange.start, end_date: dateRange.end } });
           break;
-          
         case 'analytics-monthly':
-          updateProgress(40);
-          const monthlyFormat = selectedFormat === 'csv' ? 'excel' : selectedFormat;
-          response = await exportAPI.exportAnalytics(monthlyFormat as 'pdf' | 'excel', {
-            type: 'monthly',
-            date_range: {
-              start_date: dateRange.start,
-              end_date: dateRange.end
-            }
-          });
+          response = await exportAPI.exportAnalytics(nonCsv as any, { type: 'monthly', date_range: { start_date: dateRange.start, end_date: dateRange.end } });
           break;
-          
         case 'user-activity':
-          updateProgress(40);
-          response = await exportAPI.exportUserActivity(selectedFormat as 'csv' | 'excel', {
-            date_range: {
-              start_date: dateRange.start,
-              end_date: dateRange.end
-            }
-          });
+          response = await exportAPI.exportUserActivity(selectedFormat as any, { date_range: { start_date: dateRange.start, end_date: dateRange.end } });
           break;
-          
         case 'financial-summary':
-          updateProgress(40);
-          response = await exportAPI.exportFinancial(selectedFormat as 'excel' | 'pdf', {
-            start_date: dateRange.start,
-            end_date: dateRange.end
-          });
+          response = await exportAPI.exportFinancial(selectedFormat as any, { start_date: dateRange.start, end_date: dateRange.end });
           break;
-          
         default:
           throw new Error('Unknown export type');
-      }      updateProgress(80);
-
-      // Create and download the file
-      if (response && response.data) {
-        const blob = new Blob([response.data], { 
-          type: response.headers['content-type'] || 'application/octet-stream' 
-        });
+      }
+      update(80);
+      if (response?.data) {
+        const blob = new Blob([response.data], { type: response.headers?.['content-type'] || 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        
-        // Get filename from response headers or generate one
-        const getFileExtension = (format: string) => {
-          switch (format) {
-            case 'excel': return 'xlsx';
-            case 'pdf': return 'pdf';
-            case 'csv': return 'csv';
-            default: return format;
-          }
-        };
-        
-        let filename = `${option?.name.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.${getFileExtension(selectedFormat)}`;
-        const contentDisposition = response.headers['content-disposition'];
-        if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
-          if (filenameMatch) {
-            filename = decodeURIComponent(filenameMatch[1] || filenameMatch[2]);
-          }
+        const ext = selectedFormat === 'excel' ? 'xlsx' : selectedFormat;
+        let filename = `${option?.name.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.${ext}`;
+        const cd = response.headers?.['content-disposition'];
+        if (cd) {
+          const m = cd.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+          if (m) filename = decodeURIComponent(m[1] || m[2]);
         }
-        
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
-
-      updateProgress(100);
-      setExportStatus(prev => ({ ...prev, [exportId]: 'completed' }));
-      
+      update(100);
+      setExportStatus((prev) => ({ ...prev, [exportId]: 'completed' }));
     } catch (error) {
       console.error('Export failed:', error);
-      setExportStatus(prev => ({ ...prev, [exportId]: 'error' }));
-      // Show error message to user
+      setExportStatus((prev) => ({ ...prev, [exportId]: 'error' }));
       await dialog.error('Export failed', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
-  const simulateExport = async (exportId: string) => {
-    // Use real export instead of simulation
-    await performRealExport(exportId);
-  };
-
   const handleBulkExport = async () => {
-    for (const exportId of selectedExports) {
-      await simulateExport(exportId);
-    }
+    for (const id of selectedExports) await performRealExport(id);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-      case 'error':
-        return <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />;
-      case 'exporting':
-        return <div className="h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />;
-      default:
-        return null;
-    }
-  };
+  const supports = (o: ExportOption, f: string) => o.formats.includes(f);
 
-  const getFormatIcon = (format: string) => {
-    switch (format) {
-      case 'csv':
-        return <TableCellsIcon className="h-4 w-4" />;
-      case 'excel':
-        return <DocumentTextIcon className="h-4 w-4" />;
-      case 'pdf':
-        return <DocumentArrowDownIcon className="h-4 w-4" />;
-      default:
-        return <DocumentTextIcon className="h-4 w-4" />;
-    }
-  };
-
-  const supportsFormat = (option: ExportOption, format: string) => {
-    return option.formats.includes(format);
-  };
-
-  const renderExportOption = (option: ExportOption) => {
+  const renderOption = (option: ExportOption, idx: number) => {
     const status = exportStatus[option.id] || 'idle';
     const progress = exportProgress[option.id] || 0;
-    const isSelected = selectedExports.includes(option.id);
-    const isSupported = supportsFormat(option, selectedFormat);
-
+    const selected = selectedExports.includes(option.id);
+    const ok = supports(option, selectedFormat);
+    const Icon = option.icon;
     return (
-      <div key={option.id} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <option.icon className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-3">
-              <h3 className="font-semibold text-gray-900">{option.name}</h3>
-              <p className="text-sm text-gray-500">{option.estimatedSize}</p>
-            </div>
+      <motion.div
+        key={option.id}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springs.gentle, delay: idx * 0.04 }}
+        className={`surface bento p-5 flex flex-col ${selected ? 'ring-1 ring-[color-mix(in_srgb,var(--primary)_40%,transparent)] border-[color-mix(in_srgb,var(--primary)_40%,transparent)]' : ''}`}
+      >
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="icon-badge"><Icon className="w-4 h-4" /></span>
+            <span className="min-w-0">
+              <span className="block font-display text-sm font-semibold text-[var(--foreground)] truncate">{option.name}</span>
+              <span className="tnum block text-[11px] text-muted-foreground">{option.estimatedSize} est.</span>
+            </span>
           </div>
-          <div className="flex items-center space-x-2">
-            {getStatusIcon(status)}
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => handleExportToggle(option.id)}
-              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-            />
-          </div>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => setSelectedExports((p) => (p.includes(option.id) ? p.filter((x) => x !== option.id) : [...p, option.id]))}
+            className="w-4 h-4 rounded accent-[var(--primary)] mt-1"
+          />
         </div>
-
-        <p className="text-gray-600 text-sm mb-4">{option.description}</p>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center space-x-2">
-            {option.formats.map((format) => (
-              <span
-                key={format}
-                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  format === selectedFormat && isSupported
-                    ? 'bg-green-100 text-green-800'
-                    : format === selectedFormat && !isSupported
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {getFormatIcon(format)}
-                <span className="ml-1 uppercase">{format}</span>
-              </span>
-            ))}
-          </div>
-
-          <button
-            onClick={() => simulateExport(option.id)}
-            disabled={!isSupported}
-            className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {status === 'exporting' ? 'Exporting...' : 'Export Now'}
-          </button>
-
-          {!isSupported && (
-            <p className="text-xs text-red-500 mt-2 text-center">
-              Not available in {selectedFormat.toUpperCase()} format
-            </p>
-          )}
+        <p className="text-xs text-muted-foreground leading-relaxed flex-1">{option.description}</p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {option.formats.map((f) => (
+            <span
+              key={f}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                f === selectedFormat && ok
+                  ? 'bg-[color-mix(in_srgb,var(--primary)_15%,transparent)] border-[color-mix(in_srgb,var(--primary)_30%,transparent)] text-[var(--primary)]'
+                  : f === selectedFormat
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-600'
+                    : 'bg-[var(--secondary)] border-[var(--border)] text-muted-foreground'
+              }`}
+            >
+              {f === 'csv' ? <Table2 className="w-3 h-3" /> : f === 'pdf' ? <FileDown className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+              {f.toUpperCase()}
+            </span>
+          ))}
         </div>
-
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <span>
+            {status === 'completed' ? <StatusPill stage="Done" tone="success" /> : status === 'error' ? <StatusPill stage="Failed" tone="danger" /> : status === 'exporting' ? <StatusPill stage={`${progress}%`} tone="info" /> : null}
+          </span>
+          <ClayButton tone="primary" loading={status === 'exporting'} disabled={!ok} onClick={() => performRealExport(option.id)}>
+            Export Now
+          </ClayButton>
+        </div>
+        {!ok && <p className="mt-2 text-[11px] text-rose-600">Not available in {selectedFormat.toUpperCase()}</p>}
         {status === 'exporting' && (
-          <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
-              <span>Exporting...</span>
-              <span>{progress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+          <div className="mt-3 h-1.5 rounded-full bg-[var(--secondary)] overflow-hidden">
+            <div className="h-full rounded-full bg-[var(--primary)] transition-all" style={{ width: `${progress}%` }} />
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
-  if (membersLoading || statsLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="h-12 w-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading export data...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (membersLoading || statsLoading) return <DashboardSkeleton />;
+
+  const categories: { id: ExportOption['category']; title: string; icon: React.ReactNode }[] = [
+    { id: 'reports', title: 'Summary Reports', icon: <FileText className="w-4 h-4" /> },
+    { id: 'member-data', title: 'Member Data', icon: <Users className="w-4 h-4" /> },
+    { id: 'analytics', title: 'Analytics & Trends', icon: <ChartBar className="w-4 h-4" /> },
+    { id: 'system', title: 'System & Activity Data', icon: <Clock className="w-4 h-4" /> },
+  ];
+
+  const completed = Object.entries(exportStatus).filter(([, s]) => s === 'completed');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 flex items-center">
-                <DocumentArrowDownIcon className="h-8 w-8 sm:h-10 sm:w-10 text-green-500 mr-3 sm:mr-4 flex-shrink-0" />
-                <span className="truncate">Export Data</span>
-              </h1>
-              <p className="text-gray-600 mt-2 text-base sm:text-lg">
-                Export church data in various formats for reporting and analysis
-              </p>
-            </div>
-            <div className="text-left sm:text-right flex-shrink-0">
-              <p className="text-sm text-gray-500">Total Members</p>
-              <p className="text-2xl font-bold text-green-600">{members.length}</p>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Export Data"
+        subtitle={`Reports and member database • ${members.length.toLocaleString()} total members`}
+        cta={
+          <ClayButton tone="primary" disabled={selectedExports.length === 0} onClick={handleBulkExport}>
+            Export Selected ({selectedExports.length})
+          </ClayButton>
+        }
+      />
 
-        {/* Export Controls */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Export Settings</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Format Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
-              <div className="space-y-2">
-                {(['csv', 'excel', 'pdf'] as const).map((format) => (
-                  <label key={format} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="format"
-                      value={format}
-                      checked={selectedFormat === format}
-                      onChange={(e) => setSelectedFormat(e.target.value as any)}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                    />
-                    <span className="ml-2 flex items-center">
-                      {getFormatIcon(format)}
-                      <span className="ml-1 capitalize">{format}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Date Range */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-              <div className="space-y-2">
-                <input
-                  type="date"
-                  value={dateRange.start}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  placeholder="Start date"
-                />
-                <input
-                  type="date"
-                  value={dateRange.end}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  placeholder="End date"
-                />
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col justify-end">
-              <button
-                onClick={handleBulkExport}
-                disabled={selectedExports.length === 0}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Export Selected ({selectedExports.length})
-              </button>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Select data types below to export
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Export Options */}
-        <div className="space-y-8">
-          {/* Reports Category */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <DocumentTextIcon className="h-5 w-5 text-blue-500 mr-2" />
-              Summary Reports
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {exportOptions.filter(option => option.category === 'reports').map((option) => renderExportOption(option))}
-            </div>
-          </div>
-
-          {/* Member Data Category */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <UsersIcon className="h-5 w-5 text-green-500 mr-2" />
-              Member Data
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {exportOptions.filter(option => option.category === 'member-data').map((option) => renderExportOption(option))}
-            </div>
-          </div>
-
-          {/* Analytics Category */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <ChartBarIcon className="h-5 w-5 text-purple-500 mr-2" />
-              Analytics & Trends
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {exportOptions.filter(option => option.category === 'analytics').map((option) => renderExportOption(option))}
-            </div>
-          </div>
-
-          {/* System Category */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <ClockIcon className="h-5 w-5 text-orange-500 mr-2" />
-              System & Activity Data
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {exportOptions.filter(option => option.category === 'system').map((option) => renderExportOption(option))}
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Exports */}
-        <div className="mt-8 bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Exports</h2>
-          <div className="space-y-3">
-            {Object.entries(exportStatus)
-              .filter(([_, status]) => status === 'completed')
-              .slice(0, 5)
-              .map(([exportId, status]) => {
-                const option = exportOptions.find(opt => opt.id === exportId);
-                return (
-                  <div key={exportId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3" />
-                      <div>
-                        <p className="font-medium text-gray-900">{option?.name}</p>
-                        <p className="text-sm text-gray-500">
-                          Exported just now as {selectedFormat.toUpperCase()}
-                        </p>
-                      </div>
-                    </div>
-                    <button className="text-green-600 hover:text-green-700 text-sm font-medium">
-                      Download Again
-                    </button>
-                  </div>
-                );
-              })}
-            {Object.keys(exportStatus).filter(key => exportStatus[key] === 'completed').length === 0 && (
-              <p className="text-gray-500 text-center py-8">No recent exports</p>
-            )}
-          </div>
-        </div>
+      <div className="grid sm:grid-cols-3 gap-4">
+        <KpiCard label="Total Members" value={members.length} tint="primary" icon={<Users className="w-4 h-4" />} index={0} />
+        <KpiCard label="Male / Female" value={`${summary.males}/${summary.females}`} tint="info" icon={<ChartBar className="w-4 h-4" />} index={1} />
+        <KpiCard label="Saved" value={summary.saved} tint="success" icon={<CheckCircle2 className="w-4 h-4" />} index={2} />
       </div>
+
+      <SectionCard title="Export Settings" subtitle="Format and date window apply to every export below">
+        <div className="grid md:grid-cols-3 gap-6">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Format</p>
+            <div className="flex flex-wrap gap-2">
+              {(['csv', 'excel', 'pdf'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setSelectedFormat(f)}
+                  className={`clay-press rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                    selectedFormat === f
+                      ? 'border-[var(--primary)] bg-[var(--primary)] text-white shadow-sm'
+                      : 'border-[var(--border)] bg-[var(--card)] text-muted-foreground hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  {f.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Date range</p>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="date" value={dateRange.start} onChange={(e) => setDateRange((p) => ({ ...p, start: e.target.value }))} className="h-10 px-2 rounded-xl border border-[var(--border)] bg-[var(--card)] text-xs focus-ring" />
+              <input type="date" value={dateRange.end} onChange={(e) => setDateRange((p) => ({ ...p, end: e.target.value }))} className="h-10 px-2 rounded-xl border border-[var(--border)] bg-[var(--card)] text-xs focus-ring" />
+            </div>
+          </div>
+          <div className="flex items-end">
+            <p className="text-xs text-muted-foreground">Select tiles below, then use Export Selected. Analytics reports use Excel when CSV is unsupported.</p>
+          </div>
+        </div>
+      </SectionCard>
+
+      {categories.map((c) => (
+        <SectionCard key={c.id} title={c.title} subtitle={`${exportOptions.filter((o) => o.category === c.id).length} datasets`}>
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {exportOptions.filter((o) => o.category === c.id).map((o, i) => renderOption(o, i))}
+          </div>
+        </SectionCard>
+      ))}
+
+      <SectionCard title="Recent Exports" subtitle="Completed in this session">
+        {completed.length === 0 ? (
+          <EmptyState icon={<Clock className="w-6 h-6" />} title="No recent exports" message="Completed exports will appear here." />
+        ) : (
+          <ul className="space-y-2">
+            {completed.slice(0, 5).map(([id]) => {
+              const o = exportOptions.find((x) => x.id === id);
+              return (
+                <li key={id} className="flex items-center gap-3 p-3 rounded-xl bg-[color-mix(in_srgb,var(--secondary)_40%,transparent)] border border-[var(--border)]">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[13px] font-semibold truncate">{o?.name}</span>
+                    <span className="block text-xs text-muted-foreground">Exported as {selectedFormat.toUpperCase()}</span>
+                  </span>
+                  <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground hidden" />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </SectionCard>
     </div>
   );
 };

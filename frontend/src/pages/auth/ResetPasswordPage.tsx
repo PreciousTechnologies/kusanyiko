@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Lock, CheckCircle } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { Eye, EyeOff, Lock, CheckCircle, ArrowLeft } from 'lucide-react';
 import { ResetPasswordData } from '../../types';
-import { Button, Input, Card } from '../../components/ui';
 import { authAPI } from '../../services/api';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
+import { AuthShell } from '../../components/auth-shell';
+import { ClayButton } from '../../components/ui-bits';
+import { springs, variants } from '../../lib/motion-tokens';
 
-const schema = yup.object({
-  token: yup.string().required('Reset token is required'),
-  new_password: yup.string()
-    .min(8, 'Password must be at least 8 characters')
-    .required('New password is required'),
-  confirm_password: yup.string()
-    .oneOf([yup.ref('new_password')], 'Passwords must match')
-    .required('Please confirm your password'),
-});
+const inputCls = (invalid: boolean) =>
+  `h-11 w-full rounded-xl border bg-[var(--card)] px-4 pr-11 text-sm text-[var(--foreground)] placeholder:text-muted-foreground transition-all focus-ring ${
+    invalid ? 'border-rose-500/60' : 'border-[var(--border)] focus:border-[var(--primary)]'
+  }`;
 
 const ResetPasswordPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -26,7 +22,7 @@ const ResetPasswordPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   const token = searchParams.get('token') || '';
 
   const {
@@ -55,122 +51,116 @@ const ResetPasswordPage: React.FC = () => {
     }
   };
 
-  if (success) {
-    return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-header">
-          <div className="auth-logo" aria-hidden="true">
-            <CheckCircle className="w-8 h-8 text-white" />
-          </div>
-            <h1 className="auth-title">Password Reset Successful!</h1>
-            <p className="auth-subtitle">
-              Your password has been successfully reset. You will be redirected to the login page.
-            </p>
-          </div>
-          <button
-            className="auth-button"
-            onClick={() => navigate('/login')}
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="auth-container">
-      <div className="auth-bg auth-bg-1" aria-hidden="true" />
-      <div className="auth-bg auth-bg-2" aria-hidden="true" />
-      <div className="auth-grain" aria-hidden="true" />
-      <div className="auth-card">
-        <div className="auth-header">
-          <div className="auth-logo" aria-hidden="true">
-            <Lock className="w-8 h-8 text-white" />
+    <AuthShell>
+      <motion.div
+        variants={variants.fadeSlideUp}
+        initial="initial"
+        animate="animate"
+        transition={springs.gentle}
+        className="glass-strong rounded-3xl p-6 md:p-8 shadow-[var(--shadow-elev-def)] w-full max-w-md mx-auto mt-6"
+      >
+        {success ? (
+          <div className="text-center">
+            <span className="icon-badge !w-14 !h-14 mx-auto mb-4">
+              <CheckCircle className="w-7 h-7 text-emerald-500" />
+            </span>
+            <h2 className="font-display text-xl font-bold tracking-tight">Password Reset Successful!</h2>
+            <p className="text-xs text-muted-foreground mt-1 mb-6">
+              Your password has been reset. You will be redirected to login.
+            </p>
+            <ClayButton tone="primary" className="w-full !h-11" onClick={() => navigate('/login')}>
+              Go to Login
+            </ClayButton>
           </div>
-          <h1 className="auth-title">Reset Password</h1>
-          <p className="auth-subtitle">
-            Enter your new password below.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
-          <input type="hidden" {...register('token')} />
-
-          <div className="auth-input-group">
-            <label className="auth-label">New Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your new password"
-                className={`auth-input ${errors.new_password ? 'error' : ''}`}
-                {...register('new_password', { 
-                  required: 'New password is required',
-                  minLength: { value: 8, message: 'Password must be at least 8 characters' }
-                })}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="password-toggle"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-            {errors.new_password && (
-              <div className="auth-error">
-                ⚠️ {errors.new_password.message}
+        ) : (
+          <>
+            <div className="flex items-center gap-3 mb-1">
+              <span className="icon-badge">
+                <Lock className="w-5 h-5" />
+              </span>
+              <div>
+                <h2 className="font-display text-xl font-bold tracking-tight">Reset Password</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Enter your new password below.</p>
               </div>
-            )}
-          </div>
-
-          <div className="auth-input-group">
-            <label className="auth-label">Confirm New Password</label>
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Confirm your new password"
-                className={`auth-input ${errors.confirm_password ? 'error' : ''}`}
-                {...register('confirm_password', { 
-                  required: 'Please confirm your password'
-                })}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="password-toggle"
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
             </div>
-            {errors.confirm_password && (
-              <div className="auth-error">
-                ⚠️ {errors.confirm_password.message}
-              </div>
-            )}
-          </div>
 
-          <button
-            type="submit"
-            className="auth-button"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <div className="auth-spinner" />
-                Resetting Password...
-              </>
-            ) : (
-              <>
-                <Lock size={20} />
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+              <input type="hidden" {...register('token')} />
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--foreground)] mb-1.5">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your new password"
+                    autoComplete="new-password"
+                    className={inputCls(!!errors.new_password)}
+                    {...register('new_password', {
+                      required: 'New password is required',
+                      minLength: { value: 8, message: 'Password must be at least 8 characters' },
+                    })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.new_password && (
+                  <p className="text-xs text-rose-600 mt-1 font-medium">{errors.new_password.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--foreground)] mb-1.5">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm your new password"
+                    autoComplete="new-password"
+                    className={inputCls(!!errors.confirm_password)}
+                    {...register('confirm_password', {
+                      required: 'Please confirm your password',
+                    })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.confirm_password && (
+                  <p className="text-xs text-rose-600 mt-1 font-medium">{errors.confirm_password.message}</p>
+                )}
+              </div>
+
+              <ClayButton tone="primary" loading={loading} icon={<Lock className="w-4 h-4" />} className="w-full !h-11">
                 Reset Password
-              </>
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
+              </ClayButton>
+
+              <Link
+                to="/login"
+                className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:underline focus-ring rounded-lg py-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back to Login
+              </Link>
+            </form>
+          </>
+        )}
+      </motion.div>
+    </AuthShell>
   );
 };
 

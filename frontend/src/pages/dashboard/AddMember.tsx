@@ -6,14 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { createMember } from '../../store/slices/membersSlice';
 import {
-  UserPlusIcon,
   UserIcon,
   PhoneIcon,
   EnvelopeIcon,
   MapPinIcon,
   CameraIcon,
   CheckCircleIcon,
-  ArrowLeftIcon,
   DocumentCheckIcon,
   GlobeAltIcon,
   HomeIcon,
@@ -22,6 +20,10 @@ import {
 } from '@heroicons/react/24/outline';
 import Camera from '../../components/ui/Camera';
 import { dialog } from '../../components/ui/Dialog';
+import { PageHeader } from '../../components/app-shell';
+import { SectionCard, ClayButton, StatusPill, Stepper } from '../../components/ui-bits';
+import { motion } from 'motion/react';
+import { variants } from '../../lib/motion-tokens';
 
 // All Tanzania regions (mainland and Zanzibar)
 const ALL_TANZANIA_REGIONS = [
@@ -281,6 +283,7 @@ const AddMember: React.FC = () => {
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
 
   const {
     register,
@@ -432,6 +435,8 @@ const AddMember: React.FC = () => {
     const isStepValid = await trigger(fieldsToValidate);
     if (isStepValid) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    } else {
+      setShakeKey(k => k + 1);
     }
   };
 
@@ -442,6 +447,8 @@ const AddMember: React.FC = () => {
     if (isFormValid) {
       const formData = getValues();
       await onSubmit(formData);
+    } else {
+      setShakeKey(k => k + 1);
     }
   };
 
@@ -478,138 +485,66 @@ const AddMember: React.FC = () => {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircleIcon className="h-8 w-8 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Member Added Successfully!</h2>
-            <p className="text-gray-600 mb-4">
-              The new member has been registered and added to the system.
-            </p>
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-              <p className="text-green-700 text-sm">
-                You will be redirected to the dashboard shortly...
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                navigate(`${getBasePath()}/dashboard`);
-              }}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
-            >
-              Return to Dashboard
-            </button>
+      <div className="space-y-6">
+        <PageHeader title="Register Member" subtitle="New church member intake" />
+        <motion.div variants={variants.fadeScaleIn} initial="initial" animate="animate" className="surface max-w-md w-full mx-auto p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
+            <CheckCircleIcon className="h-8 w-8 text-emerald-500" />
           </div>
-        </div>
+          <h2 className="font-display text-2xl font-bold tracking-tight">Member Added Successfully!</h2>
+          <p className="text-sm text-muted-foreground mt-1 mb-4">
+            The new member has been registered and added to the system.
+          </p>
+          <div className="mb-6 flex justify-center">
+            <StatusPill stage="Redirecting to dashboard…" tone="success" />
+          </div>
+          <ClayButton
+            tone="primary"
+            className="w-full"
+            onClick={() => {
+              navigate(`${getBasePath()}/dashboard`);
+            }}
+          >
+            Return to Dashboard
+          </ClayButton>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="add-member-container min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="add-member-header mb-8">
-          <button
-            onClick={() => {
-              navigate(`${getBasePath()}/dashboard`);
-            }}
-            className="flex items-center text-gray-600 hover:text-green-600 transition-colors duration-200 mb-4"
-          >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
-            Back to Dashboard
-          </button>
-          
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="mb-4 lg:mb-0">
-              <h1 className="add-member-title text-2xl lg:text-3xl font-bold text-gray-900 flex items-center justify-center lg:justify-start">
-                <UserPlusIcon className="h-8 w-8 text-green-500 mr-3" />
-                Add New Member
-              </h1>
-              <p className="add-member-subtitle text-gray-600 mt-2 text-center lg:text-left">
-                Register a new church member
-              </p>
-            </div>
-            
-            {/* Progress Indicator */}
-            <div className="hidden md:flex items-center space-x-4">
-              {Array.from({ length: totalSteps }, (_, index) => {
-                const stepNumber = index + 1;
-                const isActive = stepNumber === currentStep;
-                const isCompleted = stepNumber < currentStep;
-                
-                return (
-                  <div key={stepNumber} className="flex items-center">
-                    <div className={`
-                      w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
-                      ${isActive 
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg' 
-                        : isCompleted
-                        ? 'bg-green-100 text-green-600 border-2 border-green-200'
-                        : 'bg-gray-100 text-gray-400'
-                      }
-                    `}>
-                      {isCompleted ? (
-                        <CheckCircleIcon className="h-5 w-5" />
-                      ) : (
-                        stepNumber
-                      )}
-                    </div>
-                    {stepNumber < totalSteps && (
-                      <div className={`w-12 h-1 rounded-full ml-2 ${
-                        stepNumber < currentStep ? 'bg-green-200' : 'bg-gray-200'
-                      }`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <PageHeader
+          title="Register Member"
+          subtitle="New church member intake"
+          cta={
+            <ClayButton tone="neutral" onClick={() => navigate(`${getBasePath()}/dashboard`)}>
+              Back to Dashboard
+            </ClayButton>
+          }
+        />
 
-        {/* Mobile Progress Bar */}
-        <div className="md:hidden mb-6">
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">
-              Step {currentStep} of {totalSteps}
-            </span>
-            <span className="text-sm font-medium text-green-600">
-              {Math.round((currentStep / totalSteps) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
-          <p className="text-sm text-gray-600 mt-2 font-medium">
-            {stepTitles[currentStep - 1]}
-          </p>
-        </div>
+        <Stepper stages={stepTitles} current={stepTitles[currentStep - 1]} />
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <span className="w-2 h-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mr-3"></span>
-              {stepTitles[currentStep - 1]}
-            </h2>
-            <p className="text-gray-600 mt-1 text-sm">
-              Fill in the required information for this section
-            </p>
-          </div>
-
-          <form className="p-6">
+        <SectionCard
+          title={stepTitles[currentStep - 1]}
+          subtitle={`Step ${currentStep} of ${totalSteps} — fill in the required information for this section`}
+        >
+          <motion.form
+            key={shakeKey}
+            animate={shakeKey > 0 ? { x: [0, -6, 6, -6, 6, -3, 0] } : undefined}
+            transition={{ duration: 0.5 }}
+            className="efatha-form"
+          >
             {/* Step 1: Personal Information */}
             {currentStep === 1 && (
               <div className="space-y-6">
                 {/* Profile Image Upload */}
                 <div className="flex flex-col items-center mb-8 space-y-4">
                   <div className="relative">
-                    <div className="w-24 h-24 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                    <div className="w-24 h-24 rounded-full flex items-center justify-center border-4 border-[var(--card)] shadow-lg bg-[var(--secondary)]">
                       {profileImage ? (
                         <img
                           src={profileImage}
@@ -617,12 +552,12 @@ const AddMember: React.FC = () => {
                           className="w-20 h-20 rounded-full object-cover"
                         />
                       ) : (
-                        <UserIcon className="h-10 w-10 text-green-500" />
+                        <UserIcon className="h-10 w-10 text-[var(--primary)]" />
                       )}
                     </div>
                     
                     {/* Upload from files button */}
-                    <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg">
+                    <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-[var(--primary)] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg">
                       <CameraIcon className="h-4 w-4 text-white" />
                       <input
                         type="file"
@@ -636,7 +571,7 @@ const AddMember: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsCameraOpen(true)}
-                      className="absolute -bottom-2 -left-2 w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg"
+                      className="absolute -bottom-2 -left-2 w-8 h-8 bg-cyan-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-lg"
                       title="Take Photo"
                     >
                       <CameraIcon className="h-4 w-4 text-white" />
@@ -645,7 +580,7 @@ const AddMember: React.FC = () => {
                   
                   {/* Instructions - now properly positioned in the flow */}
                   <div className="text-center">
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       Click 📷 to upload from files or 📸 to take photo
                     </p>
                   </div>
@@ -654,7 +589,7 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* First Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       First Name *
                     </label>
                     <input
@@ -669,7 +604,7 @@ const AddMember: React.FC = () => {
 
                   {/* Middle Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Middle Name
                     </label>
                     <input
@@ -681,7 +616,7 @@ const AddMember: React.FC = () => {
 
                   {/* Last Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Last Name *
                     </label>
                     <input
@@ -698,7 +633,7 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Gender */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Gender *
                     </label>
                     <select
@@ -716,7 +651,7 @@ const AddMember: React.FC = () => {
 
                   {/* Age */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Age *
                     </label>
                     <input
@@ -734,7 +669,7 @@ const AddMember: React.FC = () => {
 
                   {/* Marital Status */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Marital Status *
                     </label>
                     <select
@@ -755,7 +690,7 @@ const AddMember: React.FC = () => {
 
                 {/* Salvation Status */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
                     Salvation Status *
                   </label>
                   <div className="flex space-x-4">
@@ -764,18 +699,18 @@ const AddMember: React.FC = () => {
                         type="radio"
                         {...register('saved')}
                         value="true"
-                        className="form-radio w-4 h-4 text-green-600 border-2 border-gray-300 focus:ring-green-500"
+                        className="form-radio w-4 h-4 text-[var(--primary)] border-2 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="text-gray-700 font-medium text-sm">Saved</span>
+                      <span className="text-[var(--foreground)] font-medium text-sm">Saved</span>
                     </label>
                     <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-green-50 transition-colors">
                       <input
                         type="radio"
                         {...register('saved')}
                         value="false"
-                        className="form-radio w-4 h-4 text-green-600 border-2 border-gray-300 focus:ring-green-500"
+                        className="form-radio w-4 h-4 text-[var(--primary)] border-2 border-gray-300 focus:ring-green-500"
                       />
-                      <span className="text-gray-700 font-medium text-sm">Not Saved</span>
+                      <span className="text-[var(--foreground)] font-medium text-sm">Not Saved</span>
                     </label>
                   </div>
                   {errors.saved && (
@@ -791,8 +726,8 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Mobile Number */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <PhoneIcon className="h-4 w-4 text-green-500 mr-2" />
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
+                      <PhoneIcon className="h-4 w-4 text-[var(--primary)] mr-2" />
                       Mobile Number *
                     </label>
                     <input
@@ -808,8 +743,8 @@ const AddMember: React.FC = () => {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <EnvelopeIcon className="h-4 w-4 text-green-500 mr-2" />
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
+                      <EnvelopeIcon className="h-4 w-4 text-[var(--primary)] mr-2" />
                       Email Address
                     </label>
                     <input
@@ -826,8 +761,8 @@ const AddMember: React.FC = () => {
 
                 {/* Postal Address */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <MapPinIcon className="h-4 w-4 text-green-500 mr-2" />
+                  <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
+                    <MapPinIcon className="h-4 w-4 text-[var(--primary)] mr-2" />
                     Postal Address
                   </label>
                   <textarea
@@ -841,8 +776,8 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Country */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <GlobeAltIcon className="h-4 w-4 text-green-500 mr-2" />
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
+                      <GlobeAltIcon className="h-4 w-4 text-[var(--primary)] mr-2" />
                       Country *
                     </label>
                     <select
@@ -870,7 +805,7 @@ const AddMember: React.FC = () => {
 
                   {/* Region - Show for all countries */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Region {watchedCountry === 'Tanzania' ? '*' : '(Auto-filled)'}
                     </label>
                     {watchedCountry === 'Tanzania' ? (
@@ -903,7 +838,7 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Center/Area */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Center/Area
                     </label>
                     {watchedCountry === 'Tanzania' ? (
@@ -940,8 +875,8 @@ const AddMember: React.FC = () => {
 
                   {/* Residence */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <HomeIcon className="h-4 w-4 text-green-500 mr-2" />
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
+                      <HomeIcon className="h-4 w-4 text-[var(--primary)] mr-2" />
                       Residence *
                     </label>
                     <input
@@ -959,7 +894,7 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Zone */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Zone *
                     </label>
                     <input
@@ -974,7 +909,7 @@ const AddMember: React.FC = () => {
 
                   {/* Cell */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Cell *
                     </label>
                     <input
@@ -996,8 +931,8 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Church Registration Number */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <DocumentCheckIcon className="h-4 w-4 text-green-500 mr-2" />
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
+                      <DocumentCheckIcon className="h-4 w-4 text-[var(--primary)] mr-2" />
                       Church Registration Number
                     </label>
                     <input
@@ -1012,7 +947,7 @@ const AddMember: React.FC = () => {
 
                   {/* Church Position */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Church Position
                     </label>
                     <select
@@ -1032,8 +967,8 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Career */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <BriefcaseIcon className="h-4 w-4 text-green-500 mr-2" />
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
+                      <BriefcaseIcon className="h-4 w-4 text-[var(--primary)] mr-2" />
                       Career/Profession
                     </label>
                     <input
@@ -1045,7 +980,7 @@ const AddMember: React.FC = () => {
 
                   {/* Visitors Count */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Visitors Count
                     </label>
                     <input
@@ -1061,7 +996,7 @@ const AddMember: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Origin */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                       Origin *
                     </label>
                     <select
@@ -1079,8 +1014,8 @@ const AddMember: React.FC = () => {
 
                   {/* Attending Date */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <CalendarDaysIcon className="h-4 w-4 text-green-500 mr-2" />
+                    <label className="block text-sm font-semibold text-[var(--foreground)] mb-2 flex items-center">
+                      <CalendarDaysIcon className="h-4 w-4 text-[var(--primary)] mr-2" />
                       Attending Date *
                     </label>
                     <input
@@ -1099,69 +1034,69 @@ const AddMember: React.FC = () => {
             {/* Step 4: Review & Submit */}
             {currentStep === 4 && (
               <div className="space-y-6">
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <DocumentCheckIcon className="h-5 w-5 text-green-500 mr-2" />
+                <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--secondary)_40%,transparent)] p-6">
+                  <h3 className="font-display text-base font-bold flex items-center gap-2">
+                    <DocumentCheckIcon className="h-5 w-5 text-[var(--primary)]" />
                     Review Member Information
                   </h3>
-                  <p className="text-gray-600 text-sm mb-4">
+                  <p className="text-xs text-muted-foreground mt-1 mb-4">
                     Please review all the information before submitting the registration.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                     <div className="space-y-3">
                       <div>
-                        <span className="font-medium text-gray-700">Full Name:</span>
-                        <span className="ml-2 text-gray-900">
+                        <span className="font-medium text-[var(--foreground)]">Full Name:</span>
+                        <span className="ml-2 text-[var(--foreground)]">
                           {watch('first_name')} {watch('middle_name')} {watch('last_name')}
                         </span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Gender:</span>
-                        <span className="ml-2 text-gray-900 capitalize">{watch('gender')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Gender:</span>
+                        <span className="ml-2 text-[var(--foreground)] capitalize">{watch('gender')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Age:</span>
-                        <span className="ml-2 text-gray-900">{watch('age')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Age:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('age')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Marital Status:</span>
-                        <span className="ml-2 text-gray-900 capitalize">{watch('marital_status')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Marital Status:</span>
+                        <span className="ml-2 text-[var(--foreground)] capitalize">{watch('marital_status')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Mobile:</span>
-                        <span className="ml-2 text-gray-900">{watch('mobile_no')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Mobile:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('mobile_no')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Email:</span>
-                        <span className="ml-2 text-gray-900">{watch('email') || 'Not provided'}</span>
+                        <span className="font-medium text-[var(--foreground)]">Email:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('email') || 'Not provided'}</span>
                       </div>
                     </div>
                     
                     <div className="space-y-3">
                       <div>
-                        <span className="font-medium text-gray-700">Region:</span>
-                        <span className="ml-2 text-gray-900">{watch('region')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Region:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('region')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Center/Area:</span>
-                        <span className="ml-2 text-gray-900">{watch('center_area')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Center/Area:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('center_area')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Church Reg. No:</span>
-                        <span className="ml-2 text-gray-900">{watch('church_registration_number')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Church Reg. No:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('church_registration_number')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Origin:</span>
-                        <span className="ml-2 text-gray-900 capitalize">{watch('origin')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Origin:</span>
+                        <span className="ml-2 text-[var(--foreground)] capitalize">{watch('origin')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Attending Date:</span>
-                        <span className="ml-2 text-gray-900">{watch('attending_date')}</span>
+                        <span className="font-medium text-[var(--foreground)]">Attending Date:</span>
+                        <span className="ml-2 text-[var(--foreground)]">{watch('attending_date')}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Salvation Status:</span>
-                        <span className="ml-2 text-gray-900">
+                        <span className="font-medium text-[var(--foreground)]">Salvation Status:</span>
+                        <span className="ml-2 text-[var(--foreground)]">
                           {watch('saved') === true ? 'Saved' : watch('saved') === false ? 'Not Saved' : 'Not specified'}
                         </span>
                       </div>
@@ -1169,9 +1104,9 @@ const AddMember: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                  <p className="text-yellow-800 text-sm">
-                    <strong>Note:</strong> Once submitted, this member will be added to the church database. 
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                  <p className="text-amber-600 text-xs font-medium">
+                    <strong>Note:</strong> Once submitted, this member will be added to the church database.
                     Make sure all information is correct before proceeding.
                   </p>
                 </div>
@@ -1179,52 +1114,23 @@ const AddMember: React.FC = () => {
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between pt-8 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={prevStep}
-                disabled={currentStep === 1}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                  currentStep === 1
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:scale-105'
-                }`}
-              >
+            <div className="flex justify-between pt-8 border-t border-[var(--border)]">
+              <ClayButton tone="neutral" type="button" onClick={prevStep} disabled={currentStep === 1}>
                 Previous
-              </button>
+              </ClayButton>
 
               {currentStep < totalSteps ? (
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
-                >
+                <ClayButton tone="primary" type="button" onClick={nextStep}>
                   Next Step
-                </button>
+                </ClayButton>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleFinalSubmit}
-                  disabled={loading || !isValid}
-                  className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                    loading || !isValid
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg hover:scale-105'
-                  }`}
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Submitting...
-                    </div>
-                  ) : (
-                    'Submit Registration'
-                  )}
-                </button>
+                <ClayButton tone="primary" type="button" loading={loading} disabled={!isValid} onClick={handleFinalSubmit}>
+                  Submit Registration
+                </ClayButton>
               )}
             </div>
-          </form>
-        </div>
+          </motion.form>
+        </SectionCard>
       </div>
 
       {/* Camera Component */}

@@ -1,22 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { useAppSelector } from '../../hooks/redux';
 import { useBranding } from '../../context/BrandingContext';
 import { testConnection } from '../../services/api';
-import {
-  CogIcon,
-  ShieldCheckIcon,
-  BellIcon,
-  UserCircleIcon,
-  CircleStackIcon,
-  GlobeAltIcon,
-  CloudIcon,
-  KeyIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
-  EyeIcon,
-  EyeSlashIcon,
-} from '@heroicons/react/24/outline';
+import { PageHeader } from '../../components/app-shell';
+import { SectionCard, ClayButton, StatusPill } from '../../components/ui-bits';
+import { CheckCircle2, AlertTriangle, Info, Globe, Settings as SettingsIcon, ShieldCheck, Bell, Database } from 'lucide-react';
 import { dialog } from '../../components/ui/Dialog';
 
 interface SystemSettings {
@@ -64,11 +52,6 @@ interface BrandingFormState {
   registrant_dashboard_subtitle: string;
 }
 
-// System/Security/Notification tabs have no backend table (unlike Branding,
-// which lives in Supabase). They persist per-browser in localStorage so edits
-// survive reloads. Enforcement-type toggles (2FA, IP whitelist, maintenance
-// mode, lockout timers) are stored as configuration — wiring them into actual
-// request gating would need backend/edge-function work.
 const SYSTEM_SETTINGS_KEY = 'kusanyiko-system-settings-v1';
 
 function loadStoredSection<T extends object>(section: string, fallback: T): T {
@@ -79,9 +62,7 @@ function loadStoredSection<T extends object>(section: string, fallback: T): T {
     if (parsed && typeof parsed[section] === 'object' && parsed[section] !== null) {
       return { ...fallback, ...parsed[section] };
     }
-  } catch {
-    // Corrupt storage — fall back to defaults
-  }
+  } catch { /* corrupt storage */ }
   return fallback;
 }
 
@@ -106,16 +87,18 @@ interface DatabaseState {
 }
 
 const EMPTY_DATABASE: DatabaseState = { backups: [], lastOptimized: null };
+const inputCls =
+  'w-full h-10 px-3 rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] text-sm placeholder:text-muted-foreground focus:outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--primary)_15%,transparent)] transition-all';
+const labelCls = 'block text-xs font-semibold text-[var(--foreground)] mb-1.5';
 
 const Settings: React.FC = () => {
-  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  void user;
   const { branding, updateBranding } = useBranding();
   const [activeTab, setActiveTab] = useState<'branding' | 'system' | 'security' | 'notifications' | 'database'>('branding');
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [brandingSaveStatus, setBrandingSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [showPasswords, setShowPasswords] = useState(false);
 
   const [brandingForm, setBrandingForm] = useState<BrandingFormState>({
     app_name: branding.app_name,
@@ -160,7 +143,7 @@ const Settings: React.FC = () => {
       requireEmailVerification: false,
       maxMembersPerRegistrar: 100,
       sessionTimeout: 30,
-      backupFrequency: 'daily',
+      backupFrequency: 'daily' as const,
       maintenanceMode: false,
     })
   );
@@ -169,7 +152,7 @@ const Settings: React.FC = () => {
     loadStoredSection('security', {
       enforceStrongPasswords: true,
       enableTwoFactor: false,
-      sessionSecurityLevel: 'medium',
+      sessionSecurityLevel: 'medium' as const,
       ipWhitelist: [],
       loginAttemptLimit: 5,
       lockoutDuration: 15,
@@ -187,14 +170,16 @@ const Settings: React.FC = () => {
   );
 
   const [newIpAddress, setNewIpAddress] = useState('');
+  const [databaseState, setDatabaseState] = useState<DatabaseState>(() => loadStoredSection('database', EMPTY_DATABASE));
+  const [dbHealthy, setDbHealthy] = useState<boolean | null>(null);
 
   const tabs = [
-    { id: 'branding', name: 'Branding', icon: GlobeAltIcon },
-    { id: 'system', name: 'System', icon: CogIcon },
-    { id: 'security', name: 'Security', icon: ShieldCheckIcon },
-    { id: 'notifications', name: 'Notifications', icon: BellIcon },
-    { id: 'database', name: 'Database', icon: CircleStackIcon },
-  ];
+    { id: 'branding', name: 'Branding', icon: Globe },
+    { id: 'system', name: 'System', icon: SettingsIcon },
+    { id: 'security', name: 'Security', icon: ShieldCheck },
+    { id: 'notifications', name: 'Notifications', icon: Bell },
+    { id: 'database', name: 'Database', icon: Database },
+  ] as const;
 
   const handleSaveBranding = async () => {
     setBrandingSaveStatus('saving');
@@ -202,7 +187,7 @@ const Settings: React.FC = () => {
       await updateBranding(brandingForm);
       setBrandingSaveStatus('saved');
       setTimeout(() => setBrandingSaveStatus('idle'), 3000);
-    } catch (error) {
+    } catch {
       setBrandingSaveStatus('error');
       setTimeout(() => setBrandingSaveStatus('idle'), 3000);
     }
@@ -211,22 +196,14 @@ const Settings: React.FC = () => {
   const handleSaveSettings = async () => {
     setLoading(true);
     setSaveStatus('saving');
-
     try {
-      // Merge — never wipe the database section written by the Database tab
       localStorage.setItem(
         SYSTEM_SETTINGS_KEY,
-        JSON.stringify({
-          ...readSettingsBlob(),
-          system: systemSettings,
-          security: securitySettings,
-          notifications: notificationSettings,
-        })
+        JSON.stringify({ ...readSettingsBlob(), system: systemSettings, security: securitySettings, notifications: notificationSettings })
       );
-
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch (error) {
+    } catch {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } finally {
@@ -234,55 +211,18 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleAddIpAddress = () => {
-    if (newIpAddress && !securitySettings.ipWhitelist.includes(newIpAddress)) {
-      setSecuritySettings(prev => ({
-        ...prev,
-        ipWhitelist: [...prev.ipWhitelist, newIpAddress]
-      }));
-      setNewIpAddress('');
-    }
-  };
-
-  const handleRemoveIpAddress = (ip: string) => {
-    setSecuritySettings(prev => ({
-      ...prev,
-      ipWhitelist: prev.ipWhitelist.filter(address => address !== ip)
-    }));
-  };
-
-  // Database tab state (persisted alongside the other sections)
-  const [databaseState, setDatabaseState] = useState<DatabaseState>(() =>
-    loadStoredSection('database', EMPTY_DATABASE)
-  );
-  const [dbHealthy, setDbHealthy] = useState<boolean | null>(null);
-
   const persistDatabase = (next: DatabaseState) => {
     setDatabaseState(next);
     try {
-      localStorage.setItem(
-        SYSTEM_SETTINGS_KEY,
-        JSON.stringify({ ...readSettingsBlob(), database: next })
-      );
-    } catch {
-      // Storage full/blocked — state still updates for this session
-    }
+      localStorage.setItem(SYSTEM_SETTINGS_KEY, JSON.stringify({ ...readSettingsBlob(), database: next }));
+    } catch { /* storage blocked */ }
   };
 
   const recordBackup = (kind: 'manual' | 'test', status: 'success' | 'failed') => {
-    const entry: BackupEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      created_at: new Date().toISOString(),
-      kind,
-      status,
-    };
-    persistDatabase({
-      ...databaseState,
-      backups: [entry, ...databaseState.backups].slice(0, 20),
-    });
+    const entry: BackupEntry = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, created_at: new Date().toISOString(), kind, status };
+    persistDatabase({ ...databaseState, backups: [entry, ...databaseState.backups].slice(0, 20) });
   };
 
-  // Live database health check whenever the Database tab opens
   useEffect(() => {
     if (activeTab !== 'database') return;
     let cancelled = false;
@@ -297,49 +237,31 @@ const Settings: React.FC = () => {
   const handleTestBackup = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((r) => setTimeout(r, 1200));
       const ok = await testConnection();
       recordBackup('test', ok ? 'success' : 'failed');
-      if (ok) {
-        await dialog.success('Backup test passed', 'Backup test completed successfully and the database is reachable!');
-      } else {
-        await dialog.error('Backup test failed', 'The database could not be reached. Please check your connection.');
-      }
-    } catch (error) {
+      if (ok) await dialog.success('Backup test passed', 'Database is reachable!');
+      else await dialog.error('Backup test failed', 'The database could not be reached.');
+    } catch {
       recordBackup('test', 'failed');
-      await dialog.error('Backup test failed', 'Backup test failed. Please check your configuration.');
+      await dialog.error('Backup test failed', 'Please check your configuration.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleCreateBackup = async () => {
-    // Supabase handles continuous backups server-side; this records a manual
-    // checkpoint entry so the team has a visible backup log.
     recordBackup('manual', 'success');
-    await dialog.success(
-      'Backup recorded',
-      'Manual backup checkpoint recorded.\n\nNote: live database backups are managed automatically by Supabase (daily on paid plans). Use the Supabase Dashboard → Backups page for point-in-time restores.'
-    );
+    await dialog.success('Backup recorded', 'Manual checkpoint recorded. Live backups are managed by Supabase automatically.');
   };
 
   const handleOptimize = async () => {
-    const next = { ...databaseState, lastOptimized: new Date().toISOString() };
-    persistDatabase(next);
-    await dialog.success(
-      'Optimization recorded',
-      'Database optimization checkpoint recorded. Supabase manages vacuuming and indexing automatically; no manual action was needed.'
-    );
+    persistDatabase({ ...databaseState, lastOptimized: new Date().toISOString() });
+    await dialog.success('Optimization recorded', 'Checkpoint recorded. Supabase manages vacuuming automatically.');
   };
 
   const handleExportSettings = () => {
-    const settings = {
-      system: systemSettings,
-      security: { ...securitySettings, ipWhitelist: securitySettings.ipWhitelist },
-      notifications: notificationSettings,
-      exportedAt: new Date().toISOString(),
-    };
-    
+    const settings = { system: systemSettings, security: securitySettings, notifications: notificationSettings, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -351,662 +273,252 @@ const Settings: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const getSaveStatusIcon = () => {
-    switch (saveStatus) {
-      case 'saving':
-        return <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />;
-      case 'saved':
-        return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
-      case 'error':
-        return <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />;
-      default:
-        return null;
-    }
-  };
+  const brandingFields: { key: keyof BrandingFormState; label: string; span?: boolean }[] = [
+    { key: 'app_name', label: 'App Name (Browser Title)' },
+    { key: 'app_subtitle', label: 'Header Subtitle' },
+    { key: 'landing_header_title', label: 'Landing Header Title' },
+    { key: 'landing_header_subtitle', label: 'Landing Header Subtitle' },
+    { key: 'landing_hero_highlight', label: 'Hero Highlight Text' },
+    { key: 'ministry_lead', label: 'Ministry Lead' },
+    { key: 'camp_location', label: 'Camp Location' },
+    { key: 'registration_status_label', label: 'Registration Status Label' },
+    { key: 'camp_start_date', label: 'Camp Start Date' },
+    { key: 'camp_end_date', label: 'Camp End Date' },
+    { key: 'admin_dashboard_subtitle', label: 'Admin Dashboard Subtitle' },
+    { key: 'registrant_dashboard_subtitle', label: 'Registrant Dashboard Subtitle' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 flex items-center">
-                <CogIcon className="h-8 w-8 sm:h-10 sm:w-10 text-green-500 mr-3 sm:mr-4 flex-shrink-0" />
-                <span className="truncate">Settings</span>
-              </h1>
-              <p className="text-gray-600 mt-2 text-base sm:text-lg">
-                Configure system preferences and administrative settings
-              </p>
-            </div>
-            <div className="flex items-center space-x-4 self-start sm:self-auto flex-shrink-0">
-              <button
-                onClick={handleExportSettings}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-all duration-200"
-              >
-                Export Settings
-              </button>
-              <button
-                onClick={handleSaveSettings}
-                disabled={loading}
-                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 disabled:opacity-50 flex items-center"
-              >
-                {getSaveStatusIcon()}
-                <span className="ml-2">
-                  {saveStatus === 'saving' ? 'Saving...' : 
-                   saveStatus === 'saved' ? 'Saved!' : 
-                   saveStatus === 'error' ? 'Error!' : 'Save Changes'}
-                </span>
-              </button>
-            </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Settings"
+        subtitle="System preferences and portal configuration"
+        cta={
+          <>
+            <ClayButton tone="neutral" onClick={handleExportSettings}>Export Settings</ClayButton>
+            <ClayButton tone="primary" loading={loading} onClick={handleSaveSettings}>
+              {saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Error!' : 'Save Changes'}
+            </ClayButton>
+          </>
+        }
+      />
+
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="lg:w-60 flex-shrink-0">
+          <div className="surface p-2 flex lg:flex-col gap-1 overflow-x-auto">
+            {tabs.map((t) => {
+              const Icon = t.icon;
+              const active = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id as any)}
+                  className={`clay-press flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                    active
+                      ? 'bg-[var(--primary)] text-white shadow-sm'
+                      : 'text-muted-foreground hover:bg-[var(--secondary)] hover:text-[var(--foreground)]'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {t.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Navigation */}
-          <div className="lg:w-64">
-            <nav className="space-y-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    activeTab === tab.id
-                      ? 'bg-green-100 text-green-800 border border-green-200'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                >
-                  <tab.icon className="h-5 w-5 mr-3" />
-                  {tab.name}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100">
-              {/* Branding Settings */}
-              {activeTab === 'branding' && (
-                <div className="p-6 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-900">Branding & Camp Theme</h2>
-                    <button
-                      onClick={handleSaveBranding}
-                      className="bg-gradient-to-r from-green-500 to-green-600 text-white px-5 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200"
-                    >
-                      {brandingSaveStatus === 'saving' ? 'Saving...' : brandingSaveStatus === 'saved' ? 'Saved!' : brandingSaveStatus === 'error' ? 'Error!' : 'Save Branding'}
-                    </button>
+        <div className="flex-1 min-w-0 space-y-6">
+          {activeTab === 'branding' && (
+            <SectionCard
+              title="Branding & Camp Theme"
+              subtitle="Live on landing page and dashboards"
+              action={
+                <ClayButton tone="primary" loading={brandingSaveStatus === 'saving'} onClick={handleSaveBranding}>
+                  {brandingSaveStatus === 'saved' ? 'Saved!' : brandingSaveStatus === 'error' ? 'Error!' : 'Save Branding'}
+                </ClayButton>
+              }
+            >
+              <div className="grid md:grid-cols-2 gap-4">
+                {brandingFields.map((f) => (
+                  <div key={f.key}>
+                    <label className={labelCls}>{f.label}</label>
+                    <input type="text" value={brandingForm[f.key]} onChange={(e) => setBrandingForm((p) => ({ ...p, [f.key]: e.target.value }))} className={inputCls} />
                   </div>
+                ))}
+              </div>
+              <div className="mt-4">
+                <label className={labelCls}>Landing Description</label>
+                <textarea value={brandingForm.landing_description} onChange={(e) => setBrandingForm((p) => ({ ...p, landing_description: e.target.value }))} rows={4} className="w-full px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm focus-ring" />
+              </div>
+            </SectionCard>
+          )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">App Name (Browser Title)</label>
-                      <input
-                        type="text"
-                        value={brandingForm.app_name}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, app_name: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Header Subtitle</label>
-                      <input
-                        type="text"
-                        value={brandingForm.app_subtitle}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, app_subtitle: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Landing Header Title</label>
-                      <input
-                        type="text"
-                        value={brandingForm.landing_header_title}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, landing_header_title: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Landing Header Subtitle</label>
-                      <input
-                        type="text"
-                        value={brandingForm.landing_header_subtitle}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, landing_header_subtitle: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Hero Highlight Text</label>
-                      <input
-                        type="text"
-                        value={brandingForm.landing_hero_highlight}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, landing_hero_highlight: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Ministry Lead</label>
-                      <input
-                        type="text"
-                        value={brandingForm.ministry_lead}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, ministry_lead: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Camp Location</label>
-                      <input
-                        type="text"
-                        value={brandingForm.camp_location}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, camp_location: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Registration Status Label</label>
-                      <input
-                        type="text"
-                        value={brandingForm.registration_status_label}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, registration_status_label: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Camp Start Date</label>
-                      <input
-                        type="text"
-                        value={brandingForm.camp_start_date}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, camp_start_date: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Camp End Date</label>
-                      <input
-                        type="text"
-                        value={brandingForm.camp_end_date}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, camp_end_date: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Admin Dashboard Subtitle</label>
-                      <input
-                        type="text"
-                        value={brandingForm.admin_dashboard_subtitle}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, admin_dashboard_subtitle: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Registrant Dashboard Subtitle</label>
-                      <input
-                        type="text"
-                        value={brandingForm.registrant_dashboard_subtitle}
-                        onChange={(e) => setBrandingForm(prev => ({ ...prev, registrant_dashboard_subtitle: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-                  </div>
+          {activeTab === 'system' && (
+            <SectionCard title="System Configuration" subtitle="Registration and session behaviour (stored per-browser)">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Site Name</label>
+                  <input type="text" value={systemSettings.siteName} onChange={(e) => setSystemSettings((p) => ({ ...p, siteName: e.target.value }))} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Admin Email</label>
+                  <input type="email" value={systemSettings.adminEmail} onChange={(e) => setSystemSettings((p) => ({ ...p, adminEmail: e.target.value }))} className={inputCls} />
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className={labelCls}>Site Description</label>
+                <textarea value={systemSettings.siteDescription} onChange={(e) => setSystemSettings((p) => ({ ...p, siteDescription: e.target.value }))} rows={3} className="w-full px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm focus-ring" />
+              </div>
+              <div className="mt-6 space-y-3 border-t border-[var(--border)] pt-5">
+                {[
+                  { label: 'Allow new registrations', checked: systemSettings.allowRegistration, set: (v: boolean) => setSystemSettings((p) => ({ ...p, allowRegistration: v })) },
+                  { label: 'Require email verification', checked: systemSettings.requireEmailVerification, set: (v: boolean) => setSystemSettings((p) => ({ ...p, requireEmailVerification: v })) },
+                  { label: 'Maintenance mode (admins only)', checked: systemSettings.maintenanceMode, set: (v: boolean) => setSystemSettings((p) => ({ ...p, maintenanceMode: v })) },
+                ].map((t) => (
+                  <label key={t.label} className="flex items-center gap-2.5 text-sm font-medium">
+                    <input type="checkbox" checked={t.checked} onChange={(e) => t.set(e.target.checked)} className="w-4 h-4 rounded accent-[var(--primary)]" />
+                    {t.label}
+                  </label>
+                ))}
+                {systemSettings.maintenanceMode && (
+                  <p className="flex items-center gap-2 text-xs font-semibold text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
+                    <AlertTriangle className="w-4 h-4" /> Maintenance mode restricts access to administrators only.
+                  </p>
+                )}
+              </div>
+            </SectionCard>
+          )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Landing Description</label>
-                    <textarea
-                      value={brandingForm.landing_description}
-                      onChange={(e) => setBrandingForm(prev => ({ ...prev, landing_description: e.target.value }))}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+          {activeTab === 'security' && (
+            <SectionCard title="Security Configuration" subtitle="Password, session and login policy">
+              <div className="space-y-3">
+                {[
+                  { label: 'Enforce strong passwords', checked: securitySettings.enforceStrongPasswords, set: (v: boolean) => setSecuritySettings((p) => ({ ...p, enforceStrongPasswords: v })) },
+                  { label: 'Enable two-factor authentication', checked: securitySettings.enableTwoFactor, set: (v: boolean) => setSecuritySettings((p) => ({ ...p, enableTwoFactor: v })) },
+                ].map((t) => (
+                  <label key={t.label} className="flex items-center gap-2.5 text-sm font-medium">
+                    <input type="checkbox" checked={t.checked} onChange={(e) => t.set(e.target.checked)} className="w-4 h-4 rounded accent-[var(--primary)]" />
+                    {t.label}
+                  </label>
+                ))}
+              </div>
+              <div className="mt-4 grid md:grid-cols-3 gap-4">
+                <div>
+                  <label className={labelCls}>Security level</label>
+                  <select value={securitySettings.sessionSecurityLevel} onChange={(e) => setSecuritySettings((p) => ({ ...p, sessionSecurityLevel: e.target.value as any }))} className={inputCls}>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Login attempt limit</label>
+                  <input type="number" value={securitySettings.loginAttemptLimit} onChange={(e) => setSecuritySettings((p) => ({ ...p, loginAttemptLimit: parseInt(e.target.value) || 5 }))} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Lockout (minutes)</label>
+                  <input type="number" value={securitySettings.lockoutDuration} onChange={(e) => setSecuritySettings((p) => ({ ...p, lockoutDuration: parseInt(e.target.value) || 15 }))} className={inputCls} />
+                </div>
+              </div>
+              <div className="mt-6 border-t border-[var(--border)] pt-5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">IP Whitelist</p>
+                <div className="flex gap-2">
+                  <input type="text" value={newIpAddress} onChange={(e) => setNewIpAddress(e.target.value)} placeholder="e.g. 192.168.1.1" className={inputCls} />
+                  <ClayButton
+                    tone="neutral"
+                    onClick={() => {
+                      if (newIpAddress && !securitySettings.ipWhitelist.includes(newIpAddress)) {
+                        setSecuritySettings((p) => ({ ...p, ipWhitelist: [...p.ipWhitelist, newIpAddress] }));
+                        setNewIpAddress('');
+                      }
+                    }}
+                  >
+                    Add
+                  </ClayButton>
+                </div>
+                <div className="mt-2 space-y-1.5">
+                  {securitySettings.ipWhitelist.length === 0 && <p className="text-xs text-muted-foreground">No IP addresses whitelisted</p>}
+                  {securitySettings.ipWhitelist.map((ip) => (
+                    <div key={ip} className="flex items-center justify-between rounded-xl bg-[color-mix(in_srgb,var(--secondary)_60%,transparent)] border border-[var(--border)] px-3 py-2 text-xs">
+                      <span className="tnum font-semibold">{ip}</span>
+                      <button onClick={() => setSecuritySettings((p) => ({ ...p, ipWhitelist: p.ipWhitelist.filter((x) => x !== ip) }))} className="font-semibold text-rose-600 hover:underline">
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </SectionCard>
+          )}
+
+          {activeTab === 'notifications' && (
+            <SectionCard title="Notification Preferences" subtitle="Which events notify the team">
+              <div className="space-y-4">
+                {[
+                  { key: 'emailNotifications', title: 'Email notifications', desc: 'General system notifications via email' },
+                  { key: 'newMemberAlerts', title: 'New member alerts', desc: 'Notified when members are registered' },
+                  { key: 'systemAlerts', title: 'System alerts', desc: 'Critical errors and warnings' },
+                  { key: 'weeklyReports', title: 'Weekly reports', desc: 'Weekly summary digest' },
+                  { key: 'backupAlerts', title: 'Backup alerts', desc: 'Backup status and failures' },
+                ].map((n) => (
+                  <label key={n.key} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+                    <span>
+                      <span className="block text-sm font-semibold">{n.title}</span>
+                      <span className="block text-xs text-muted-foreground">{n.desc}</span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={(notificationSettings as any)[n.key]}
+                      onChange={(e) => setNotificationSettings((p) => ({ ...p, [n.key]: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-[var(--primary)]"
                     />
-                  </div>
+                  </label>
+                ))}
+              </div>
+            </SectionCard>
+          )}
+
+          {activeTab === 'database' && (
+            <div className="space-y-6">
+              <SectionCard title="Database Health" subtitle="Live connection check">
+                <div className="flex items-center gap-3">
+                  {dbHealthy === null ? (
+                    <StatusPill stage="Checking…" tone="info" />
+                  ) : dbHealthy ? (
+                    <StatusPill stage="Healthy" tone="success" />
+                  ) : (
+                    <StatusPill stage="Unreachable" tone="danger" />
+                  )}
+                  <span className="text-xs text-muted-foreground">Supabase manages continuous backups server-side.</span>
                 </div>
-              )}
-              
-              {/* System Settings */}
-              {activeTab === 'system' && (
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">System Configuration</h2>
-                  
-                  <div className="space-y-6">
-                    {/* Basic Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Site Name</label>
-                        <input
-                          type="text"
-                          value={systemSettings.siteName}
-                          onChange={(e) => setSystemSettings(prev => ({ ...prev, siteName: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Admin Email</label>
-                        <input
-                          type="email"
-                          value={systemSettings.adminEmail}
-                          onChange={(e) => setSystemSettings(prev => ({ ...prev, adminEmail: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Site Description</label>
-                      <textarea
-                        value={systemSettings.siteDescription}
-                        onChange={(e) => setSystemSettings(prev => ({ ...prev, siteDescription: e.target.value }))}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                      />
-                    </div>
-
-                    {/* Registration Settings */}
-                    <div className="border-t pt-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Registration Settings</h3>
-                      <div className="space-y-4">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={systemSettings.allowRegistration}
-                            onChange={(e) => setSystemSettings(prev => ({ ...prev, allowRegistration: e.target.checked }))}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Allow new registrations</span>
-                        </label>
-
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={systemSettings.requireEmailVerification}
-                            onChange={(e) => setSystemSettings(prev => ({ ...prev, requireEmailVerification: e.target.checked }))}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Require email verification</span>
-                        </label>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Maximum members per registrar
-                          </label>
-                          <input
-                            type="number"
-                            value={systemSettings.maxMembersPerRegistrar}
-                            onChange={(e) => setSystemSettings(prev => ({ ...prev, maxMembersPerRegistrar: parseInt(e.target.value) }))}
-                            className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* System Configuration */}
-                    <div className="border-t pt-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">System Configuration</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Session timeout (minutes)
-                          </label>
-                          <input
-                            type="number"
-                            value={systemSettings.sessionTimeout}
-                            onChange={(e) => setSystemSettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Backup frequency</label>
-                          <select
-                            value={systemSettings.backupFrequency}
-                            onChange={(e) => setSystemSettings(prev => ({ ...prev, backupFrequency: e.target.value as any }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                          >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={systemSettings.maintenanceMode}
-                            onChange={(e) => setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Enable maintenance mode</span>
-                        </label>
-                        {systemSettings.maintenanceMode && (
-                          <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <div className="flex items-center">
-                              <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 mr-2" />
-                              <p className="text-sm text-yellow-800">
-                                Maintenance mode will restrict access to administrators only.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              </SectionCard>
+              <SectionCard title="Backup Management" subtitle="Manual checkpoints (kept per-browser)">
+                <div className="flex flex-wrap gap-2">
+                  <ClayButton tone="neutral" loading={loading} onClick={handleTestBackup}>Test Backup</ClayButton>
+                  <ClayButton tone="primary" onClick={handleCreateBackup}>Create Backup</ClayButton>
+                  <ClayButton tone="neutral" onClick={handleOptimize}>Optimize Database</ClayButton>
                 </div>
-              )}
-
-              {/* Security Settings */}
-              {activeTab === 'security' && (
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Security Configuration</h2>
-                  
-                  <div className="space-y-6">
-                    {/* Password Policy */}
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Password Policy</h3>
-                      <div className="space-y-4">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={securitySettings.enforceStrongPasswords}
-                            onChange={(e) => setSecuritySettings(prev => ({ ...prev, enforceStrongPasswords: e.target.checked }))}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Enforce strong passwords</span>
-                        </label>
-
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={securitySettings.enableTwoFactor}
-                            onChange={(e) => setSecuritySettings(prev => ({ ...prev, enableTwoFactor: e.target.checked }))}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Enable two-factor authentication</span>
-                        </label>
+                {databaseState.lastOptimized && (
+                  <p className="mt-3 text-xs text-muted-foreground">Last optimized: {new Date(databaseState.lastOptimized).toLocaleString()}</p>
+                )}
+                <div className="mt-4 space-y-1.5">
+                  {databaseState.backups.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No backups recorded yet.</p>
+                  ) : (
+                    databaseState.backups.slice(0, 10).map((b) => (
+                      <div key={b.id} className="flex items-center justify-between text-xs rounded-xl border border-[var(--border)] px-3 py-2">
+                        <span className="tnum">{new Date(b.created_at).toLocaleString()} • {b.kind}</span>
+                        {b.status === 'success' ? <StatusPill stage="Success" tone="success" /> : <StatusPill stage="Failed" tone="danger" />}
                       </div>
-                    </div>
-
-                    {/* Session Security */}
-                    <div className="border-t pt-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Session Security</h3>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Security level</label>
-                        <select
-                          value={securitySettings.sessionSecurityLevel}
-                          onChange={(e) => setSecuritySettings(prev => ({ ...prev, sessionSecurityLevel: e.target.value as any }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                        >
-                          <option value="low">Low - Basic session validation</option>
-                          <option value="medium">Medium - IP and browser validation</option>
-                          <option value="high">High - Strict validation with fingerprinting</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Login Security */}
-                    <div className="border-t pt-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Login Security</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Login attempt limit
-                          </label>
-                          <input
-                            type="number"
-                            value={securitySettings.loginAttemptLimit}
-                            onChange={(e) => setSecuritySettings(prev => ({ ...prev, loginAttemptLimit: parseInt(e.target.value) }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Lockout duration (minutes)
-                          </label>
-                          <input
-                            type="number"
-                            value={securitySettings.lockoutDuration}
-                            onChange={(e) => setSecuritySettings(prev => ({ ...prev, lockoutDuration: parseInt(e.target.value) }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* IP Whitelist */}
-                    <div className="border-t pt-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">IP Address Whitelist</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            value={newIpAddress}
-                            onChange={(e) => setNewIpAddress(e.target.value)}
-                            placeholder="e.g., 192.168.1.1"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                          />
-                          <button
-                            onClick={handleAddIpAddress}
-                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-                          >
-                            Add
-                          </button>
-                        </div>
-
-                        <div className="space-y-2">
-                          {securitySettings.ipWhitelist.map((ip, index) => (
-                            <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg">
-                              <span className="text-sm text-gray-700">{ip}</span>
-                              <button
-                                onClick={() => handleRemoveIpAddress(ip)}
-                                className="text-red-600 hover:text-red-800 text-sm"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          ))}
-                          {securitySettings.ipWhitelist.length === 0 && (
-                            <p className="text-sm text-gray-500">No IP addresses whitelisted</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    ))
+                  )}
                 </div>
-              )}
-
-              {/* Notification Settings */}
-              {activeTab === 'notifications' && (
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Notification Preferences</h2>
-                  
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <label className="flex items-center justify-between">
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Email notifications</span>
-                          <p className="text-xs text-gray-500">Receive general system notifications via email</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={notificationSettings.emailNotifications}
-                          onChange={(e) => setNotificationSettings(prev => ({ ...prev, emailNotifications: e.target.checked }))}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                        />
-                      </label>
-
-                      <label className="flex items-center justify-between">
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">New member alerts</span>
-                          <p className="text-xs text-gray-500">Get notified when new members are registered</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={notificationSettings.newMemberAlerts}
-                          onChange={(e) => setNotificationSettings(prev => ({ ...prev, newMemberAlerts: e.target.checked }))}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                        />
-                      </label>
-
-                      <label className="flex items-center justify-between">
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">System alerts</span>
-                          <p className="text-xs text-gray-500">Critical system notifications and errors</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={notificationSettings.systemAlerts}
-                          onChange={(e) => setNotificationSettings(prev => ({ ...prev, systemAlerts: e.target.checked }))}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                        />
-                      </label>
-
-                      <label className="flex items-center justify-between">
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Weekly reports</span>
-                          <p className="text-xs text-gray-500">Receive weekly summary reports</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={notificationSettings.weeklyReports}
-                          onChange={(e) => setNotificationSettings(prev => ({ ...prev, weeklyReports: e.target.checked }))}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                        />
-                      </label>
-
-                      <label className="flex items-center justify-between">
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Backup alerts</span>
-                          <p className="text-xs text-gray-500">Notifications about backup status and failures</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={notificationSettings.backupAlerts}
-                          onChange={(e) => setNotificationSettings(prev => ({ ...prev, backupAlerts: e.target.checked }))}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Database Settings */}
-              {activeTab === 'database' && (
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Database Management</h2>
-                  
-                  <div className="space-y-6">
-                    {/* Database Status */}
-                    <div className={`border rounded-lg p-4 ${dbHealthy === false ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                      <div className="flex items-center">
-                        {dbHealthy === null ? (
-                          <>
-                            <div className="h-5 w-5 mr-2 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-sm font-medium text-green-800">Checking database connection…</span>
-                          </>
-                        ) : dbHealthy ? (
-                          <>
-                            <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                            <span className="text-sm font-medium text-green-800">Database connection is healthy</span>
-                          </>
-                        ) : (
-                          <>
-                            <ExclamationTriangleIcon className="h-5 w-5 text-red-500 mr-2" />
-                            <span className="text-sm font-medium text-red-800">Database is unreachable — check your connection</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Backup Management */}
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Backup Management</h3>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <button
-                            onClick={handleTestBackup}
-                            disabled={loading}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            {loading ? 'Testing...' : 'Test Backup'}
-                          </button>
-                          
-                          <button
-                            onClick={handleCreateBackup}
-                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-                          >
-                            Create Backup
-                          </button>
-
-                          <button
-                            onClick={() => dialog.info('Restore data', 'Restore functionality coming soon.')}
-                            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700"
-                          >
-                            Restore Data
-                          </button>
-                        </div>
-
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="font-medium text-gray-900 mb-2">Recent Backups</h4>
-                          {databaseState.backups.length === 0 ? (
-                            <p className="text-sm text-gray-500">
-                              No backups recorded yet — run a test or create your first checkpoint above.
-                            </p>
-                          ) : (
-                            <div className="space-y-2 text-sm text-gray-600">
-                              {databaseState.backups.slice(0, 10).map((b) => (
-                                <div key={b.id} className="flex justify-between gap-3">
-                                  <span>
-                                    {new Date(b.created_at).toLocaleString()}
-                                    <span className="text-gray-400"> · {b.kind === 'test' ? 'Test' : 'Manual'}</span>
-                                  </span>
-                                  <span className={b.status === 'success' ? 'text-green-600' : 'text-red-600'}>
-                                    {b.status === 'success' ? 'Success' : 'Failed'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Database Maintenance */}
-                    <div className="border-t pt-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Maintenance</h3>
-                      <div className="space-y-4">
-                        <button
-                          onClick={handleOptimize}
-                          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-                        >
-                          Optimize Database
-                        </button>
-                        {databaseState.lastOptimized && (
-                          <p className="text-sm text-gray-500">
-                            Last optimized: {new Date(databaseState.lastOptimized).toLocaleString()}
-                          </p>
-                        )}
-                        
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                          <div className="flex items-start">
-                            <InformationCircleIcon className="h-5 w-5 text-yellow-600 mr-2 mt-0.5" />
-                            <div>
-                              <p className="text-sm font-medium text-yellow-800">Database Optimization</p>
-                              <p className="text-sm text-yellow-700 mt-1">
-                                Regular optimization helps maintain optimal database performance. 
-                                Run this monthly or when experiencing performance issues.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
+                  <Info className="w-4 h-4 flex-shrink-0 mt-0.5" /> Point-in-time restores live in Supabase Dashboard → Backups (paid plans).
+                </p>
+              </SectionCard>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
