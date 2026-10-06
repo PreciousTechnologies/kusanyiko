@@ -275,6 +275,21 @@ body {
   background: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
 }
 
+@media (max-width: 768px) {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
+  }
+}
+
 /* Animations */
 @keyframes pulseDot {
   0%, 100% { opacity: 1; transform: scale(1); }
