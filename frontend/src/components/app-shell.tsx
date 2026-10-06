@@ -286,7 +286,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans antialiased">
+    <div className="flex min-h-screen min-h-[100dvh] bg-[var(--background)] text-[var(--foreground)] font-sans antialiased">
       {/* Route Loading Progress Bar */}
       <AnimatePresence>
         {isNavigating && (
