@@ -17,13 +17,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
 } from 'recharts';
-
-const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 
 const AdminStatistics: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -148,8 +142,7 @@ const AdminStatistics: React.FC = () => {
     });
     return Array.from(counts.entries())
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
+      .sort((a, b) => b.value - a.value);
   }, [scopedMembers]);
 
   const recentRows = useMemo(
@@ -239,23 +232,23 @@ const AdminStatistics: React.FC = () => {
           </div>
         </SectionCard>
 
-        <SectionCard title="Top Regions" subtitle={timeFilter === 'all' ? 'Share of total register' : `Share of scoped register (${timeFilter})`}>
+        <SectionCard title="All Regions" subtitle={timeFilter === 'all' ? 'Share of total register' : `Share of scoped register (${timeFilter})`}>
           {topRegions.length === 0 ? (
             <EmptyState title="No regional data" message="No registrations in the selected window yet." />
           ) : (
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-              <PieChart>
-                <Pie data={topRegions} dataKey="value" nameKey="name" innerRadius={54} outerRadius={82} paddingAngle={3} stroke="none">
-                  {topRegions.map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+            <div className="h-72 w-full overflow-y-auto">
+              <div style={{ minHeight: Math.max(280, topRegions.length * 34) }}>
+                <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                  <BarChart data={topRegions} layout="vertical" margin={{ top: 4, right: 16, left: 26, bottom: 0 }}>
+                    <CartesianGrid stroke="var(--border)" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" width={115} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                    <Bar dataKey="value" fill="var(--chart-3)" radius={[0, 6, 6, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           )}
         </SectionCard>
       </div>
