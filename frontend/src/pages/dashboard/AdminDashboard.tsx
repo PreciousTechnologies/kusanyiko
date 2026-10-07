@@ -299,18 +299,16 @@ const AdminDashboard: React.FC = () => {
         }
       >
         {topRegions.length > 0 && (
-          <div className="h-72 w-full mb-4 overflow-y-auto">
-            <div style={{ minHeight: Math.max(280, topRegions.length * 34) }}>
-              <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                <BarChart data={topRegions} layout="vertical" margin={{ top: 4, right: 16, left: 32, bottom: 0 }}>
-                  <CartesianGrid stroke="var(--border)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <YAxis type="category" dataKey="region" width={115} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
-                  <Bar dataKey="members" fill="var(--chart-3)" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="w-full mb-4">
+            <ResponsiveContainer width="100%" height={Math.max(280, topRegions.length * 34)} debounce={100}>
+              <BarChart data={topRegions} layout="vertical" margin={{ top: 4, right: 16, left: 32, bottom: 0 }}>
+                <CartesianGrid stroke="var(--border)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis type="category" dataKey="region" width={115} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                <Bar dataKey="members" fill="var(--chart-3)" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         )}
         <DataTable
