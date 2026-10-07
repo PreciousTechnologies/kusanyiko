@@ -8,6 +8,7 @@ import { PageHeader } from '../../components/app-shell';
 import { SectionCard, ClayButton, StatusPill, EmptyState, KpiCard } from '../../components/ui-bits';
 import { DashboardSkeleton } from '../../components/skeleton-loaders';
 import { springs } from '../../lib/motion-tokens';
+import { isOwnedByUser } from '../../lib/utils';
 import {
   FileDown,
   Table2,
@@ -55,7 +56,7 @@ const ExportData: React.FC = () => {
     females: members.filter((m) => m.gender === 'female').length,
     saved: members.filter((m) => m.saved).length,
   };
-  const myCount = members.filter((m) => (m as any).created_by === (user as any)?.id || (m as any).registered_by === (user as any)?.id).length;
+  const myCount = members.filter((m) => isOwnedByUser(m as any, user as any)).length;
 
   const exportOptions: ExportOption[] = [
     { id: 'summary-report', name: 'Summary Report', description: `Comprehensive summary with ${summary.total} members, gender and salvation breakdown`, icon: ChartBar, dataType: 'analytics', formats: ['excel', 'pdf'], estimatedSize: '0.5 MB', category: 'reports' },
@@ -92,7 +93,11 @@ const ExportData: React.FC = () => {
           response = await exportAPI.exportMembers(selectedFormat as any, {});
           break;
         case 'members-my':
-          response = await exportAPI.exportMembers(selectedFormat as any, { created_by: (user as any)?.id });
+          response = await exportAPI.exportMembers(selectedFormat as any, {
+            owned_by_me: true,
+            owner_id: (user as any)?.id,
+            owner_username: user?.username,
+          });
           break;
         case 'analytics-overview':
           response = await exportAPI.exportAnalytics(selectedFormat as any, { type: 'overview', date_range: { start_date: dateRange.start, end_date: dateRange.end } });

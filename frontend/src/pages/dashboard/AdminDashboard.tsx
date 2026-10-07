@@ -8,7 +8,7 @@ import { PageHeader } from '../../components/app-shell';
 import { KpiCard, SectionCard, ClayButton, StatusPill, EmptyState } from '../../components/ui-bits';
 import { DataTable } from '../../components/data-table';
 import { DashboardSkeleton } from '../../components/skeleton-loaders';
-import { formatDelta } from '../../lib/utils';
+import { formatDelta, isOwnedByUser } from '../../lib/utils';
 import ProfilePicture from '../../components/ui/ProfilePicture';
 import {
   Users,
@@ -24,6 +24,8 @@ import {
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -131,14 +133,23 @@ const AdminDashboard: React.FC = () => {
   }, [members]);
 
   const topRegions = useMemo(() => {
-    const rows = (adminStats?.region_stats || []).slice(0, 5);
-    const total = adminStats?.total_members || 1;
+    const fromStats = adminStats?.region_stats || [];
+    const rows = fromStats.length
+      ? fromStats
+      : Array.from(
+          members.reduce((acc, m) => {
+            const key = (m.region || '').trim() || 'Not Specified';
+            acc.set(key, (acc.get(key) || 0) + 1);
+            return acc;
+          }, new Map<string, number>())
+        ).map(([region, count]) => ({ region, count }));
+    const total = rows.reduce((sum, r: any) => sum + Number(r.count || 0), 0) || 1;
     return rows.map((r: any) => ({
       region: r.region || 'Not Specified',
       members: r.count,
       share: Number(((r.count / total) * 100).toFixed(1)),
-    }));
-  }, [adminStats]);
+    })).sort((a, b) => b.members - a.members);
+  }, [adminStats, members]);
 
   const recentRegistrations = useMemo(
     () =>
@@ -160,12 +171,7 @@ const AdminDashboard: React.FC = () => {
   );
 
   const myRecent = useMemo(() => {
-    const mine = members.filter((m) => {
-      const cb: any = (m as any).created_by;
-      if (typeof cb === 'number') return cb === (user as any)?.id;
-      if (typeof cb === 'string') return cb === (user as any)?.id || cb === user?.username;
-      return (m as any).registered_by === (user as any)?.id;
-    });
+    const mine = members.filter((m) => isOwnedByUser(m as any, user as any));
     return {
       total: mine.length,
       rows: mine
@@ -282,8 +288,8 @@ const AdminDashboard: React.FC = () => {
 
       {/* Regions table */}
       <SectionCard
-        title="Top Regions by Members"
-        subtitle="Ranked by registration volume"
+        title="Regional Distribution"
+        subtitle="All regions ranked by registration volume"
         action={
           <Link to="/admin/stats">
             <ClayButton tone="neutral" icon={<ChartBar className="w-4 h-4" />}>
@@ -292,6 +298,21 @@ const AdminDashboard: React.FC = () => {
           </Link>
         }
       >
+        {topRegions.length > 0 && (
+          <div className="h-72 w-full mb-4 overflow-y-auto">
+            <div style={{ minHeight: Math.max(280, topRegions.length * 34) }}>
+              <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                <BarChart data={topRegions} layout="vertical" margin={{ top: 4, right: 16, left: 32, bottom: 0 }}>
+                  <CartesianGrid stroke="var(--border)" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis type="category" dataKey="region" width={115} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                  <Bar dataKey="members" fill="var(--chart-3)" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
         <DataTable
           columns={[
             { key: 'region', label: 'Region', render: (v) => <span className="font-semibold">{v}</span> },
@@ -306,7 +327,7 @@ const AdminDashboard: React.FC = () => {
           data={topRegions}
           initialSortColumn="members"
           initialSortDirection="desc"
-          defaultPageSize={5}
+          defaultPageSize={10}
           searchPlaceholder="Filter regions..."
           emptyTitle="No regional data"
           emptyMessage="Registrations have no region breakdown yet."

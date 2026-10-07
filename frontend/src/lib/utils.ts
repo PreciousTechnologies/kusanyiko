@@ -29,3 +29,23 @@ export function formatDelta(
   if (Math.abs(pct) > 999) return { text: absolute, down };
   return { text: `${sign}${pct}% vs prior ${period}`, down };
 }
+
+function normalizeIdentity(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+export function isOwnedByUser(
+  record: { created_by?: unknown; registered_by?: unknown; created_by_name?: unknown },
+  user: { id?: unknown; username?: unknown } | null | undefined
+): boolean {
+  const createdBy = normalizeIdentity(record.created_by);
+  const registeredBy = normalizeIdentity(record.registered_by);
+  const createdByName = normalizeIdentity(record.created_by_name);
+  const userId = normalizeIdentity(user?.id);
+  const username = normalizeIdentity(user?.username);
+
+  if (createdBy && (createdBy === userId || createdBy === username)) return true;
+  if (registeredBy && (registeredBy === userId || registeredBy === username)) return true;
+  if (createdByName && createdByName === username) return true;
+  return false;
+}

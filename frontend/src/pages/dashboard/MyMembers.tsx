@@ -10,6 +10,7 @@ import { Users, UserPlus, CheckCircle2, CalendarDays, Eye, Pencil, Trash2, Slide
 import { Member } from '../../types';
 import ProfilePicture from '../../components/ui/ProfilePicture';
 import { dialog } from '../../components/ui/Dialog';
+import { isOwnedByUser } from '../../lib/utils';
 
 const MyMembers: React.FC = () => {
   const navigate = useNavigate();
@@ -69,14 +70,7 @@ const MyMembers: React.FC = () => {
       );
     }
     if (!showOnlyMyMembers) return rows;
-    return rows.filter((m) => {
-      const cb: any = m.created_by;
-      const uid: any = (user as any)?.id;
-      if (typeof cb === 'number' && cb === uid) return true;
-      if (typeof cb === 'string' && (cb === uid || cb === user?.username)) return true;
-      if (!cb && (m as any).registered_by === uid) return true;
-      return false;
-    });
+    return rows.filter((m) => isOwnedByUser(m as any, user as any));
   }, [members, headerQuery, showOnlyMyMembers, user]);
 
   const totalDisplayed = showOnlyMyMembers ? displayedMembers.length : totalCount;

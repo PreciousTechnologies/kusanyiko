@@ -13,6 +13,7 @@
  */
 import { supabase, MEMBER_PICTURES_BUCKET, publicPictureUrl } from '../utils/supabaseClient';
 import { buildExportBlob, asAxiosBlobResponse, ExportFormat } from '../utils/exportHelpers';
+import { isOwnedByUser } from '../lib/utils';
 
 // ---------- small helpers ----------
 async function currentProfile() {
@@ -792,8 +793,16 @@ async function recordExport(export_type: string, format: string, filters_applied
 
 export const exportAPI = {
   exportMembers: async (format: 'csv' | 'excel' | 'pdf' = 'csv', filters: any = {}) => {
-    const res = await membersAPI.getMembers(filters);
-    const list = Array.isArray(res.data) ? res.data : res.data.results || [];
+    const memberFilters = { ...(filters || {}) };
+    const ownOnly = !!memberFilters.owned_by_me;
+    const owner = { id: memberFilters.owner_id, username: memberFilters.owner_username };
+    delete memberFilters.owned_by_me;
+    delete memberFilters.owner_id;
+    delete memberFilters.owner_username;
+
+    const res = await membersAPI.getMembers(memberFilters);
+    const rawList = Array.isArray(res.data) ? res.data : res.data.results || [];
+    const list = ownOnly ? rawList.filter((m: any) => isOwnedByUser(m, owner as any)) : rawList;
     const rows = memberExportRows(list);
     const { blob, filename, contentType } = await buildExportBlob('members-register', MEMBER_HEADERS, rows, format as ExportFormat);
     await recordExport('members', format, filters, `${(blob.size / 1024).toFixed(1)} KB`);
@@ -803,14 +812,50 @@ export const exportAPI = {
   exportAnalytics: async (format: 'csv' | 'excel' | 'pdf' = 'pdf', options: any = {}) => {
     const type = options.type || 'overview';
     const stats = (await statsAPI.getAdminStats()).data;
-    const kpiRows = [
-      { Indicator: 'Total Members Registered', Value: stats.total_members, 'Share (%)': 100 },
-      ...stats.gender_stats.map((g: any) => ({
-        Indicator: `${g.gender} Members`, Value: g.count,
-        'Share (%)': stats.total_members ? Number(((g.count / stats.total_members) * 100).toFixed(1)) : 0,
-      })),
+    const total = stats.total_members || 0;
+    const pct = (count: number) => (total ? Number(((count / total) * 100).toFixed(1)) : 0);
+    const withSection = (section: string, label: string, count: number) => ({
+      Section: section,
+      Indicator: label,
+      Value: count,
+      'Share (%)': pct(count),
+    });
+
+    const overviewRows = [
+      { Section: 'Overview', Indicator: 'Total Members Registered', Value: total, 'Share (%)': total ? 100 : 0 },
+      withSection('Overview', 'Recent Registrations (Last 30 days)', stats.recent_registrations || 0),
     ];
-    const { blob, filename, contentType } = await buildExportBlob(`${type}-report`, ['Indicator', 'Value', 'Share (%)'], kpiRows, (format === 'csv' ? 'excel' : format) as ExportFormat);
+    const demographicsRows = [
+      ...stats.gender_stats.map((g: any) => withSection('Demographics', `${g.gender || 'Unspecified'} Members`, g.count || 0)),
+      ...stats.marital_stats.map((m: any) => withSection('Demographics', `${m.marital_status || 'Unspecified'} Marital Status`, m.count || 0)),
+      ...stats.saved_stats.map((s: any) => withSection('Demographics', `${s.saved ? 'Saved' : 'Not Saved'} Members`, s.count || 0)),
+    ];
+    const geographyRows = [
+      ...stats.region_stats.map((r: any) => withSection('Regions', r.region || 'Not Specified', r.count || 0)),
+      ...stats.country_stats.map((c: any) => withSection('Countries', c.country || 'Not Specified', c.count || 0)),
+    ];
+    const trendRows = (stats.weekly_growth || []).map((w: any) => ({
+      Section: 'Trends',
+      Indicator: w.week || 'Week',
+      Value: w.count || 0,
+      'Share (%)': pct(w.count || 0),
+    }));
+
+    const rowsByType: Record<string, any[]> = {
+      summary: [...overviewRows, ...demographicsRows, ...geographyRows, ...trendRows],
+      overview: [...overviewRows, ...geographyRows, ...trendRows],
+      demographics: demographicsRows,
+      geographical: geographyRows,
+      monthly: trendRows,
+    };
+    const kpiRows = rowsByType[type] || rowsByType.summary;
+
+    const { blob, filename, contentType } = await buildExportBlob(
+      `${type}-report`,
+      ['Section', 'Indicator', 'Value', 'Share (%)'],
+      kpiRows,
+      (format === 'csv' ? 'excel' : format) as ExportFormat
+    );
     await recordExport('analytics', format, options, `${(blob.size / 1024).toFixed(1)} KB`);
     return asAxiosBlobResponse(blob, filename, contentType);
   },
